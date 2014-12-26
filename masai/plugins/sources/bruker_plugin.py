@@ -469,6 +469,31 @@ class Bruker(HasTraits):
         # we use the hidden properties because the associated properties is read_only
         self._data_orig = data
 
+    #===========================================================================
+    # multiplicator
+    #===========================================================================
+    def get_multiplicator(self, axis=-1):
+        """
+        Compute a unit multiplicator depending on the unit string, i.e. 'ms'--> 1.e3
+        """
+        if axis == -1:
+            par = self.par
+        else:
+            par = self.par2
+        unit = par.units
+        if par.isfreq:
+            print('this axis is already processed: multiplicator set to 1')
+            return 1.
+        elif unit == 'ms':
+            return 1.e3
+        elif unit == 'us':
+            return 1.e6
+        elif unit == 'sec':
+            return 1.
+        else:
+            print('unknown unit scale')
+            return 1.
+
     # --------------------------------------------------------------------------------------
     def _make_dataframe(self, data):
         """

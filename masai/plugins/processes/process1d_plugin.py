@@ -24,6 +24,7 @@ from __future__ import print_function, division
 # noinspection PyUnresolvedReferences
 from traits.api import (HasTraits, Bool, Any, provides)
 import traits.has_traits
+import string
 
 # ===============================================================================
 # local imports
@@ -87,16 +88,24 @@ class Process1d(HasTraits):
         else:
             raise ValueError("no valid source specified\nUsage: Process1d(fd)")
 
-        # type of transform, by default em+ft+apk
-        transforms = kargs.get('transform', 'em 10Hz; zf 1; ft; apk').lower().split(';')
+        # type of transform, by default em+zf ft+apk
+        transforms = kargs.get('transform', 'em 10; zf; ft; apk').lower().split(';')
 
         def __getargs(txt, **k):
+            """
+            Extract args of a transform command
+            """
             z = trans.split()
             n = None
             if len(z) > 1:
-                n = z[1]
+                n = string.join(z[1:],'+')
             if n:
                 k[txt] = n
+            elif z[0] in ["zf",]:  # special case for zf (0 is the default)
+                k[txt] = 0
+            else:
+                pass
+
             return k
 
         for trans in transforms:
@@ -109,22 +118,18 @@ class Process1d(HasTraits):
             elif 'zf' in trans:
                 kargs = __getargs('nzf', **kargs)
                 zf(source, **kargs)
-                source.history.append('Zero-filling to si:%d' % source.par.SI)
 
             elif 'ft' in trans:
                 kargs = __getargs('si', **kargs)
                 ft(source, **kargs)
-                source.history.append('Fourier transform with si:%d' % source.par.SI)
 
             elif 'apk' in trans:
                 kargs = __getargs('auto', **kargs)
                 apk(source, **kargs)
-                source.history.append('Auto-phasing phc0:%.2f phc1:%.2f' % (source.par.PHC0, source.par.PHC1))
 
             elif 'pk' in trans:
                 #kargs = __getargs('auto', **kargs)
                 pk(source, **kargs)
-                source.history.append('Phasing phc0:%.2f phc1:%.2f' % (source.par.PHC0, source.par.PHC1))
 
 if __name__ == '__main__':
     pass

@@ -1,6 +1,7 @@
-
 import numpy as np
 import pandas as pd
+
+__all__ = ["smooth", ]
 
 def smooth1D(p, window_len=11, window='hanning'):
     """smooth the data using a window with requested size.

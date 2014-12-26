@@ -5,7 +5,6 @@ from __future__ import print_function, division
 #
 # from traits.api import (HasTraits, Instance)
 import numpy as np
-from warnings import warn
 from nmrglue.process.proc_base import largest_power_of_2, zf_size, fft
 # from nmrglue.process.proc_lp import lp as linear_predict
 
@@ -31,7 +30,7 @@ def ft(source, axis=-1, **kargs):
         par = source.par2
 
     if par.isfreq:
-        warn('This source is already transformed: ft skipped!')
+        print('This source is already transformed: ft skipped!')
         return
 
     # data on which we apply ft
@@ -86,6 +85,8 @@ def ft(source, axis=-1, **kargs):
     # change the current data with the transformed data
 
     source.data = data  # scale will be calculated here
+
+    source.history.append('Fourier transform with si:%d' % par.SI)
 
 
 #

@@ -5,13 +5,12 @@ from __future__ import print_function, division
 #
 import numpy as np
 from nmrglue.process.proc_base import ps
-from warnings import warn
 
 from masai.core.fit.optimize import optimize, external
 from masai.core.process.baseline import basecorr
 from masai.core.analysis.picking import picking
 
-
+__all__ = ["apk", "pk", ]
 #
 # apk
 #
@@ -68,7 +67,7 @@ def pk(source, axis=-1, **kargs):
         par = source.par2
 
     if not par.isfreq:
-        warn('This source is not already transformed: are you sure this is what you want?')
+        print('This source is not already transformed: are you sure this is what you want?')
 
     # we will work on the ndarray, not DataFrame
     data = source.data.values
@@ -84,6 +83,7 @@ def pk(source, axis=-1, **kargs):
     if not kargs.get('auto'):
         # not automatic leaves here...
         data = ps(data, phc0, phc1)
+        source.history.append('Phasing phc0:%.2f phc1:%.2f' % (par.PHC0, par.PHC1))
 
     else:
         # APK
@@ -95,15 +95,15 @@ def pk(source, axis=-1, **kargs):
         # store the new phases
         par.PHC0 = phc0
         par.PHC1 = phc1
+        source.history.append('Auto-phasing phc0:%.2f phc1:%.2f' % (par.PHC0, par.PHC1))
 
     # un-transpose the data if needed
     if axis == 0:
         data = data.T
 
-    source.data = data
-
     # apply linear baseline correction
-    # autobase(source, axis=axis)
+    # autobase(data)
+    source.data = data
 
 
 #

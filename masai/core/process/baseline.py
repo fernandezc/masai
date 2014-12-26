@@ -8,7 +8,7 @@ import pandas as pd
 
 from lcslib.process.smooth import smooth
 
-#__all__ = ['autobase', 'basecorr']
+__all__ = ["autobase", "basecorr"]
 
 # =======================================================================================================================
 # autobase

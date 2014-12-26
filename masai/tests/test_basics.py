@@ -80,7 +80,7 @@ def test_open_ser(fd_ser):
 
 def test_process1d(fd_fid):
     fd = fd_fid
-    Process1d(fd, transform='em 100; zf 0; ft; pk')
+    Process1d(fd, transform='em 100; zf 0; ft; apk first negmin')
     Plot1d(fd)
 
 ### PLOTS #####
