@@ -1,6 +1,114 @@
-# =======================================================================================================================
+from __future__ import print_function, division
+
+#
+# imports
+#
+import numpy as np
+from nmrglue.process.proc_base import ps
+from warnings import warn
+
+from masai.core.fit.optimize import optimize, external
+from masai.core.process.baseline import basecorr
+from masai.core.analysis.picking import picking
+
+
+#
+# apk
+#
+def apk(source, axis=-1, **kargs):
+    """
+    Automatic Phasing
+
+    Parameters
+    ----------
+    axis: optional, default -1
+    apkmode: str, optional
+        first, max, col, ... useful for 2D data
+
+    """
+    if axis == -1:
+        par = source.par
+    else:
+        par = source.par2
+
+    if axis != 0:
+        _apk = kargs.get('auto', 'first')
+    else:
+        _apk = kargs.get('auto', 'max')
+
+    kargs['auto'] = _apk
+
+    pk(source, axis=axis, **kargs)
+
+
+#
+# pk
+#
+def pk(source, axis=-1, **kargs):
+    """
+    Automatic or manual phasing
+
+    Parameters
+    ----------
+    use_phc1: bool, optional, default=False
+        also optimize first order phase if True
+    mode: String, optional, default='negmin'
+        method for automatic phase detection: 'negmin', 'entropy', ...
+    entropyd: int, optional, default=2
+        order of derivation for method entropy
+    gamma: float, optional
+        relative weigth for method entropy error with respect to negmin
+    axis: optional, default=-1
+
+    """
+
+    if axis == -1:
+        par = source.par
+    else:
+        par = source.par2
+
+    if not par.isfreq:
+        warn('This source is not already transformed: are you sure this is what you want?')
+
+    # we will work on the ndarray, not DataFrame
+    data = source.data.values
+
+    if axis == 0:
+        # transpose temporarily the data for indirect dimension ft
+        data = data.T
+
+    # get the initial phase setting
+    phc0 = par.PHC0
+    phc1 = par.PHC1
+
+    if not kargs.get('auto'):
+        # not automatic leaves here...
+        data = ps(data, phc0, phc1)
+
+    else:
+        # APK
+        if kargs.get('auto') == 'col':
+            ar = picking(source, kargs.get('thres', 50), index=True)
+            kargs['cols'] = zip(*ar)[0]
+        data, phc0, phc1 = autophase(data, phc0, phc1, **kargs)
+
+        # store the new phases
+        par.PHC0 = phc0
+        par.PHC1 = phc1
+
+    # un-transpose the data if needed
+    if axis == 0:
+        data = data.T
+
+    source.data = data
+
+    # apply linear baseline correction
+    # autobase(source, axis=axis)
+
+
+#
 # autophase
-# =======================================================================================================================
+#
 def autophase(data, phc0=0.0, phc1=0.0, **kargs):
     """
     Automatic phasing of 1D or 2D spectra
@@ -38,13 +146,14 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
     dat = data.copy()
 
     # get keyword parameters
-    #------------------------
+    # ------------------------
     debug = kargs.get('debug', False)
     printflag = kargs.get('prints', False)
 
-    if debug: print('performing autophase')
+    if debug:
+        print('performing autophase')
 
-    apk = kargs.get('apk','first')
+    apk = kargs.get('auto', 'first')
 
     if apk in ['first', 'standard'] or data.shape[0] == 1:
         # select the first row
@@ -67,24 +176,26 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
         dat = np.vstack(l)
 
     # apkmode
-    if debug: print('\napk: ', apk)
-    apkmode = kargs.get('apkmode','negmin + entropy')
-    entropyd = kargs.get('entropyd',1)
+    if debug:
+        print('\napk: ', apk)
+
+    apkmode = kargs.get('apkmode', 'negmin+entropy')
+    entropyd = kargs.get('entropyd', 1)
     gamma = kargs.get('gamma', .1)
     optmode = kargs.get('optmode', 'SIMPLEX')
 
     # baseline mode
-    basemode = kargs.get('basemode','linear')
+    basemode = kargs.get('basemode', 'linear')
     if basemode == 'basf':
-        print ('warning, basemode=basf should be avoided. This can take a very long time')
+        print('warning, basemode=basf should be avoided. This can take a very long time')
 
     # prepare the phase to optimized with bound
-    bp0 = kargs.get('bound_phc0',360.)
+    bp0 = kargs.get('bound_phc0', 360.)
     bp1 = kargs.get('bound_phc1', 10.)
 
     p0s = [phc0, -bp0, bp0]
-    bounds = [p0s[1:],]
-    p =[p0s,]
+    bounds = [p0s[1:], ]
+    p = [p0s, ]
 
     use_phc1 = kargs.get('use_phc1', False)
     if use_phc1:
@@ -92,16 +203,17 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
         p.append(p1s)
         bounds.append(p1s[1:])
 
-    # optimize
-    global ni, NA, S, err
+    # optim
+    global ni, nas, spe, err
     ni = 0
+    err = 0
 
     # internal error function ------------------------------------------------------------------------------------------
-    def _phaseError(p, bounds, s):
+    def _phase_error(p, bounds, s):
 
-        global NA, S, ni, err
+        global nas, spe, ni, err
 
-        #restore the external parameter
+        # restore the external parameter
         pe = []
         for i, x in enumerate(bounds):
             if not isinstance(x, list):
@@ -113,42 +225,42 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
         p0 = pe[0]
 
         sc = s.copy()
-        p1=0.0
+        p1 = 0.0
         if use_phc1:
             p1 = pe[1]
-            sc = ng.process.proc_base.ps(sc, p0, p1)
+            sc = ps(sc, p0, p1)
         else:
-            sc = ng.process.proc_base.ps(sc, p0)
+            sc = ps(sc, p0)
 
         # baseline correction
-        scp = sc - basecorr(sc, basetype=basemode, **kargs )
+        scp = sc - basecorr(sc, basetype=basemode, **kargs)
 
         # Negative area minimization
-        NA = 1.
-        NAm = 1.
+        nas = 1.
+        nam = 1.
         if "negmin" in apkmode:
-            fm = scp[scp.real<=0].real
+            fm = scp[scp.real <= 0].real
             fm = fm - np.min(fm)
-            NA = np.sum(fm**2)
+            nas = np.sum(fm ** 2)
 
             # normalisation
             fp = scp.real
             fp = fp - np.min(fm)
-            NA = NA *100. / (np.sum(fp**2)+1.e-30)
+            nas = nas * 100. / (np.sum(fp ** 2) + 1.e-30)
 
         # entropy minimization
-        S = 1.
+        spe = 1.
         if 'entropy' in apkmode:
-            h = np.diff(scp.real,entropyd)
+            h = np.diff(scp.real, entropyd)
             h = np.abs(h)
             h = abs(h / np.sum(np.abs(h))) + 1.e-30
-            S = -np.sum(h*np.log(h))
+            spe = -np.sum(h * np.log(h))
         ni += 1
-        err = NA + S*gamma
+        err = nas + spe * gamma
 
         return err
 
-    # end _phaseerror function -------------------------------------------------------------------------------------
+    # end _phase_error function -------------------------------------------------------------------------------------
 
     # callback function--------------------------------------------------------
 
@@ -156,33 +268,33 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
         """
         callback print function
         """
-        global NA, S, ni, err
+        global nas, spe, ni, err
         if debug and f is not None:  # hopping
             print("i: %d >>> NA: %.3g, S: %.3g err: %.3g (accepted %d)" % (
-                ni, NA, S, f, int(accepted)))
+                ni, nas, spe, f, int(accepted)))
         if debug and f is None:  # simplex
             print("i: %d >>> NA: %.3g, S: %.3g err: %.3g" % (
-                ni, NA, S, err))
+                ni, nas, spe, err))
 
     # end callback function ---------------------------------------------------
 
     # convergence is not insured depending on the starting values
-    phase, err1 = optimize(_phaseError, p,
+    phase, err1 = optimize(_phase_error, p,
                            args=(bounds, dat), method=optmode,
-                          callback=print_fun)
-    NAsave = NA
-    Ssave = S
+                           callback=print_fun)
+    nasave = nas
+    ssave = spe
     p = phase[:]
 
-    p0s =[(phase[0]-180.)%360.0, -bp0, bp0]
-    phase1 = [p0s,]
-    if len(phase)>1:
-        p1s =[phase[1], -bp1, bp1]
+    p0s = [(phase[0] - 180.) % 360.0, -bp0, bp0]
+    phase1 = [p0s, ]
+    if len(phase) > 1:
+        p1s = [phase[1], -bp1, bp1]
         phase1.append(p1s)
 
     if optmode.upper() != 'HOPPING':
         ni = 0
-        phase2, err2 = optimize(_phaseError, phase1,
+        phase2, err2 = optimize(_phase_error, phase1,
                                 args=(bounds, dat), method=optmode,
                                 callback=print_fun)
 
@@ -190,113 +302,34 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
         p = phase2[:]
         if err2 > err1:
             p = phase[:]
-            NA = NAsave
-            S = Ssave
+            nas = nasave
+            spe = ssave
 
     # extract results
 
-    if printflag: print('Phase:')
+    if printflag:
+        print('Phase:')
     if use_phc1:
         phc0, phc1 = p
-        if printflag: print('phc0', phc0)
-        if printflag: print('phc1', phc1)
+        if printflag:
+            print('phc0', phc0)
+        if printflag:
+            print('phc1', phc1)
     else:
         phc0 = p[0]
-        if printflag: print('phc0', phc0 )
-        if printflag: print('phc1', phc1, 'not optimized')
+        phc1 = 0.0
+        if printflag:
+            print('phc0', phc0)
+        if printflag:
+            print('phc1', phc1, 'not optimized')
 
-    if printflag: print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g'%(NA, S*gamma))
+    if printflag:
+        print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
 
-    #apply to the original data and return
-    data = ng.process.proc_base.ps(data, phc0, phc1)
+    # apply to the original data and return
+    data = ps(data, phc0, phc1)
     return data, phc0, phc1
 
-#===============================================================================
-# pk
-# ===============================================================================
-def pk(source, axis=-1, **kargs):
-    """
-    Automatic or manual phasing
 
-    Parameters
-    ----------
-    apk: bool, optional
-        automatic phasing if True
-        * for 2D spectra:
-            * if True, the phasing is automatic on all rows
-            * if first, only the first row is phased and the phase applied to the whole 2D spectrum
-    use_phc1: bool, optional, default=False
-        also optimize first order phase if True
-    mode: String, optional, default='negmin'
-        method for automatic phase detection: 'negmin', 'entropy', ...
-    entropyd: int, optional, default=2
-        order of derivation for method entropy
-    gamma: float, optional
-        relative weigth for method entropy error with respect to negmin
-    axis: optional, default=-1
-
-    """
-
-    # automatic phasing?
-    apk = False
-    apk = kargs.get('apk', None)
-
-    # we will work on the ndarray, not DataFrame
-    data = source.data.values
-
-    # get the initial phase setting
-    phc0 = source.fetchPar('PHC0', axis=axis)
-    phc1 = source.fetchPar('PHC1', axis=axis)
-
-    if apk is None:
-        # not automatic leaves here...
-        source.history.append('pk %s' % axis)
-        if axis == 0 and source.is_2D:
-            data = ng.process.proc_base.ps(data.T, phc0, phc1).T
-        else:
-            data = ng.process.proc_base.ps(data, phc0, phc1)
-
-    else:
-        # APK -----
-        source.history.append('apk %s' % axis)
-
-        if axis == -1 or axis == 1:
-            data, phc0, phc1 = autophase(data, phc0, phc1, **kargs)
-        else:
-            if apk == 'col':
-                ar = pick(source, kargs.get('thres', 50), index=True)
-                kargs['cols'] = zip(*ar)[0]
-            data, phc0, phc1 = autophase(data.T, phc0, phc1, **kargs)
-            data = data.T
-
-        # store the new phases
-        source.storePar('PHC0', phc0, axis=axis)
-        source.storePar('PHC1', phc1, axis=axis)
-
-    source.data[:] = data
-
-    # apply linear baseline correction
-    autobase(source)
-
-
-#===============================================================================
-# apk
-#===============================================================================
-def apk(source, axis=-1, **kargs):
-    """
-    Automatic Phasing
-
-    Parameters
-    ----------
-    axis: optional, default -1
-    kargs: optional arguments, see 'pk'
-
-    """
-    if axis != 0:
-        apk = kargs.get('apk', kargs.get('apk2', 'first'))
-        kargs['apk'] = apk
-    else:
-        apk1 = kargs.get('apk1', 'max')
-        kargs['apk'] = apk1
-
-    pk(source, axis=axis, **kargs)
+if __name__ == '__main__':
+    optimize()

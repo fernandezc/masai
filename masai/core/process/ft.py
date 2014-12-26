@@ -9,7 +9,7 @@ from warnings import warn
 from nmrglue.process.proc_base import largest_power_of_2, zf_size, fft
 # from nmrglue.process.proc_lp import lp as linear_predict
 
-
+__all__ = ["ft", ]
 #
 # Fourier transform (ft)
 #
@@ -57,7 +57,7 @@ def ft(source, axis=-1, **kargs):
             data = data[:tdeff]
 
     # zero filling (SI is taken at least taken
-    #  as the nearest power of two from TDeff)
+    # as the nearest power of two from TDeff)
 
     si = kargs.get("si", par.SI)
     if isinstance(si, str) and "k" in si:
@@ -68,13 +68,13 @@ def ft(source, axis=-1, **kargs):
 
     # now perform the fft
 
-    data = fft(data)
+    data = fft(data) #/float(si)
 
     # store the new pars
 
     par.TDeff = tdeff
     par.SI = data.shape[-1]
-    par.REVERSE = True
+    par.REVERSE = False
     par.isfreq = True
     par.units = 'ppm'
 
@@ -176,7 +176,7 @@ def xf1(source, **kargs):
         ratio = k_ratio(source, p, q)
 
         # shearing phase
-        p1 = -2.*np.pi * ratio * sw / sw1 / float(si)
+        p1 = -2. * np.pi * ratio * sw / sw1 / float(si)
 
         dra = abs(ratio - p)
 
@@ -195,23 +195,22 @@ def xf1(source, **kargs):
         bf11 = bf1 * dra
         sr = (sf - bf1) * 1.e6
         sr1 = sr * dra
-        p0 = -2.*np.pi * shift * sfo11 / sw1
+        p0 = -2. * np.pi * shift * sfo11 / sw1
         bf11 += sr1 * 1.e-6 - shift * sfo11 * 1.e-6  # * ftppi
         sf1 = bf11
 
     source.storePar('SFO1', sfo11, axis=0)
     source.storePar('BF1', bf11, axis=0)
-    source.storePar('SF',  sf1, axis=0)
-    source.storePar('O1', (sfo11 - bf11)*1.0e6, axis=0)
+    source.storePar('SF', sf1, axis=0)
+    source.storePar('O1', (sfo11 - bf11) * 1.0e6, axis=0)
 
     # shearing and/or shift
     if shearing is not None or shift != 0.0:
-
         # create a 2D array of phases and performs the phase correction
         data = source.data.T
 
         phases = np.fromfunction(lambda i0, i1:
-            np.exp((p1 * (i0.astype(float) - float(si) / 2.) + p0) * i1.astype(float) * 1.0j),
+                                 np.exp((p1 * (i0.astype(float) - float(si) / 2.) + p0) * i1.astype(float) * 1.0j),
                                  map(float, data.shape), dtype=float)
         data = data * phases
         source.data = data.T

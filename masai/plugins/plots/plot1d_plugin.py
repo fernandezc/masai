@@ -141,7 +141,7 @@ class Plot1d(HasTraits):
         xlim = list(kargs.get('xlim', axe.get_xlim()))
         xlim.sort()
         if hasattr(source, 'par'):
-            reverse = source.par.REVERSE
+            reverse = source.par.isfreq
         else:
             reverse = False
         if kargs.get('reverse', reverse):

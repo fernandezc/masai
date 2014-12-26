@@ -124,7 +124,6 @@ def load_ipython_extension(ipython):
 
 
 if __name__ == '__main__':
-
     import IPython
     IPython.start_ipython(argv=[])
 

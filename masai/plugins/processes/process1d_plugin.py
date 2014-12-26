@@ -100,46 +100,31 @@ class Process1d(HasTraits):
             return k
 
         for trans in transforms:
-            if 'zf' in trans:
+
+            if 'em' in trans:
+                kargs = __getargs('lb', **kargs)
+                em(source, **kargs)
+                source.history.append('Exponential apodization lb:%.2f' % source.par.LB)
+
+            elif 'zf' in trans:
                 kargs = __getargs('nzf', **kargs)
                 zf(source, **kargs)
+                source.history.append('Zero-filling to si:%d' % source.par.SI)
 
             elif 'ft' in trans:
                 kargs = __getargs('si', **kargs)
                 ft(source, **kargs)
-                source.history.append('Fourier transform si:%d' % source.par.SI)
+                source.history.append('Fourier transform with si:%d' % source.par.SI)
+
+            elif 'apk' in trans:
+                kargs = __getargs('auto', **kargs)
+                apk(source, **kargs)
+                source.history.append('Auto-phasing phc0:%.2f phc1:%.2f' % (source.par.PHC0, source.par.PHC1))
+
+            elif 'pk' in trans:
+                #kargs = __getargs('auto', **kargs)
+                pk(source, **kargs)
+                source.history.append('Phasing phc0:%.2f phc1:%.2f' % (source.par.PHC0, source.par.PHC1))
 
 if __name__ == '__main__':
-    """
-    test process1d plugin
-    """
-    # need this to test  directly
-    import pylab as pl
-    import os
-    from masai.plugins.list import Bruker
-    from masai.plugins.list import Plot1d
-
-    Bruker = Bruker()   # necessary for direct call
-    Plot1d = Plot1d()
-    Process1d = Process1d()
-
-    # ******
-
-    DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd = Bruker(path)
-
-    # test plot a Dataframe
-    # Plot1d(fd.data)
-
-    # transform
-    Process1d(fd, transform='em; zf 2; ft; apk')
-
-    # plot a Source
-    ax = Plot1d(fd)  # ,  hold=True)
-    # ax = Plot1d(fd, ax = ax, imag=True, c='orange')
-
-    pl.show()
+    pass

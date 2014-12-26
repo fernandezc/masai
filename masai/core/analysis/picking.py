@@ -1,14 +1,29 @@
 import numpy as np
-import nmrglue as ng
+from nmrglue.analysis.peakpick import pick
 
 
-def pick(source, thres=None, index=False):
+#
+# picking
+#
+def picking(source, thres=None, index=False):
+    """
+
+    Parameters
+    ----------
+    source: source instance
+    thres: float, optional
+        percent of threshold
+    index:
+
+    Returns
+    -------
+    """
     if thres is None:
         thres = 80.
 
     pthres = np.abs(source.data.values).max() * thres / 100.
 
-    ar = ng.analysis.peakpick.pick(np.abs(source.data.values), pthres, table=False)[0]
+    ar = pick(np.abs(source.data.values), pthres, table=False)[0]
 
     if not index:
         x = source.data.columns

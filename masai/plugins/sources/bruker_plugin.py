@@ -185,8 +185,8 @@ class Bruker(HasTraits):
         """
         property getter: Check if the data are 2D or not
         """
-        if self.data is not None:
-            return len(self.data.shape) == 2 and self.data.shape[-2] > 1
+        if self._data is not None:
+            return len(self._data.shape) == 2 and self._data.shape[-2] > 1
         else:
             # check parmode parameters
             if self.par.PARMODE == 1:
@@ -275,6 +275,11 @@ class Bruker(HasTraits):
         """
         read bruker data and parameters
         """
+        # reset
+        self._data = None
+        self.par = None
+        self.par2 = None
+
         # internal funct
         def _get_par_files(_dir, _procno, _processed=False):
             # get all possible parameters files
@@ -357,7 +362,7 @@ class Bruker(HasTraits):
                 data = data.reshape(td1,-1)
             #reduce to td
             ntd = dic['acqus']['TD']/2
-            data = data[...,:ntd]*1.0j
+            data = data[...,:ntd] # necessary for agreement with bruker data and phase
         else:
             dic, data = ng.bruker.read_pdata(npath, procs_files=par_files)
 
@@ -407,8 +412,10 @@ class Bruker(HasTraits):
             dat /= fac
             maxi = np.max(np.abs(dat))
             dat /= maxi
+            adic.par.norm = maxi
             return dat
 
+        data = np.conj(data * 1.0j) # this transformation is to make data coherent with bruker processsing
         data = _norm(data)
 
         # correct some initial values
@@ -467,8 +474,7 @@ class Bruker(HasTraits):
         """
         private function: Transform an array of data to pandas dataframe
         """
-        #is2d = (data.ndim == 2) & (self.par.PARMODE == 1)
-        #is3d = (data.ndim == 3) & (self.par.PARMODE == 2)
+
         is2d = self.is_2d
         is3d = self.is_3d
         if isinstance(data, pd.DataFrame):
