@@ -24,7 +24,7 @@ from __future__ import print_function, division
 # noinspection PyUnresolvedReferences
 from traits.api import (HasTraits, Bool, Any, provides)
 import traits.has_traits
-import string
+import re
 
 # ===============================================================================
 # local imports
@@ -89,47 +89,55 @@ class Process1d(HasTraits):
             raise ValueError("no valid source specified\nUsage: Process1d(fd)")
 
         # type of transform, by default em+zf ft+apk
-        transforms = kargs.get('transform', 'em 10; zf; ft; apk').lower().split(';')
-
-        def __getargs(txt, **k):
-            """
-            Extract args of a transform command
-            """
-            z = trans.split()
-            n = None
-            if len(z) > 1:
-                n = string.join(z[1:],'+')
-            if n:
-                k[txt] = n
-            elif z[0] in ["zf",]:  # special case for zf (0 is the default)
-                k[txt] = 0
-            else:
-                pass
-
-            return k
+        if len(args)>1:
+            transforms = args[1]
+        else:
+            transforms = kargs.get('transform', '-h; em 10; zf; ft; pk --auto')
+        transforms = transforms.lower().split(';')
 
         for trans in transforms:
 
+            p = re.compile('^(\w*)\s(.*)')
+            m = p.match(trans.strip())
+            if m :
+                options = m.group(2)
+            else:
+                options = ''
+
             if 'em' in trans:
-                kargs = __getargs('lb', **kargs)
-                em(source, **kargs)
-                source.history.append('Exponential apodization lb:%.2f' % source.par.LB)
+                em(source, options=trans)
 
             elif 'zf' in trans:
-                kargs = __getargs('nzf', **kargs)
-                zf(source, **kargs)
+                zf(source, options=options)
 
             elif 'ft' in trans:
-                kargs = __getargs('si', **kargs)
-                ft(source, **kargs)
-
-            elif 'apk' in trans:
-                kargs = __getargs('auto', **kargs)
-                apk(source, **kargs)
+                ft(source, options=options)
 
             elif 'pk' in trans:
-                #kargs = __getargs('auto', **kargs)
-                pk(source, **kargs)
+                pk(source, options=options)
+
+            elif 'ab' in trans:
+                ab(source, options=options)
 
 if __name__ == '__main__':
-    pass
+    import os
+    from masai.plugins.list import Bruker
+    from masai.plugins.list import Plot1d
+
+    Bruker = Bruker()
+    Plot1d = Plot1d()
+    Process1d = Process1d()
+
+    # global
+    DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
+    user = 'christian'
+    name = 'example1'
+    expno = 10
+    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
+    fd = Bruker(path)
+    Process1d(fd, "em 50")
+    Process1d(fd, "zf 0")
+    Process1d(fd, "ft")
+    Process1d(fd, "pk -25 0 --auto --use_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
+    Process1d(fd, "ab --mode poly")
+    Plot1d(fd)

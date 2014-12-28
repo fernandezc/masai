@@ -4,46 +4,21 @@ from __future__ import print_function, division
 # imports
 #
 import numpy as np
+import argparse
+
 from nmrglue.process.proc_base import ps
 
 from masai.core.fit.optimize import optimize, external
 from masai.core.process.baseline import basecorr
 from masai.core.analysis.picking import picking
 
-__all__ = ["apk", "pk", ]
-#
-# apk
-#
-def apk(source, axis=-1, **kargs):
-    """
-    Automatic Phasing
+__all__ = ["pk", ]
 
-    Parameters
-    ----------
-    axis: optional, default -1
-    apkmode: str, optional
-        first, max, col, ... useful for 2D data
-
-    """
-    if axis == -1:
-        par = source.par
-    else:
-        par = source.par2
-
-    if axis != 0:
-        _apk = kargs.get('auto', 'first')
-    else:
-        _apk = kargs.get('auto', 'max')
-
-    kargs['auto'] = _apk
-
-    pk(source, axis=axis, **kargs)
-
-
+DEBUG = False
 #
 # pk
 #
-def pk(source, axis=-1, **kargs):
+def pk(source, options= '', axis=-1):
     """
     Automatic or manual phasing
 
@@ -80,95 +55,94 @@ def pk(source, axis=-1, **kargs):
     phc0 = par.PHC0
     phc1 = par.PHC1
 
-    if not kargs.get('auto'):
+    # options evaluation
+    parser = argparse.ArgumentParser(description='PK processing.')
+    # positional arguments
+    parser.add_argument('phases', default=(phc0,phc1), nargs='*', type=float, help='zero and first order phase')
+    parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode' )
+    parser.add_argument('--use_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
+    parser.add_argument('--ediff', '-ef', default=1, type=int, help='order of the derivative for entropy calculation', )
+    parser.add_argument('--gamma', '-ga', default=1.0, type=float, help='weight', )
+    parser.add_argument('--select', '-st', default='standard', choices=['standard','max','cols'], help='selection mode in automatic phasing', )
+    parser.add_argument('--threshold', '-th', default=50.0, type=int, help='default threshold for columns selection', )
+    parser.add_argument('--mode', '-m', default='negmin+entropy', help = "position of the top in units of time")
+    parser.add_argument('--optmode', '-om', default='simplex', choices=['simplex','hopping'], help = "method of optimisation")
+    parser.add_argument('--bound_phc0', '-bp0', default=360., type=float, help = "phc0 boundary")
+    parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help = "phc1 boundary")
+
+    parser.add_argument('--verbose', action='store_true', help='verbose flag' )
+    args  = parser.parse_args(options.split())
+
+    phc0, phc1 = args.phases
+
+    if not args.auto:
         # not automatic leaves here...
         data = ps(data, phc0, phc1)
-        source.history.append('Phasing phc0:%.2f phc1:%.2f' % (par.PHC0, par.PHC1))
+        source.history.append('Phasing phc0:%.2f phc1:%.2f' % (phc0, phc1))
 
     else:
-        # APK
-        if kargs.get('auto') == 'col':
-            ar = picking(source, kargs.get('thres', 50), index=True)
-            kargs['cols'] = zip(*ar)[0]
-        data, phc0, phc1 = autophase(data, phc0, phc1, **kargs)
+        # APK...
+        if args.select=='cols' and source.is_2d:
+            ar = picking(source, args.threshold, index=True)
+            args.cols = zip(*ar)[0]
+        data, phc0, phc1 = autophase(data, args)
 
-        # store the new phases
-        par.PHC0 = phc0
-        par.PHC1 = phc1
-        source.history.append('Auto-phasing phc0:%.2f phc1:%.2f' % (par.PHC0, par.PHC1))
+        source.history.append('Auto-phasing phc0:%.2f phc1:%.2f' % (phc0, phc1))
+
+    data = data - basecorr(data)
+
+    # store the new phases
+    par.PHC0 = phc0
+    par.PHC1 = phc1
 
     # un-transpose the data if needed
     if axis == 0:
         data = data.T
 
-    # apply linear baseline correction
-    # autobase(data)
     source.data = data
 
 
 #
 # autophase
 #
-def autophase(data, phc0=0.0, phc1=0.0, **kargs):
+def _checkin(ph, bp):
+    if ph<-bp:
+        ph = -bp
+    if ph>bp:
+        ph = bp
+    return ph
+
+def autophase(data, args):
     """
     Automatic phasing of 1D or 2D spectra
-
-    Parameters
-    ----------
-    data: ndarray
-        Complex data to be phased
-    phc0: float, optional
-        Zero-order phase
-    phc1: float, optional
-        First-order phase
-    apk: any, optional, default is 'first'
-        If 'first', only the first raw is taken into account for phasing
-        If 'proj', phase is calculated on the projection
-    apkmode: string, optional
-        Method of optimization among 'negmin' or 'entropy'. Default is 'negmin+entropy'
-    entropyd: int, optional, default is 1
-        Order of the derivative to use for the calculation of the entropy
-    gamma: float, optional, default is .1
-        Weight of the 'entropy' optimization relative to the 'negmin' optimization
-    print: bool, optional, default is False
-      If True some results information are printed
-
-    Returns
-    -------
-    data: ndarray
-        phased data
-    phc0: float
-        New phc0 phase
-    phc1: float
-        New phc1 phase
-
     """
+
     dat = data.copy()
 
-    # get keyword parameters
-    # ------------------------
-    debug = kargs.get('debug', False)
-    printflag = kargs.get('prints', False)
+    # get parameters
+    # --------------
+    phc0, phc1 = args.phases
 
-    if debug:
+    verbose = args.verbose
+
+    if DEBUG:
         print('performing autophase')
 
-    apk = kargs.get('auto', 'first')
+    select = args.select
 
-    if apk in ['first', 'standard'] or data.shape[0] == 1:
+    if select == 'standard' or data.shape[0] == 1:
         # select the first row
         dat = dat[0]
-        if data.shape[0] == 1:
-            apk = 'standard'
+        select = 'standard'
 
-    if apk == 'max' and data.ndim > 1:
+    if select == 'max' and data.ndim > 1:
         i, j = np.unravel_index(data.real.argmax(), data.shape)
         dat = data[i]
 
-    if apk == 'col' and data.ndim > 1:
+    if select == 'cols' and data.ndim > 1:
         l = []
-        cols = kargs['cols']
-        if printflag:
+        cols = args.cols
+        if verbose:
             print('columns selected:', cols)
         for col in cols:
             i = int(col)
@@ -176,29 +150,25 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
         dat = np.vstack(l)
 
     # apkmode
-    if debug:
-        print('\napk: ', apk)
+    if DEBUG:
+        print('\nselect: ', select)
 
-    apkmode = kargs.get('apkmode', 'negmin+entropy')
-    entropyd = kargs.get('entropyd', 1)
-    gamma = kargs.get('gamma', .1)
-    optmode = kargs.get('optmode', 'SIMPLEX')
-
-    # baseline mode
-    basemode = kargs.get('basemode', 'linear')
-    if basemode == 'basf':
-        print('warning, basemode=basf should be avoided. This can take a very long time')
+    mode = args.mode
+    ediff = args.ediff
+    gamma = args.gamma
+    optmode = args.optmode
 
     # prepare the phase to optimized with bound
-    bp0 = kargs.get('bound_phc0', 360.)
-    bp1 = kargs.get('bound_phc1', 10.)
-
+    bp0 = args.bound_phc0
+    bp1 = args.bound_phc1
+    phc0 = _checkin(phc0, bp0)
     p0s = [phc0, -bp0, bp0]
     bounds = [p0s[1:], ]
     p = [p0s, ]
 
-    use_phc1 = kargs.get('use_phc1', False)
+    use_phc1 = args.use_phc1
     if use_phc1:
+        phc1 = _checkin(phc1, bp1)
         p1s = [phc1, -bp1, bp1]
         p.append(p1s)
         bounds.append(p1s[1:])
@@ -233,12 +203,12 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
             sc = ps(sc, p0)
 
         # baseline correction
-        scp = sc - basecorr(sc, basetype=basemode, **kargs)
+        scp = sc - basecorr(sc)
 
         # Negative area minimization
-        nas = 1.
-        nam = 1.
-        if "negmin" in apkmode:
+        nas = 0.
+        nam = 0.
+        if "negmin" in mode:
             fm = scp[scp.real <= 0].real
             fm = fm - np.min(fm)
             nas = np.sum(fm ** 2)
@@ -249,9 +219,9 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
             nas = nas * 100. / (np.sum(fp ** 2) + 1.e-30)
 
         # entropy minimization
-        spe = 1.
-        if 'entropy' in apkmode:
-            h = np.diff(scp.real, entropyd)
+        spe = 0.
+        if 'entropy' in mode:
+            h = np.diff(scp.real, ediff)
             h = np.abs(h)
             h = abs(h / np.sum(np.abs(h))) + 1.e-30
             spe = -np.sum(h * np.log(h))
@@ -269,10 +239,10 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
         callback print function
         """
         global nas, spe, ni, err
-        if debug and f is not None:  # hopping
+        if DEBUG and f is not None:  # hopping
             print("i: %d >>> NA: %.3g, S: %.3g err: %.3g (accepted %d)" % (
                 ni, nas, spe, f, int(accepted)))
-        if debug and f is None:  # simplex
+        if DEBUG and f is None:  # simplex
             print("i: %d >>> NA: %.3g, S: %.3g err: %.3g" % (
                 ni, nas, spe, err))
 
@@ -307,23 +277,23 @@ def autophase(data, phc0=0.0, phc1=0.0, **kargs):
 
     # extract results
 
-    if printflag:
+    if verbose:
         print('Phase:')
     if use_phc1:
         phc0, phc1 = p
-        if printflag:
+        if verbose:
             print('phc0', phc0)
-        if printflag:
+        if verbose:
             print('phc1', phc1)
     else:
         phc0 = p[0]
         phc1 = 0.0
-        if printflag:
+        if verbose:
             print('phc0', phc0)
-        if printflag:
+        if verbose:
             print('phc1', phc1, 'not optimized')
 
-    if printflag:
+    if verbose:
         print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
 
     # apply to the original data and return

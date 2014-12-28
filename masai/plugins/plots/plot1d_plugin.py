@@ -21,6 +21,7 @@ from __future__ import print_function, division
 #
 # Python imports
 #
+from IPython.display import display, display_pretty
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Any, provides)
 from pandas import DataFrame
@@ -63,11 +64,30 @@ class Plot1d(HasTraits):
 
     # -------------------------------------------------------------------------------
     def print_doc(self):
-        return self.description
+        return display(self.description)
 
     # -------------------------------------------------------------------------------
     def help(self):
         return self.__call__.__doc__
+
+    def _repr_html_(self):
+        import re
+        import string
+        p = re.compile("(.*:)?(.*)", re.MULTILINE)
+        m = p.findall(self.__call__.__doc__)
+        html = ""
+        start = False
+        for mg in m:
+            if mg[0].strip() != "":
+                html += "<b>%s</b>:%s<br/>" % mg
+            else:
+                s = string.join(mg," ")
+                if s.strip() and start:
+                    html += "&nbsp;"*4+"%s<br/>" % s
+                if "----" in s:
+                    start = True
+                    html = "<h3>Parameters</h3>"
+        return html
 
     # *******************************************************************************
     # Private functions
@@ -75,8 +95,7 @@ class Plot1d(HasTraits):
 
     # -------------------------------------------------------------------------------
     def __call__(self, *args, **kargs):
-        """Plot a 1D source
-        or with minimal additional information such as labels a DataFrame
+        """ Plot a 1D source
 
         Parameters
         ----------
@@ -100,7 +119,7 @@ class Plot1d(HasTraits):
             line style definition
         xlabel: str, optional
             label on the horizontal axis
-        ylabel: str, optional
+        zlabel or ylabel: str, optional
             label on the vertical axis
         showz: bool, optional, default=True
             should we show the vertical axis
@@ -125,11 +144,11 @@ class Plot1d(HasTraits):
         # setup figure and axes
         figsize = kargs.get('figsize', (6.8, 3.4))
 
-        if 'ax' not in kargs.keys():
+        if 'axe' not in kargs.keys():
             fig = pl.figure(figsize=figsize)
             axe = fig.add_subplot(1, 1, 1)
         else:
-            axe = kargs.get('ax')
+            axe = kargs.get('axe')
 
         # data
         x = data.columns.values
@@ -140,6 +159,10 @@ class Plot1d(HasTraits):
         # limits of the spectra
         xlim = list(kargs.get('xlim', axe.get_xlim()))
         xlim.sort()
+        xl = [x[0], x[-1]]
+        xl.sort()
+        xlim[-1] = min(xlim[-1], xl[-1])
+        xlim[0] = max(xlim[0], xl[0])
         if hasattr(source, 'par'):
             reverse = source.par.isfreq
         else:
@@ -168,7 +191,7 @@ class Plot1d(HasTraits):
             xlabel = source.par.label
         axe.set_xlabel(xlabel)
 
-        zlabel = kargs.get('zlabel', axe.get_ylabel())
+        zlabel = kargs.get('zlabel', kargs.get('ylabel', axe.get_ylabel()))
         if not zlabel:
             zlabel = r'$\mathrm{intensity\,(a.u.)}$'
 

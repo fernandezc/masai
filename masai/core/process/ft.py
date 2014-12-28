@@ -5,6 +5,7 @@ from __future__ import print_function, division
 #
 # from traits.api import (HasTraits, Instance)
 import numpy as np
+import argparse
 from nmrglue.process.proc_base import largest_power_of_2, zf_size, fft
 # from nmrglue.process.proc_lp import lp as linear_predict
 
@@ -12,7 +13,7 @@ __all__ = ["ft", ]
 #
 # Fourier transform (ft)
 #
-def ft(source, axis=-1, **kargs):
+def ft(source, options='', axis=-1):
     """
     Fourier transform along one axis (limited to 1D et 2D data)
 
@@ -40,15 +41,21 @@ def ft(source, axis=-1, **kargs):
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
+    # options evaluation
+    parser = argparse.ArgumentParser(description='FT processing.', usage = 'ft [-h] [--si [SI]] [--tdeff [TDEFF]]')
+    # positional arguments
+    parser.add_argument('--si',  nargs='?', help='size of fourier transform')
+    parser.add_argument('--tdeff', default=0,  nargs='?', type=int, help='size of fourier transform')
+    args  = parser.parse_args(options.split())
     # read parameters TDeff and SI
 
-    tdeff = kargs.get('tdeff', par.TDeff)
-    if tdeff > par.TD or tdeff < 8:
+    tdeff = args.tdeff #kargs.get('tdeff', par.TDeff)
+    if tdeff > par.TD or tdeff < 4:
         tdeff = par.TD
 
     # retain only TDeff points only (if TDeff if at least 2)
 
-    if tdeff > 2:
+    if tdeff > 4:
         tdeff = min(tdeff, data.shape[-1])
         if data.ndim > 1:
             data = data[:, :tdeff]
@@ -58,12 +65,17 @@ def ft(source, axis=-1, **kargs):
     # zero filling (SI is taken at least taken
     # as the nearest power of two from TDeff)
 
-    si = kargs.get("si", par.SI)
-    if isinstance(si, str) and "k" in si:
+    si = args.si #kargs.get("si", par.SI)
+    if si and isinstance(si, str) and "k" in si:
         si = eval(si.replace("k", "*2**10"))
 
-    si = largest_power_of_2(si)
+    if si is None:
+        si = par.TD
+
+    si = int(si)
+    si = largest_power_of_2(max(si, par.TD))
     data = zf_size(data, si)
+
 
     # now perform the fft
 

@@ -4,6 +4,7 @@ from traits.api import (HasTraits, Instance)
 
 import numpy as np
 import pandas as pd
+import argparse
 
 # import nmrglue as ng
 # from nmrglue.process.proc_lp import lp as linear_predict
@@ -15,7 +16,7 @@ __all__ = ["em", "zf",]
 #
 # zf : zero-filling
 #
-def zf(source, axis=-1, **kargs):
+def zf(source, options='', axis=-1):
     """
     Zero filling
 
@@ -45,8 +46,15 @@ def zf(source, axis=-1, **kargs):
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
-    n = int(kargs.get('nzf', 0))
-    si = largest_power_of_2(data.shape[-1]) * 2**n
+    # options evaluation
+    parser = argparse.ArgumentParser(description='ZF processing.',
+                                     usage="""zf [nzf]""",)
+    # positional arguments
+    parser.add_argument('nzf', default=0,  nargs='?', type=int, help='number of zero-filling')
+    args  = parser.parse_args(options.split())
+
+    nzf = args.nzf
+    si = largest_power_of_2(data.shape[-1]) * 2**nzf
     data = zf_size(data, si)
 
     # store the new pars
@@ -65,7 +73,7 @@ def zf(source, axis=-1, **kargs):
 #
 # em
 #
-def em(source, axis=-1, **kargs):
+def em(source, options='', axis=-1, **kargs):
     """
     apodisation function multiplication
 
@@ -95,53 +103,49 @@ def em(source, axis=-1, **kargs):
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
-    lb = float(kargs.get('lb', 10.))
-    top = float(kargs.get('top', 0.0))
-    method = kargs.get('method', None)
+    # options evaluation
+    parser = argparse.ArgumentParser(description='EM processing.')#,
+                                     ##usage="""[k_shifted_]em [lb] [--[k_]shifted [val]] [--verbose]""",)
+    # positional arguments
+    parser.add_argument('command', default='em', choices=['em', 'k_shifted_em'], help='broadening command')
+    parser.add_argument('lb', default=10.,  nargs='?', type=float, help='broadening value in Hz')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--shifted', default=0.0, type=float, help = "position of the top in units of time")
+    group.add_argument('--k_shifted', default=[3.0, 0.0], type=float, nargs=2, help = "p,q to compute the k-ratio for shifting")
+    # optional arguments
+    parser.add_argument('--verbose', action='store_true', help='verbose flag' )
+    args  = parser.parse_args(options.split())
 
-    func = kargs.get('func', 'em_func')
+    lb = args.lb # float(kargs.get('lb', 10.))
+    shifted = args.shifted #float(kargs.get('top', 0.0))
+    k_shifted = args.k_shifted
 
-    if method == 'fullecho' and (axis == -1 or axis == 1):
-
-        if not top:
-            # id the parameter does not exist none should be return
-            print("Fullecho but 'top' is 0.")
-            top = 0.0
-
-    elif method == 'k_shifted' and (axis == -1 or axis == 1) and source.is_2d:
+    if args.command in ['k_shifted_em'] and (axis == -1 or axis == 1) and source.is_2d:
         # in k shifted method for 2D spectra, the top of
         # the broadening function follow the top of the echoes
         # parameters p and q should be defined in parameters
 
-        p = source.par.coherence_order # coherence
-        q = source.par.satellite_order # satellite order
+        p = k_shifted[0] # coherence
+        q = k_shifted[1] # satellite order
 
-        if p is None or q is None:
-            # id the parameter does not exist none should be return
-            print("k_shifted method requires keys: 'coherence_order' and 'satellite_order' in parameters")
-            return # abandon broadening
-
-        top = np.abs(k_ratio(source, p, q))
-        func = "k_shifted_%s" % func
-
-    else:
-        method = 'conventional'
-        top = 0.0
+        shifted = np.abs(k_ratio(source, p, q))
+        if args.verbose:
+            print('k_ratio: %.3f' % k_ratio)
 
     par.LB = lb
 
-
     kargs['lb'] = lb / source.get_multiplicator(axis)
-    kargs['top'] = top
+    kargs['shifted'] = shifted
     kargs['states'] = True if 'STATES' in par.fnmode else False
 
-    data = _apodization(data, func, **kargs)
+    data = _apodization(data, args.command, **kargs)
 
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
     source.data = data
+    source.history.append('Exponential apodization lb:%.2f' % par.LB)
 
 #
 # apodization
@@ -171,9 +175,9 @@ class ApodModels(HasTraits):
     data = Instance(pd.DataFrame)
 
     #===============================================================================
-    # em_func
+    # em
     #===============================================================================
-    def em_func(self, **kargs):
+    def em(self, **kargs):
         """
         Calculate an exponential apodization fonction
 
@@ -193,16 +197,16 @@ class ApodModels(HasTraits):
         """
 
         lb = float(kargs.get('lb'))
-        top = float(kargs.get('top'))
+        shifted = float(kargs.get('shifted'))
 
         x = self.data.columns.values
 
-        return np.exp(-np.pi * np.abs(x - top) * lb)
+        return np.exp(-np.pi * np.abs(x - shifted) * lb)
 
     #===============================================================================
-    # k_shifted_em_func
+    # k_shifted_em
     #===============================================================================
-    def k_shifted_em_func(self, **kargs):
+    def k_shifted_em(self, **kargs):
         """
         Calculate a shifted exponential apodization fonction
 
@@ -227,13 +231,13 @@ class ApodModels(HasTraits):
             raise Exception('only work for two dimensional data')
 
         lb = float(kargs.get('lb'))
-        top = float(kargs.get('top'))
+        shifted = float(kargs.get('shifted'))
         states = kargs.get('states', True)
 
         x = data.columns.values
         y = data.index.values
 
-        ratio = abs(top)
+        ratio = abs(shifted)
         # ratio must be converted in points ratio
         r = (y[1]-y[0])/(x[1]-x[0])
         ratio = ratio * r
