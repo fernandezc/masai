@@ -174,13 +174,14 @@ class Bruker(HasTraits):
         return pd.DataFrame(j, y, x)
 
     # Spin --------------------------------------------------------------------------
-    spin = Property
-
-    def _get_spin(self, axis=-1):
-        nucleus = [self.par2.NUC2, self.par.NUC1][axis]
+    def get_spin(self, axis=-1):
+        if self.is_2d:
+            nucleus = [self.par2.NUC2, self.par.NUC1][axis]
+        else:
+            nucleus = self.par.NUC1
         return Isotopes(nucleus).spin
 
-    # is 2d ------------------------------------------------------------------------
+    # is 2d -----------------------------------------------------------------------
     is_2d = Property
 
     def _get_is_2d(self):

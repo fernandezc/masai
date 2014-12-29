@@ -48,30 +48,6 @@ from masai.core.utils import DEnum
 #===============================================================================
 logger = logging.getLogger()
 
-#===============================================================================
-# constants
-#===============================================================================
-FIXED=True
-
-doc_params = """
-#-----------------------------------------------------------
-# syntax for parameters definition:
-# name: value, low_bound,  high_bound
-#  * for fixed parameters
-#  $ for variable parameters
-#  > for reference to a parameter in the COMMON block
-#    (> is forbidden in the COMMON block)
-# common block parameters should not have a _ in their names
-#-----------------------------------------------------------
-"""
-
-default_params_script = """
-COMMON:
-# common parameters ex.
-# $ gwidth: 1.0, 0.0, none
-# $ gratio: 0.5, 0.0, 1.0
-
-"""
 #===========================================================================
 # id_generator
 #===========================================================================
@@ -94,7 +70,7 @@ id_generator = _id_generator()
 #===============================================================================
 # FitParameters
 #===============================================================================
-#TODO: Traitify
+
 class FitParameters(UserDict):
     """
     Allow passing a dictionary of parameters with additional properties
@@ -293,7 +269,7 @@ class FitSteps(UserDict):
                 m = p.search(k)
                 if m: self.fixed[step][k] = False
         else:
-            raise ValueError, "FitStep["+str(step)+"]: Can't reconize this input!"
+            raise ValueError, "FitStep["+str(step)+"]: Can't recognize this input!"
 
     def __getitem__(self, step):
         return self.fixed[step]
@@ -310,36 +286,27 @@ class ParameterScript(HasTraits):
     fd = Instance(IPlugin)
     fp = Instance(FitParameters)
         
-    script_filename = Str('')
     script = Str('')
 
     _list_of_models = Property(depends_on = "fd")
     modeltype = DEnum(values_name='_list_of_models')
-    addmodel = Button('ADD LINE')
 
     _list_of_baselines = Property(depends_on = "fd")
     basetype = DEnum(values_name='_list_of_baselines')
-    addbase = Button('ADD BASELINE')
-
-    updated = Event   
-    
-    lastparfailure = Instance(Exception,allow_none=True) 
 
     
     #===========================================================================
     # properties
     #===========================================================================
-    #@cached_property
     def _get__list_of_models(self):
         """
         Return a list of available model type, eg. voigtmodel ...
         depending on the type of experiments and the spin numbers
         """
-        nd = self.fd.ndims
-        spin = self.fd.NUC1[-1].spin
+        nd = 2 if self.fd.is_2d else 1
+        spin = self.fd.get_spin()
         return list_of_models(nd, spin)
 
-    #@cached_property
     def _get__list_of_baselines(self):
         """
         Return a list of available model type, eg. voigtmodel ...
@@ -348,158 +315,14 @@ class ParameterScript(HasTraits):
         """
         nd = self.fd.ndims
         return list_of_baselines(nd)
-    
-    #===========================================================================
-    # view
-    #===========================================================================
-    def default_traits_view(self):        
-        return View(
-#                Group( 
-                      Item('content',
-                                  show_label=False,
-                                  style='custom',
-                                  #height=400,
-                                  editor=CodeEditor(auto_set=True),
-                        ),
-                        HGroup(
-                              Item('addmodel', 
-                                   show_label=False,),
-                              Item('modeltype', 
-                                   label='model type',),
-                              visible_when='modeltype is not None and not lastparfailure'
-                        ),
-                        HGroup(
-                              Item('addbase', 
-                                   show_label=False,),
-                              Item('basetype', 
-                                   label='baseline',),
-                              visible_when='basetype is not None and not lastparfailure'
-                        ),
-                        Item('lastparfailure',
-                             show_label=False, 
-                             visible_when='lastparfailure', 
-                             style='readonly', 
-                             emphasized=True),
-#                    ),
-                    resizable=True,
-                )
-        
-    @on_trait_change('fd')
-    def _fdchanged(self):
-        """
-        This event is fired when the source is first defined or changed
-        """
-        logger.debug("initialisation of parameter class")
-        
-        #try to load a previously open parameter script file
-        self.scriptfilename = os.path.join(self.fd.path, "param.fit")
-        if os.path.exists(self.scriptfilename):
-            #if it is found, set content  
-            with open(self.scriptfilename, 'rb') as f:
-                self.content = f.read()
-        else:
-            #else, we load some default script
-            self.content = default_params_script
-        
-        # define a timer
-        if not self.timer:
-            self.timer = Timer(3.0, self._check_parameters)
-            self.timer.start()
-            
+
+    @on_trait_change('script')
     def _check_parameters(self):
         """
         Check the validity of the parameters
         """
-        try:
-            self.lastparfailure = None
-            if self.content != self.savecontent:
-                logger.debug("parameters: content updated")
-                self.fp = self._interpret(self.content)
-                self._save_parameters()
-                self.updated = True
-            self.savecontent = self.content
-            return True
-        except Exception,e:
-            self.lastparfailure = e
-            logger.error(e)
-            return False
-        
-    def _save_parameters(self):
-        """
-        Save the content to a file
-        """   
-        if self.scriptfilename and not self.lastparfailure:  
-            logger.debug("parameters: content saved")
-            f = open(self.scriptfilename, 'wb')
-            f.write(self.content)
-            f.close()            
+        self.fp = self._interpret(self.script)
 
-#    @on_trait_change('content')
-#    def _update_parameters(self, name, old, new):
-#        """
-#        fired if some changes are detected in the script content
-#        """        
-#        if self._check_parameters():
-#            logger.debug("parameters: content updated")
-#            self._save_parameters()   
-         
-    def _addmodel_fired(self, baseline=False):
-        """
-        Add action fired. We import the required model and some parameters
-        before writing in the script content
-        """
-        self.fd.show_model=True
-        
-        module = importlib.import_module("masai.modelling.models")
-        if not baseline:
-            class_ = getattr(module, self.modeltype)
-        else:
-            class_ = getattr(module, self.basetype)
-        script = class_().script
-        
-        # we determine some parameters from the source data
-        uc = self.fd.units
-        x = uc[-1].ppm_scale() # scale in ppm
-        y = self.fd.data.real # np.abs(self.fd.data[lx/4:-lx/4])
-        try:
-            ym = self.fd.modeldata[-1]
-            y = y-ym
-        except:
-            pass
-        ampl = np.max(y)
-        argm = np.argmax(y) #+lx/4
-        pos = x[argm]
-        poslb, poshb = uc[-1].ppm_limits()
-        w= np.argwhere(y > ampl/2.)
-        wmin = np.min(w) #+lx/4
-        wmax = np.max(w) #+lx/4
-        xm = min( abs(x[wmax] - pos), abs(x[wmin] - pos))
-        width = xm * 2. # sigma corresponding to the FWHM
-#        #correct the ampl to take into account the width
-        delta = abs(x[1]-x[0])
-        ampl = ampl * np.pi * width /2. /delta
-        newid = id_generator.next()
-        #try to get the amplitude for polynomial baseline
-        a = y[0]
-        b = y[np.argmin(y)]
-        scale = abs(a-b)/abs(x[0]-x[np.argmin(y)])**2/ampl/10.
-        name = 'line'
-        if baseline:
-            name='baseline'
-        while '%s%d'%(name,newid) in self.fp.models:
-            newid = id_generator.next()
-            
-        #norm the amplitude
-        ampl = ampl/self.fd.norm
-        self.content += "\n" + script % {"id":newid, "width":width, "ampl":ampl, 
-                         "pos":pos, "poslb":poslb, "poshb":poshb, 'scale':scale}
-
-    def _addbase_fired(self):
-        """ Add baseline action fired. We import the required model and some parameters
-        before writing in the script content
-        """
-        self._addmodel_fired(baseline=True)
-        
     def _interpret(self, script):
         """
         Interpreter of the script content 

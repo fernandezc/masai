@@ -739,7 +739,7 @@ class FitController(HasTraits):
                                 self.fp.upb[key], self.fp.fixed[key])
 
         # update the paramscript content
-        self.paramscript.content = str(self.fp)
+        self.paramscript.script = str(self.fp)
         self._running = False
         self.fd.can_plot=True
         return

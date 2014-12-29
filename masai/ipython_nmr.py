@@ -20,12 +20,16 @@ import numpy as np
 import glob      # Imported for handling command line arguments.
 import sys       # Imported for file directory listing capabilities.
 import os        # Imported for file path manipulation capabilities.
+import logging
 
 from addict import Dict as aDict
 from IPython.core.magic import Magics, magics_class, line_magic
 from IPython.display import display, HTML
 
-DEBUG = False
+LOGLEVEL = logging.INFO
+logger = logging.getLogger()
+logger.setLevel(LOGLEVEL)
+logging.debug(" Debug mode")
 
 #===============================================================================
 # Load all plugins
@@ -50,8 +54,7 @@ def _loadPlugins():
         path, basename = os.path.split(file)
         name = basename.split('_plugin')[0]
 
-        if DEBUG:
-            print ("Loading plugin: " + name)
+        logger.debug(" Loading plugin > " + name)
 
         # Dynamically set the PYTHONPATH so the user doesn't have to. It assumes
         # the plugins are contained in subdirectories where the main file lives.
@@ -107,16 +110,15 @@ def _availablePlugins(dictionary, *types):
 @magics_class
 class NMRMagics(Magics):
     
-    plugs = {}
+    plugins = {}
     
     def __init__(self, *args, **kargs):
         ip = kargs.get('shell')
         self.plugins = _loadPlugins()
         ip.user_ns.update(self.plugins)
-        #print("Variables in the user namespace:", list(ip.user_ns.keys()))
         display(HTML("<p>ipython nmr tools loaded</p>"))
         super(NMRMagics, self).__init__(*args, **kargs)
-        
+
     @line_magic
     def list_plugins(self, line):
         """
