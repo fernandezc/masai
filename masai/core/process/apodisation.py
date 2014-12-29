@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+#
+# ===============================================================================
+# masai.core.process.apodisation
+# ===============================================================================
+# Copyright (C) 2015 Christian Fernandez
+#       Laboratoire Catalyse et Spectrochimie, Caen, France.
+#       christian.fernandez@ensicaen.fr
+# This software is governed by the CeCILL-B license under French law
+# and abiding by the rules of distribution of free software.
+# You can  use, modify and/ or redistribute the software under
+# the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
+# at the following URL "http://www.cecill.info".
+# See Licence.txt in the main masai source directory
+# ===============================================================================
+
 from __future__ import print_function
 
 from traits.api import (HasTraits, Instance)
@@ -16,7 +32,7 @@ __all__ = ["em", "zf",]
 #
 # zf : zero-filling
 #
-def zf(source, options='', axis=-1):
+def zf(source=None, options='', axis=-1):
     """
     Zero filling
 
@@ -30,6 +46,16 @@ def zf(source, options='', axis=-1):
     axis: optional
 
     """
+
+    # options evaluation
+    parser = argparse.ArgumentParser(description='ZF processing.',
+                                     usage="""
+    zf [nzf] [-h]
+    """,)
+    # positional arguments
+    parser.add_argument('nzf', default=0,  nargs='?', type=int, help='number of zero-filling')
+    args  = parser.parse_args(options.split())
+
     if axis == -1:
         par = source.par
     else:
@@ -45,13 +71,6 @@ def zf(source, options='', axis=-1):
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
-
-    # options evaluation
-    parser = argparse.ArgumentParser(description='ZF processing.',
-                                     usage="""zf [nzf]""",)
-    # positional arguments
-    parser.add_argument('nzf', default=0,  nargs='?', type=int, help='number of zero-filling')
-    args  = parser.parse_args(options.split())
 
     nzf = args.nzf
     si = largest_power_of_2(data.shape[-1]) * 2**nzf
@@ -73,7 +92,7 @@ def zf(source, options='', axis=-1):
 #
 # em
 #
-def em(source, options='', axis=-1, **kargs):
+def em(source=None, options='', axis=-1, **kargs):
     """
     apodisation function multiplication
 
@@ -90,6 +109,20 @@ def em(source, options='', axis=-1, **kargs):
     axis: optional, default is -1
 
     """
+    # options evaluation
+    parser = argparse.ArgumentParser(description='EM processing.',
+                                     usage="""
+    em [lb] [-h]
+       [--shifted SHIFTED | --k_shifted P Q] [--verbose]
+    """,)
+    # positional arguments
+    parser.add_argument('lb', default=10.,  nargs='?', type=float, help='broadening value in Hz')
+    parser.add_argument('--shifted', default=0.0, type=float, help = "position of the top in units of time")
+    parser.add_argument('--k_shifted', action='store_true', help = "k-ratio shifting")
+    # optional arguments
+    parser.add_argument('--verbose', action='store_true', help='verbose flag' )
+    args  = parser.parse_args(options.split())
+
     if axis == -1:
         par = source.par
     else:
@@ -103,27 +136,17 @@ def em(source, options='', axis=-1, **kargs):
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
-    # options evaluation
-    parser = argparse.ArgumentParser(description='EM processing.')#,
-                                     ##usage="""[k_shifted_]em [lb] [--[k_]shifted [val]] [--verbose]""",)
-    # positional arguments
-    parser.add_argument('command', default='em', choices=['em', 'k_shifted_em'], help='broadening command')
-    parser.add_argument('lb', default=10.,  nargs='?', type=float, help='broadening value in Hz')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--shifted', default=0.0, type=float, help = "position of the top in units of time")
-    group.add_argument('--k_shifted', default=[3.0, 0.0], type=float, nargs=2, help = "p,q to compute the k-ratio for shifting")
-    # optional arguments
-    parser.add_argument('--verbose', action='store_true', help='verbose flag' )
-    args  = parser.parse_args(options.split())
+    command = 'em'
 
     lb = args.lb # float(kargs.get('lb', 10.))
     shifted = args.shifted #float(kargs.get('top', 0.0))
     k_shifted = args.k_shifted
 
-    if args.command in ['k_shifted_em'] and (axis == -1 or axis == 1) and source.is_2d:
+    if k_shifted and (axis == -1 or axis == 1) and source.is_2d:
         # in k shifted method for 2D spectra, the top of
         # the broadening function follow the top of the echoes
         # parameters p and q should be defined in parameters
+        command ='k_shifted_em'
 
         p = k_shifted[0] # coherence
         q = k_shifted[1] # satellite order
@@ -138,7 +161,7 @@ def em(source, options='', axis=-1, **kargs):
     kargs['shifted'] = shifted
     kargs['states'] = True if 'STATES' in par.fnmode else False
 
-    data = _apodization(data, args.command, **kargs)
+    data = _apodization(data, command, **kargs)
 
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft

@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+#
+# ===============================================================================
+# masai.core.process.baseline
+# ===============================================================================
+# Copyright (C) 2015 Christian Fernandez
+#       Laboratoire Catalyse et Spectrochimie, Caen, France.
+#       christian.fernandez@ensicaen.fr
+# This software is governed by the CeCILL-B license under French law
+# and abiding by the rules of distribution of free software.
+# You can  use, modify and/ or redistribute the software under
+# the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
+# at the following URL "http://www.cecill.info".
+# See Licence.txt in the main masai source directory
+# ===============================================================================
+
 from __future__ import print_function, division
 import sys
 
@@ -16,7 +32,7 @@ DEBUG = False
 # =======================================================================================================================
 # bc
 #=======================================================================================================================
-def ab(source, options='', axis=-1):
+def ab(source=None, options='', axis=-1):
     """
     Automatic baseline correction - spectra are modified inline if apply is true
 
@@ -54,9 +70,13 @@ def ab(source, options='', axis=-1):
 
     """
     # options evaluation
-    parser = argparse.ArgumentParser(description='BC processing.')
+    parser = argparse.ArgumentParser(description='BC processing.', usage="""
+    ab [-h] [--mode {linear,poly, svd}] [--dryrun]
+                           [--window WINDOW] [--step STEP] [--nbzone NBZONE]
+                           [--mult MULT] [--order ORDER] [--verbose]
+    """)
     # positional arguments
-    parser.add_argument('--mode', '-mo', default='linear', choices=['linear', 'poly', '2dsvd'], help = "mode of correction")
+    parser.add_argument('--mode', '-mo', default='linear', choices=['linear', 'poly', 'svd'], help = "mode of correction")
     parser.add_argument('--dryrun', action='store_true', help='dry flag' )
 
     parser.add_argument('--window', '-wi', default=0.05, type=float, help='selected window for linear and svd bc')
@@ -79,24 +99,25 @@ def ab(source, options='', axis=-1):
         pass #todo: fid correction
 
     # we will work on the ndarray, not DataFrame
-    data = source.data.values
+    data = source.data
 
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
+    index=data.index
+    columns=data.columns
 
-    base, w = basecorr(data, args, retw=True)
+    base, w = basecorr(data.values, args, retw=True)
+    par.baseline = pd.DataFrame(base, index=index, columns=columns)
+    par.basepoints = w
 
     if not args.dryrun:
         data = data - base
 
-    par.baseline = base
-    par.basepoints = w
-
      # un-transpose the data if needed
     if axis == 0:
         data = data.T
-
+        par.baseline = par.baseline.T
     source.data = data
 
 

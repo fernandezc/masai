@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# masai.plugins.processing.process1d_plugin
+# masai.plugins.processes.process1d_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.
@@ -22,7 +22,7 @@ from __future__ import print_function, division
 #  general imports
 # ===============================================================================
 # noinspection PyUnresolvedReferences
-from traits.api import (HasTraits, Bool, Any, provides)
+from traits.api import (HasTraits, Bool, Any, Str, provides)
 import traits.has_traits
 import re
 
@@ -65,8 +65,18 @@ class Process1d(HasTraits):
         return self.description
 
     # -------------------------------------------------------------------------------
-    def help(self):
-        return self.__call__.__doc__
+    def help(self, command=None):
+        from IPython.display import HTML
+        if not command:
+            return HTML(self._repr_html_())
+        else:
+            try:
+                command(options="--help")
+            except TypeError:
+                try:
+                    exec("%s(options='--help')" % command)
+                except SystemExit:
+                    pass
 
     # *******************************************************************************
     # Private functions
@@ -79,8 +89,11 @@ class Process1d(HasTraits):
         Parameters
         ----------
         fd: source (such as NMR or IR source)
-
+        transforms: str
+            line(s) of commands among: em, zf, ft, pk, ab
+            type Process1d.<command_name> to get help on individual command
         """
+        #todo: add new commands
         # object to apply the transform
         if args:
             # look in args
@@ -105,7 +118,7 @@ class Process1d(HasTraits):
                 options = ''
 
             if 'em' in trans:
-                em(source, options=trans)
+                em(source, options=options)
 
             elif 'zf' in trans:
                 zf(source, options=options)
@@ -118,6 +131,26 @@ class Process1d(HasTraits):
 
             elif 'ab' in trans:
                 ab(source, options=options)
+
+    def _repr_html_(self):
+        import re
+        import string
+        p = re.compile("(.*:)?(.*)", re.MULTILINE)
+        m = p.findall(self.__call__.__doc__)
+        html = ""
+        start = False
+        for mg in m:
+            if mg[0].strip() != "":
+                html += "<b>%s</b>:%s<br/>" % mg
+            else:
+                s = string.join(mg," ")
+                if s.strip() and start:
+                    html += "&nbsp;"*4+"%s<br/>" % s
+                if "----" in s:
+                    start = True
+                    html = "<h3>Parameters</h3>"
+        return html
+
 
 if __name__ == '__main__':
     import os

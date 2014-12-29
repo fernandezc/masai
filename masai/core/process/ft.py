@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+#
+# ===============================================================================
+# masai.core.process.ft
+# ===============================================================================
+# Copyright (C) 2015 Christian Fernandez
+#       Laboratoire Catalyse et Spectrochimie, Caen, France.
+#       christian.fernandez@ensicaen.fr
+# This software is governed by the CeCILL-B license under French law
+# and abiding by the rules of distribution of free software.
+# You can  use, modify and/ or redistribute the software under
+# the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
+# at the following URL "http://www.cecill.info".
+# See Licence.txt in the main masai source directory
+# ===============================================================================
+
 from __future__ import print_function, division
 
 #
@@ -13,7 +29,7 @@ __all__ = ["ft", ]
 #
 # Fourier transform (ft)
 #
-def ft(source, options='', axis=-1):
+def ft(source=None, options='', axis=-1):
     """
     Fourier transform along one axis (limited to 1D et 2D data)
 
@@ -25,6 +41,15 @@ def ft(source, options='', axis=-1):
     si: integer, optional
         size of the transformed spectrum
     """
+    # options evaluation
+    parser = argparse.ArgumentParser(description='FT processing.', usage = """
+    ft [-h] [--si [SI]] [--tdeff [TDEFF]]
+    """)
+    # positional arguments
+    parser.add_argument('--si',  nargs='?', help='size of fourier transform')
+    parser.add_argument('--tdeff', default=0,  nargs='?', type=int, help='size of fourier transform')
+    args  = parser.parse_args(options.split())
+
     if axis == -1:
         par = source.par
     else:
@@ -41,12 +66,7 @@ def ft(source, options='', axis=-1):
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
-    # options evaluation
-    parser = argparse.ArgumentParser(description='FT processing.', usage = 'ft [-h] [--si [SI]] [--tdeff [TDEFF]]')
-    # positional arguments
-    parser.add_argument('--si',  nargs='?', help='size of fourier transform')
-    parser.add_argument('--tdeff', default=0,  nargs='?', type=int, help='size of fourier transform')
-    args  = parser.parse_args(options.split())
+
     # read parameters TDeff and SI
 
     tdeff = args.tdeff #kargs.get('tdeff', par.TDeff)

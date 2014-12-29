@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #===============================================================================
-# lcslib.version
+# masai.version
 #===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.

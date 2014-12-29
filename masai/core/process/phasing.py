@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+#
+# ===============================================================================
+# masai.core.process.phasing
+# ===============================================================================
+# Copyright (C) 2015 Christian Fernandez
+#       Laboratoire Catalyse et Spectrochimie, Caen, France.
+#       christian.fernandez@ensicaen.fr
+# This software is governed by the CeCILL-B license under French law
+# and abiding by the rules of distribution of free software.
+# You can  use, modify and/ or redistribute the software under
+# the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
+# at the following URL "http://www.cecill.info".
+# See Licence.txt in the main masai source directory
+# ===============================================================================
+
 from __future__ import print_function, division
 
 #
@@ -18,7 +34,7 @@ DEBUG = False
 #
 # pk
 #
-def pk(source, options= '', axis=-1):
+def pk(source=None, options= '', axis=-1):
     """
     Automatic or manual phasing
 
@@ -35,28 +51,39 @@ def pk(source, options= '', axis=-1):
     axis: optional, default=-1
 
     """
+    if source:
+            if axis == -1:
+                par = source.par
+            else:
+                par = source.par2
 
-    if axis == -1:
-        par = source.par
+            if not par.isfreq:
+                print('This source is not already transformed: are you sure this is what you want?')
+
+            # we will work on the ndarray, not DataFrame
+            data = source.data.values
+
+            if axis == 0:
+                # transpose temporarily the data for indirect dimension ft
+                data = data.T
+
+            # get the initial phase setting
+            phc0 = par.PHC0
+            phc1 = par.PHC1
     else:
-        par = source.par2
-
-    if not par.isfreq:
-        print('This source is not already transformed: are you sure this is what you want?')
-
-    # we will work on the ndarray, not DataFrame
-    data = source.data.values
-
-    if axis == 0:
-        # transpose temporarily the data for indirect dimension ft
-        data = data.T
-
-    # get the initial phase setting
-    phc0 = par.PHC0
-    phc1 = par.PHC1
+        phc0 = 0
+        phc1 = 0
 
     # options evaluation
-    parser = argparse.ArgumentParser(description='PK processing.')
+    parser = argparse.ArgumentParser(description='PK processing.', usage="""
+    pk [-h] [--auto] [--use_phc1] [--ediff EDIFF]
+                           [--gamma GAMMA] [--select {standard,max,cols}]
+                           [--threshold THRESHOLD] [--mode MODE]
+                           [--optmode {simplex,hopping}]
+                           [--bound_phc0 BOUND_PHC0] [--bound_phc1 BOUND_PHC1]
+                           [--verbose]
+                           [phases [phases ...]]
+    """)
     # positional arguments
     parser.add_argument('phases', default=(phc0,phc1), nargs='*', type=float, help='zero and first order phase')
     parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode' )

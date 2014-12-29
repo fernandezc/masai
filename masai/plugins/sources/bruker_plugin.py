@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# lcslib.plugins.sources.bruker_plugin
+# masai.plugins.sources.bruker_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 # Laboratoire Catalyse et Spectrochimie, Caen, France.
@@ -23,7 +23,9 @@ from __future__ import print_function
 # ===============================================================================
 import os
 import glob
-from warnings import warn
+from warnings import warn, filterwarnings
+
+filterwarnings("ignore")
 
 import pandas as pd
 import numpy as np
@@ -31,7 +33,7 @@ import addict
 import nmrglue as ng
 from traits.api import *
 from masai.plugins import IPlugin
-from masai.core.api import Isotopes
+from masai.core.database import Isotopes
 
 import traits.has_traits
 
