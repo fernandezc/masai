@@ -103,8 +103,8 @@ shape: voigtmodel
     # -------------------------------------------------------------------------------
     def help(self):
         return """Usage:
-            fit1d(fd, script)
-                where fd is a valid source and script must be provided.
+            fit1d(source, script)
+                where source is a valid Bruker source and script must be provided.
 
             a default script can be generated using :
                 Fit1d.default()
@@ -117,7 +117,7 @@ shape: voigtmodel
 
     fp = Property
     def _get_fp(self):
-        return self.paramscript.fp
+        return self.parameterscript.fp
 
     # *******************************************************************************
     # Private functions
@@ -141,8 +141,9 @@ shape: voigtmodel
         self.parameterscript = ParameterScript(fd=source, script=script)
 
         sequence = kargs.get('sequence', 'ideal_pulse')
-        self.sequence = PulseSequence(sequence)
+        self.sequence = PulseSequence(type=sequence)
 
+        modeldata, names = self._get_modeldata()
         return self
 
     def _get_modeldata(self):
@@ -161,7 +162,7 @@ shape: voigtmodel
 
         #calculate automatic baseline and amplitude
         data = self.source.real
-        x =data.columns
+        x =data.columns.values
         xi = np.arange(x.size)
         modeldata = np.zeros((nbmodels + 2, x.size)).astype(float)
 
@@ -178,11 +179,11 @@ shape: voigtmodel
             if not model.startswith('baseline'):
                 row += 1
                 modeldata[row] = getmodel(x, model, parameters,
-                                          fd=self.fd, sequence=self.sequence)
+                                          fd=self.source, sequence=self.sequence)
                 names.append(model)
             else:
                 modeldata[0] += getmodel(x, model, parameters,
-                                         fd=self.fd, sequence=self.sequence)
+                                         fd=self.source, sequence=self.sequence)
 
         # call the userfunction
         # (in case something is executed in it - nothing by default)
@@ -197,20 +198,20 @@ shape: voigtmodel
         modeldata = modeldata[:row + 2]
 
         # take into account fitzone
-        fitzone = findregion(x, self.fd.zone)
+        #fitzone = findregion(x, self.source.zone)
 
-        A, a, b = ampandbas(fitzone-fitzone[0], data.take(fitzone),
-                            modeldata[-1].take(fitzone))
+        A, a, b = ampandbas(xi, data, modeldata[-1])  #(fitzone-fitzone[0], data.take(fitzone),
+                             #modeldata[-1].take(fitzone))
 
         modeldata = A*modeldata
-        baseline = a*(xi-fitzone[0]) + b
+        baseline = a*xi + b   #a*(xi-fitzone[0]) + b
 
         #update the modeldata
         modeldata[0] += baseline
         modeldata[-1] += baseline
 
-        self._save_modeldata = modeldata
-        self._save_names = names
+        #self._save_modeldata = modeldata
+        #self._save_names = names
         self.A = A
 
         # calculate intensities
@@ -229,7 +230,7 @@ shape: voigtmodel
                                   'model':model,
                                   'pos':parameters["pos_%s"%model],
                                   'ampl':parameters["ampl_%s"%model]*100./at,
-                         'conc':parameters["ampl_%s"%model]*self.A/self.fd.norm}
+                         'conc':parameters["ampl_%s"%model]*self.A}
 
         return modeldata, names
 
@@ -334,13 +335,13 @@ if __name__ == '__main__':
     name = 'example1'
     expno = 10
     path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd = Bruker(path)
-    Process1d(fd, "em 50")
-    Process1d(fd, "zf 0")
-    Process1d(fd, "ft")
-    Process1d(fd, "pk -25 0 --auto --use_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
-    #Process1d(fd, "ab --mode poly")
-    #Plot1d(fd)
+    source = Bruker(path)
+    Process1d(source, "em 50")
+    Process1d(source, "zf 0")
+    Process1d(source, "ft")
+    Process1d(source, "pk -25 0 --auto --use_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
+    #Process1d(source, "ab --mode poly")
+    #Plot1d(source)
 
     script = """
 #-----------------------------------------------------------
@@ -368,5 +369,5 @@ shape: voigtmodel
 
 """
 
-    Fit1d(fd, script)
+    Fit1d(source, script)
     print("end")
