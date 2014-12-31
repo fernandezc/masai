@@ -22,10 +22,12 @@ from __future__ import print_function, division
 #  general imports
 # ===============================================================================
 # noinspection PyUnresolvedReferences
-from traits.api import (HasTraits, Bool, Any, Str, Instance, provides, Property)
+from traits.api import (HasTraits, Bool, Any, ListStr,
+                        Array, Str, Instance, provides, Property)
 import traits.has_traits
 import re
 import numpy as np
+import pandas as pd
 
 import logging
 LOGLEVEL = logging.DEBUG
@@ -91,6 +93,8 @@ shape: voigtmodel
 
     paramscript = Instance(ParameterScript)
     sequence = Instance(PulseSequence)
+    modeldata = Instance(pd.DataFrame)
+    names = ListStr
 
     # *******************************************************************************
     # public functions
@@ -143,7 +147,7 @@ shape: voigtmodel
         sequence = kargs.get('sequence', 'ideal_pulse')
         self.sequence = PulseSequence(type=sequence)
 
-        modeldata, names = self._get_modeldata()
+        self.modeldata, self.names = self._get_modeldata()
         return self
 
     def _get_modeldata(self):
@@ -168,7 +172,7 @@ shape: voigtmodel
 
         if nbmodels < 1:
             names = ['baseline', 'modelsum']
-            return modeldata, names
+            return pd.DataFrame(modeldata, index=names, columns=x)
 
         # Calculates model data
         # The first row (i=0) of the modeldata array is the baseline,
@@ -200,7 +204,7 @@ shape: voigtmodel
         # take into account fitzone
         #fitzone = findregion(x, self.source.zone)
 
-        A, a, b = ampandbas(xi, data, modeldata[-1])  #(fitzone-fitzone[0], data.take(fitzone),
+        A, a, b = ampandbas(xi, data.values[-1], modeldata[-1])  #(fitzone-fitzone[0], data.take(fitzone),
                              #modeldata[-1].take(fitzone))
 
         modeldata = A*modeldata
@@ -232,7 +236,8 @@ shape: voigtmodel
                                   'ampl':parameters["ampl_%s"%model]*100./at,
                          'conc':parameters["ampl_%s"%model]*self.A}
 
-        return modeldata, names
+        # return dataframes
+        return pd.DataFrame(modeldata, index=names, columns=x)
 
 # global functions
 def parsing(expr, param):
