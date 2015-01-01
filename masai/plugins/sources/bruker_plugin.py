@@ -36,7 +36,6 @@ from masai.plugins import IPlugin
 from masai.core.database import Isotopes
 
 import traits.has_traits
-
 traits.has_traits.CHECK_INTERFACES = 2
 
 # ===============================================================================
@@ -67,7 +66,10 @@ class Bruker(HasTraits):
     par = Instance(addict.Dict)
     par2 = Instance(addict.Dict)
 
+    modeldata = Instance(pd.DataFrame)
+
     history = List
+
 
     _ = Any
 

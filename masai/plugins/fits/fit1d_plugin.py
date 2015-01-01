@@ -91,10 +91,8 @@ shape: voigtmodel
 
 """
 
-    paramscript = Instance(ParameterScript)
+    parameterscript = Instance(ParameterScript)
     sequence = Instance(PulseSequence)
-    modeldata = Instance(pd.DataFrame)
-    names = ListStr
 
     # *******************************************************************************
     # public functions
@@ -147,7 +145,7 @@ shape: voigtmodel
         sequence = kargs.get('sequence', 'ideal_pulse')
         self.sequence = PulseSequence(type=sequence)
 
-        self.modeldata, self.names = self._get_modeldata()
+        self.source.modeldata = self._get_modeldata()
         return self
 
     def _get_modeldata(self):
@@ -372,7 +370,22 @@ shape: voigtmodel
     > ratio: gratio
     $ width: 4.0, 0, 100
 
+MODEL: LINE_2
+shape: voigtmodel
+    $ ampl:  0.2, 0.0, none
+    $ pos:   1.6, -100.0, 100.0
+    > ratio: gratio
+    $ width: 4.0, 0, 100
+
+MODEL: LINE_3
+shape: voigtmodel
+    $ ampl:  0.2, 0.0, none
+    $ pos:   7.9, -100.0, 100.0
+    > ratio: gratio
+    $ width: 4.0, 0, 100
+
 """
 
-    Fit1d(source, script)
+    f = Fit1d(source, script)
+    ax = Plot1d(source, xlim=(-10, 30), plot_model=True)
     print("end")

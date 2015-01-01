@@ -24,7 +24,7 @@ from __future__ import print_function, division
 from IPython.display import display, display_pretty
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Any, provides)
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 # ===============================================================================
 # other imports
@@ -133,7 +133,13 @@ class Plot1d(HasTraits):
             raise ValueError("no valid source specified\nUsage: Plot1d(fd)")
 
         imag = kargs.get('imag', False)
-        data = source if isinstance(source, DataFrame) else source.data
+        if isinstance(source, DataFrame):
+            data = source
+        elif isinstance(source, Series):
+            # this routine needs DataFrame input, not Series
+            data = DataFrame(source).T
+        else:
+            data = source.data
         spec = data.values.real if not imag else data.values.imag
 
         if (spec.ndim >= 2) & (spec.shape[0] > 1):
@@ -153,8 +159,21 @@ class Plot1d(HasTraits):
         # data
         x = data.columns.values
 
-        # plot
+        # plot the source data
         line, = axe.plot(x, spec.T)
+
+        # plot the models
+        if kargs.get('plot_model', False) and source.modeldata is not None:
+            # we now plot the model if it exists
+            mdata = source.modeldata
+            for model in mdata.index:
+                l, = axe.plot(x, mdata.loc[model])
+                if model=='baseline':
+                    l.set_color('yellow')
+                    l.set_linestyle(':')
+                elif model != 'modelsum':
+                    l.set_linestyle('--')
+
 
         # limits of the spectra
         xlim = list(kargs.get('xlim', axe.get_xlim()))
