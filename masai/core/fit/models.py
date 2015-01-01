@@ -653,7 +653,7 @@ class poynomialseriesofvoigtmodel(object):
 #===============================================================================
 # getmodel
 #===============================================================================
-def getmodel(x, y, modelname, par, **kargs):
+def getmodel(x, y=None, modelname=None, par=None, **kargs):
     """Get the model for a given x vector.
 
     Parameters
@@ -696,11 +696,10 @@ def getmodel(x, y, modelname, par, **kargs):
                 raise KeyError(e.message)
 
     x = np.array(x, dtype=np.float64)
-    y = np.array(y, dtype=np.float64)
-
     if y is None:
         return a.f(x, *args, **kargs)
     else:
+        y = np.array(y, dtype=np.float64)
         return a.f(x, y, *args, **kargs)
 
 

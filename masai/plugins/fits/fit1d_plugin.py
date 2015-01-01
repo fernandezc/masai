@@ -180,11 +180,11 @@ shape: voigtmodel
         for model in models:
             if not model.startswith('baseline'):
                 row += 1
-                modeldata[row] = getmodel(x, model, parameters,
+                modeldata[row] = getmodel(x, modelname=model, par=parameters,
                                           fd=self.source, sequence=self.sequence)
                 names.append(model)
             else:
-                modeldata[0] += getmodel(x, model, parameters,
+                modeldata[0] += getmodel(x, modelname=model, par=parameters,
                                          fd=self.source, sequence=self.sequence)
 
         # call the userfunction
