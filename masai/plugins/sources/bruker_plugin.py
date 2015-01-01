@@ -13,9 +13,11 @@
 # at the following URL "http://www.cecill.info".
 # See Licence.txt in the main masai source directory
 # ===============================================================================
+
 """
 Define Bruker plugin functionalities
 """
+
 from __future__ import print_function
 
 # ===============================================================================
@@ -32,6 +34,7 @@ import numpy as np
 import addict
 import nmrglue as ng
 from traits.api import *
+from masai.core.source import Source
 from masai.plugins import IPlugin
 from masai.core.database import Isotopes
 
@@ -54,7 +57,7 @@ FnMODE = ["undefined", "QF", "QSEQ", "TPPI", "STATES",
 # bruker plugin
 # ===================================================================================
 @provides(IPlugin)
-class Bruker(HasTraits):
+class Bruker(Source):
     # minimal plugin attribute -----------------------------------------------------
     description = Str("Bruker (type: source), return a source from a Bruker path.")
     type = Str("source")
@@ -66,13 +69,6 @@ class Bruker(HasTraits):
     par = Instance(addict.Dict)
     par2 = Instance(addict.Dict)
 
-    modeldata = Instance(pd.DataFrame)
-
-    history = List
-
-
-    _ = Any
-
     # *******************************************************************************
     # public functions
     # *******************************************************************************
@@ -81,99 +77,34 @@ class Bruker(HasTraits):
     def help(self):
         return self.__call__.__doc__
 
-    # -------------------------------------------------------------------------------
-    def row(self, index, **kargs):
+
+    #------------------------------------
+    def get_multiplicator(self, axis=-1):
         """
-        Extract a row from a two dimensional spectra
-        Parameters
-        ----------
-        index:
-        width:
-
-        Returns
-        -------
-        data: DataFrame
-            return a pandas Dataframe with the row
-
-        Examples
-        --------
-
+        Compute a unit multiplicator depending on the unit string, i.e. 'ms'--> 1.e3
         """
-        return self._getsection(index, axis=-1, **kargs)
+        if axis == -1:
+            par = self.par
+        else:
+            par = self.par2
+        unit = par.units
+        if par.isfreq:
+            print('this axis is already processed: multiplicator set to 1')
+            return 1.
+        elif unit == 'ms':
+            return 1.e3
+        elif unit == 'us':
+            return 1.e6
+        elif unit == 'sec':
+            return 1.
+        else:
+            print('unknown unit scale')
+            return 1.
 
-    # -------------------------------------------------------------------------------
-    def col(self, index, **kargs):
-        """
-        Extract a row from a two dimensional spectra
-        Parameters
-        ----------
-        index:
-        width:
-
-        Returns
-        -------
-        data: DataFrame
-            return a pandas Dataframe with the row
-
-        Examples
-        --------
-
-
-        """
-
-        return self._getsection(index, axis=0, **kargs)
-
-    # ------------------------------------------------------------------------------
-    def get_limits(self, axis=-1):
-        data = self.data
-        lim = ([data.index[0], data.index[-1]],
-               [data.columns[0], data.columns[-1]])[axis]
-        return lim
 
     # *******************************************************************************
     # Properties
     # *******************************************************************************
-
-    # Data origin (as read by the __init__ function): Read only --------------------
-    data_orig = Property
-    _data_orig = Instance(pd.DataFrame)
-
-    def _get_data_orig(self):
-        return self._data_orig.copy()
-
-    # data output ------------------------------------------------------------------
-    data = Property(depends_on='data_orig')
-    _data = Instance(pd.DataFrame)
-
-    def _get_data(self):
-        if self._data is None:
-            return self._data_orig
-        return self._data
-
-    def _set_data(self, value):
-        if isinstance(value, pd.DataFrame):
-            self._data = value
-        else:
-            # noinspection PyArgumentList
-            self._data = self._make_dataframe(value)
-
-    # Real data -----------------------------------------------------------------------
-    real = Property
-
-    def _get_real(self):
-        r = self.data.values.real
-        x = self.data.columns
-        y = self.data.index
-        return pd.DataFrame(r, y, x)
-
-    # Imag data -----------------------------------------------------------------------
-    imag = Property
-
-    def _get_imag(self):
-        j = self.data.values.imag
-        x = self.data.columns
-        y = self.data.index
-        return pd.DataFrame(j, y, x)
 
     # Spin --------------------------------------------------------------------------
     def get_spin(self, axis=-1):
@@ -474,31 +405,6 @@ class Bruker(HasTraits):
         # we use the hidden properties because the associated properties is read_only
         self._data_orig = data
 
-    #===========================================================================
-    # multiplicator
-    #===========================================================================
-    def get_multiplicator(self, axis=-1):
-        """
-        Compute a unit multiplicator depending on the unit string, i.e. 'ms'--> 1.e3
-        """
-        if axis == -1:
-            par = self.par
-        else:
-            par = self.par2
-        unit = par.units
-        if par.isfreq:
-            print('this axis is already processed: multiplicator set to 1')
-            return 1.
-        elif unit == 'ms':
-            return 1.e3
-        elif unit == 'us':
-            return 1.e6
-        elif unit == 'sec':
-            return 1.
-        else:
-            print('unknown unit scale')
-            return 1.
-
     # --------------------------------------------------------------------------------------
     def _make_dataframe(self, data):
         """
@@ -568,69 +474,6 @@ class Bruker(HasTraits):
             return scal()[::-1]
         else:
             return scal()
-
-    # -------------------------------------------------------------------------------
-    def _getsection(self, index, **kargs):
-        """
-        Extract a section by ppm (or Hz) position or by index
-
-        """
-        if not self.is_2d :
-            print("1D spectrum, so we return the input data itself!")
-            return self.data
-
-        data = self.data.copy()
-
-        axis = kargs.get('axis', -1)
-        axis = range(data.ndim)[axis]
-
-        #print(data.ndim-1)
-        if axis == data.ndim-1:
-            txt1 = 'taking horizontal (axis=%d) section'%axis
-        else:
-            data = data.T
-            txt1 = 'taking vertical (axis=%d) section'%axis
-        x = data.index
-        y = data.columns
-
-        byindex = kargs.get('byindex', False)
-        width = kargs.get('width', 0)
-
-        if not byindex:
-            txt2 = ' by position'
-            w2 = width / 2.0
-            lb = max(index - w2, x[0])
-            ub = min(lb + width, x[-1])
-            lb = ub - width
-            x0 = x[x < lb].size
-            x1 = x[x < ub].size
-            if x1<=x0:
-                x1 = x0 + 1
-            lb = x[x0]
-            ub = x[x1]
-            if width != 0:
-                txt3 = ' from %.2f to %.2f'%(lb,ub)
-            else:
-                txt3 = ' at %.2f'%lb
-            print(txt1+txt2+txt3)
-
-        else:
-            txt2 = ' by index'
-            w2 = int(width / 2)
-            x0 = max(index - w2, 0)
-            x1 = min(x0 + width, x.size-1)
-            x0 = x1 - width
-            if width != 0:
-                txt3 = ' from index %d to %d'%(x0,x1)
-            else:
-                txt3 = ' at index %d'%x0
-            print(txt1+txt2+txt3)
-
-        section = data.iloc[x0:x1+1].sum(axis=0)
-
-        assert section.size == y.size
-
-        return pd.DataFrame(section, index=y).T
 
     # ===========================================================================
     # remove_digital_filter
