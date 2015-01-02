@@ -30,8 +30,7 @@ import numpy as np
 import pandas as pd
 
 import logging
-LOGLEVEL = logging.DEBUG
-logger = logging.getLogger()
+logger = logging.getLogger('ipython_nmr')
 
 # ===============================================================================
 # local imports
@@ -208,8 +207,7 @@ shape: voigtmodel
         Process a 1D source
 
         """
-        logger.setLevel(LOGLEVEL)
-        logging.debug(" Fit1d Debug mode")
+        logger.debug(" Fit1d Debug mode")
 
         if args:
             # look in args
@@ -258,14 +256,14 @@ shape: voigtmodel
         row = 0
         names = ['baseline', ]
         for model in models:
+            calc = getmodel(x, modelname=model, par=parameters,
+                            fd=self.source, sequence=self.sequence)
             if not model.startswith('baseline'):
                 row += 1
-                modeldata[row] = getmodel(x, modelname=model, par=parameters,
-                                          fd=self.source, sequence=self.sequence)
+                modeldata[row] = calc
                 names.append(model)
             else:
-                modeldata[0] += getmodel(x, modelname=model, par=parameters,
-                                         fd=self.source, sequence=self.sequence)
+                modeldata[0] += calc
 
         # call the userfunction
         # (in case something is executed in it - nothing by default)

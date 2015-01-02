@@ -25,6 +25,7 @@ from IPython.display import display, display_pretty
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
 from pandas import DataFrame, Series
+from matplotlib.ticker import MaxNLocator
 
 # ===============================================================================
 # other imports
@@ -224,8 +225,8 @@ class Plot1d(HasTraits):
         zlim.sort()
         axe.set_xlim(xlim)
         axe.set_ylim(zlim)
-
-
+        axe.xaxis.set_major_locator(MaxNLocator(4))
+        axe.yaxis.set_major_locator(MaxNLocator(4))
 
         # label
         xlabel = kargs.get('xlabel', axe.get_xlabel())

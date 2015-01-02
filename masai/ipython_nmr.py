@@ -26,10 +26,10 @@ from addict import Dict as aDict
 from IPython.core.magic import Magics, magics_class, line_magic
 from IPython.display import display, HTML
 
-LOGLEVEL = logging.INFO
-logger = logging.getLogger()
+import logging
+LOGLEVEL = logging.DEBUG
+logger = logging.getLogger('ipython_nmr')
 logger.setLevel(LOGLEVEL)
-logging.debug(" Debug mode")
 
 #===============================================================================
 # Load all plugins
@@ -38,7 +38,9 @@ def _loadPlugins():
     """
     load existing plugins
     """
-    # find the path of the lcslib module
+
+    # find the path of the masai module
+
     import masai
     directory = os.path.join(os.path.dirname(masai.__file__),'plugins')
 
@@ -54,7 +56,7 @@ def _loadPlugins():
         path, basename = os.path.split(file)
         name = basename.split('_plugin')[0]
 
-        logger.debug(" Loading plugin > " + name)
+        logger.debug("Loading plugin > " + name)
 
         # Dynamically set the PYTHONPATH so the user doesn't have to. It assumes
         # the plugins are contained in subdirectories where the main file lives.
@@ -139,7 +141,6 @@ class NMRMagics(Magics):
 
 def load_ipython_extension(ipython):
     ipython.register_magics(NMRMagics)
-
 
 if __name__ == '__main__':
     import IPython
