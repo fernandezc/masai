@@ -40,6 +40,7 @@ from masai.plugins import IPlugin
 from masai.core.fit.parameters import ParameterScript
 from masai.core.fit.models import getmodel
 from masai.core.fit.sequence import PulseSequence
+from masai.core.fit.optimize import optimize
 
 traits.has_traits.CHECK_INTERFACES = 2
 
@@ -64,8 +65,29 @@ class Fit1d(HasTraits):
 
     _ = Any
 
-    script = """
+    parameterscript = Instance(ParameterScript)
+    sequence = Instance(PulseSequence)
 
+    # *******************************************************************************
+    # public functions
+    # *******************************************************************************
+
+    # -------------------------------------------------------------------------------
+    def print_doc(self):
+        return self.description
+
+    # -------------------------------------------------------------------------------
+    def help(self):
+        return """Usage:
+            fit1d(source, script)
+                where source is a valid Bruker source and script must be provided.
+
+            a default script can be generated using :
+                Fit1d.default()
+            """
+
+    def default(self):
+        s = """
 #-----------------------------------------------------------
 # syntax for parameters definition:
 # name: value, low_bound,  high_bound
@@ -90,30 +112,81 @@ shape: voigtmodel
 	$ width: 1.0, 0, 100
 
 """
+        print(s)
 
-    parameterscript = Instance(ParameterScript)
-    sequence = Instance(PulseSequence)
 
-    # *******************************************************************************
-    # public functions
-    # *******************************************************************************
+    #===========================================================================
+    # run
+    #===========================================================================
+    def run(self):
+        """Main fitting procedure
+        """
+        logger.info('Entering fitting procedure')
 
-    # -------------------------------------------------------------------------------
-    def print_doc(self):
-        return self.description
+        # internally defined function chi2
+        def chi2(params, dat):
+            """
+            Return sum((y - x)**2)
 
-    # -------------------------------------------------------------------------------
-    def help(self):
-        return """Usage:
-            fit1d(source, script)
-                where source is a valid Bruker source and script must be provided.
-
-            a default script can be generated using :
-                Fit1d.default()
             """
 
-    def default(self):
-        print(self.script)
+            # model spectrum
+            modeldata = self._get_modeldata()
+
+            # baseline is already summed with modeldata[-1]
+            diff = dat - modeldata.T['modelsum'] # .take(fitzone))
+            chi2 = np.sum(diff.iloc[0]**2)
+            return chi2
+        # end chi2 function ---------------------------------------------------
+
+        # callback function--------------------------------------------------------
+        def callback(x, f=None, accepted=None):
+            """
+            callback print function
+            """
+            if f is not None:  # hopping
+                pass
+            if f is None:  # simplex
+                print(x)
+        # end callback function ---------------------------------------------------
+
+        fp = self.fp
+        x = self.source.data.index
+        #  fitzone = self.fd.findregion()
+
+        optmode = 'simplex'
+        fp, fopt = optimize(chi2, fp,
+                           args=(self.source.real,),
+                           method=optmode,
+                           callback=None) #callback)
+
+        self.parameterscript.script = str(fp)
+        self.source.modeldata = self._get_modeldata()
+
+        # update the paramscript content
+        #self.paramscript.content = str(self.fp)
+        #self._running = False
+        #self.fd.can_plot = True
+        return
+
+    #===========================================================================
+    # _callforresults
+    #===========================================================================
+    def _callforresults(self, params, keys, funcall, iteration, fopt):
+        """call back function called by minimize
+        """
+        for i in range(len(params)):
+            key = keys[i]
+            # restore external parameters in case of bounding
+            pe = self.external(params[i], self.fp.lob[key], self.fp.upb[key])
+            self.fp[key] = pe, self.fp.lob[key], self.fp.upb[key]
+
+        # update parameter script
+        self.funcalls = funcall
+        self.iterations = iteration
+        self.fopt = np.sqrt(fopt)
+
+        return self.fittingthread.stopped
 
     # property
 
@@ -121,13 +194,19 @@ shape: voigtmodel
     def _get_fp(self):
         return self.parameterscript.fp
 
+    script = Property
+    def _get_script(self):
+        return self.parameterscript.script
+
     # *******************************************************************************
     # Private functions
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
     def __call__(self, *args, **kargs):
-        """Process a 1D source
+        """
+        Process a 1D source
+
         """
         logger.setLevel(LOGLEVEL)
         logging.debug(" Fit1d Debug mode")
@@ -146,6 +225,7 @@ shape: voigtmodel
         self.sequence = PulseSequence(type=sequence)
 
         self.source.modeldata = self._get_modeldata()
+
         return self
 
     def _get_modeldata(self):
@@ -342,7 +422,7 @@ if __name__ == '__main__':
     Process1d(source, "em 50")
     Process1d(source, "zf 0")
     Process1d(source, "ft")
-    Process1d(source, "pk -25 0 --auto --use_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
+    Process1d(source, "pk -25 0 --auto --ediff 2 --fit_phc1 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
     #Process1d(source, "ab --mode poly")
     #Plot1d(source)
 
@@ -379,13 +459,24 @@ shape: voigtmodel
 
 MODEL: LINE_3
 shape: voigtmodel
-    $ ampl:  0.2, 0.0, none
+    $ ampl:  0.17, 0.0, none
     $ pos:   7.9, -100.0, 100.0
     > ratio: gratio
     $ width: 4.0, 0, 100
 
+MODEL: LINE_4
+shape: voigtmodel
+    $ ampl:  0.15, 0.0, none
+    $ pos:   14, -100.0, 100.0
+    > ratio: gratio
+    $ width: 6.0, 0, 100
+
 """
 
-    f = Fit1d(source, script)
-    ax = Plot1d(source, xlim=(-10, 30), plot_model=True)
+    f = Fit1d(source, script,
+              options='--limits 20')
+    f.run()
+    print(f.script)
+    Plot1d(source, xlim=(-10, 30), plot_model=True)
+
     print("end")

@@ -23,7 +23,7 @@ from __future__ import print_function, division
 #
 from IPython.display import display, display_pretty
 import pylab as pl
-from traits.api import (HasTraits, Bool, Str, Any, provides)
+from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
 from pandas import DataFrame, Series
 
 # ===============================================================================
@@ -55,6 +55,7 @@ class Plot1d(HasTraits):
 
     silent = Bool(True)
     savename = Str
+    dpi = Int
 
     _ = Any
 
@@ -148,10 +149,22 @@ class Plot1d(HasTraits):
             return
 
         # setup figure and axes
-        figsize = kargs.get('figsize', (6.8, 3.4))
+        figsize = kargs.get('figsize', (3.4, 1.7))
+        dpi = kargs.get('dpi', 150)
+        fontsize = kargs.get('fontsize', 10)
+
+        # when using matplotlib inline
+        # dpi is the savefig.dpi so we should set it here
+        pl.rcParams['figure.figsize']=figsize
+        pl.rcParams['figure.dpi']=dpi
+        pl.rcParams['savefig.dpi']=dpi
+        pl.rcParams['font.size']=fontsize
+        pl.rcParams['legend.fontsize'] = int(fontsize*.8)
+        pl.rcParams['xtick.labelsize']=fontsize
+        pl.rcParams['ytick.labelsize']=fontsize
 
         if 'axe' not in kargs.keys():
-            fig = pl.figure(figsize=figsize)
+            fig = pl.figure(figsize=figsize, dpi=dpi)
             axe = fig.add_subplot(1, 1, 1)
         else:
             axe = kargs.get('axe')
@@ -162,17 +175,36 @@ class Plot1d(HasTraits):
         # plot the source data
         line, = axe.plot(x, spec.T)
 
+        # attribute
+        c = kargs.get('color', kargs.get('c'))
+        if c:
+            line.set_color(c)
+        lw = kargs.get('linewidth', kargs.get('lw', 1.))
+        if lw:
+            line.set_linewidth(lw)
+        ls = kargs.get('linestyle', kargs.get('ls', '-'))
+        if ls:
+            line.set_linestyle(ls)
+
         # plot the models
         if kargs.get('plot_model', False) and source.modeldata is not None:
             # we now plot the model if it exists
             mdata = source.modeldata
+            offset = (mdata.values.max())*(float(kargs.get('offset', 1.0))/100.)
+            # print('offset',offset)
             for model in mdata.index:
-                l, = axe.plot(x, mdata.loc[model])
+                l, = axe.plot(x, mdata.loc[model],alpha=.75)
+                l.set_linestyle('-')
+                l.set_linewidth(lw*.8)
                 if model=='baseline':
-                    l.set_color('yellow')
+                    l.set_color('k')
                     l.set_linestyle(':')
+                    l.set_linewidth(lw*.4)
+                    l.set_ydata(l.get_ydata()-offset)
                 elif model != 'modelsum':
-                    l.set_linestyle('--')
+                    l.set_linestyle('-')
+                    l.set_linewidth(lw*.4)
+                    l.set_ydata(l.get_ydata()-offset)
 
 
         # limits of the spectra
@@ -193,16 +225,7 @@ class Plot1d(HasTraits):
         axe.set_xlim(xlim)
         axe.set_ylim(zlim)
 
-        # attribute
-        c = kargs.get('color', kargs.get('c'))
-        if c:
-            line.set_color(c)
-        lw = kargs.get('linewidth', kargs.get('lw', 1.))
-        if lw:
-            line.set_linewidth(lw)
-        ls = kargs.get('linestyle', kargs.get('ls', '-'))
-        if ls:
-            line.set_linestyle(ls)
+
 
         # label
         xlabel = kargs.get('xlabel', axe.get_xlabel())
@@ -279,9 +302,9 @@ if __name__ == '__main__':
 
     # plot a Source
     ax = Plot1d(fd, hold=True)
-    ax = Plot1d(fd, ax=ax, imag=True, xlim=(0, 4), ylim=(-1, 1), c='orange')
+    ax = Plot1d(fd, axe=ax, imag=True, xlim=(0, 4), ylim=(-1, 1), c='orange')
 
     # plot a Dataframe
-    Plot1d(fd.data)
+    #Plot1d(fd.data)
 
-    pl.show()
+    #pl.show()

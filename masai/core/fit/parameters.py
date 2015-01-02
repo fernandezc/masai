@@ -40,7 +40,7 @@ from traitsui.api import (View, Item, CodeEditor, HGroup)
 #===============================================================================
 # local import
 #===============================================================================
-from .models import list_of_models, list_of_baselines
+from masai.core.fit.models import list_of_models, list_of_baselines
 from masai.core.utils import DEnum
 
 #===============================================================================
@@ -93,7 +93,7 @@ class FitParameters(UserDict):
         self.model = {}             # model to use
         self.models = []            # list of models
         self.sequence = ''          # sequence used in the experiment
-        
+
     def __setitem__(self, key, value):
         key = str(key)
         if not self.reference.has_key(key):
@@ -233,7 +233,60 @@ class FitParameters(UserDict):
             res = strg
             
         return res
-    
+
+    def to_internal(self, key):
+
+        key = str(key)
+        if not self.data.has_key(key):
+            raise KeyError("parameter %s is not found"%key)
+
+        pe = self.data[key]
+        lob = self.lob[key]
+        upb = self.upb[key]
+
+        is_lob = lob is not None and lob > -0.1/sys.float_info.epsilon # lob is not None
+        is_upb = lob is not None and upb < +0.1/sys.float_info.epsilon # upb is not None
+
+        if is_lob and is_upb:
+            # With min and max bounds defined
+            pi = np.arcsin((2*(pe - lob)/(upb - lob)) - 1.)
+        elif is_upb:
+            # With only max defined
+            pi = np.sqrt((upb - pe + 1.)**2 - 1.)
+        elif is_lob:
+            # With only min defined
+            pi = np.sqrt((pe - lob + 1.)**2 - 1.)
+        else:
+            pi = pe
+        return pi
+
+    def to_external(self, key, pi):
+
+        key = str(key)
+        if not self.data.has_key(key):
+            raise KeyError("parameter %s is not found"%key)
+
+        lob = self.lob[key]
+        upb = self.upb[key]
+
+        is_lob = lob is not None and lob > -0.1/sys.float_info.epsilon # lob is not None
+        is_upb = lob is not None and upb < +0.1/sys.float_info.epsilon # upb is not None
+
+        if is_lob and is_upb:
+            #  With min and max bounds defined
+            pe = lob + ((upb - lob)/2.)*(np.sin(pi) + 1.)
+        elif is_upb:
+            #With only max defined
+            pe = upb + 1. - np.sqrt(pi**2 + 1.)
+        elif is_lob:
+            #With only min defined
+            pe = lob - 1. + np.sqrt(pi**2 + 1.)
+        else:
+            pe = pi
+
+        self.data[key] = pe
+        return pe
+
 #===============================================================================
 class FitSteps(UserDict):
 #===============================================================================
@@ -413,3 +466,9 @@ class ParameterScript(HasTraits):
         return fp 
 
                 
+if __name__ == '__main__':
+
+    fp = FitParameters()
+    fp['one']  = 1, -1, 3, True
+
+    pass

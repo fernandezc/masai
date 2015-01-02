@@ -24,7 +24,8 @@ import argparse
 
 from nmrglue.process.proc_base import ps
 
-from masai.core.fit.optimize import optimize, external
+from masai.core.fit.parameters import FitParameters
+from masai.core.fit.optimize import optimize
 from masai.core.process.baseline import basecorr
 from masai.core.analysis.picking import picking
 
@@ -40,7 +41,7 @@ def pk(source=None, options= '', axis=-1):
 
     Parameters
     ----------
-    use_phc1: bool, optional, default=False
+    fit_phc1: bool, optional, default=False
         also optimize first order phase if True
     mode: String, optional, default='negmin'
         method for automatic phase detection: 'negmin', 'entropy', ...
@@ -76,7 +77,7 @@ def pk(source=None, options= '', axis=-1):
 
     # options evaluation
     parser = argparse.ArgumentParser(description='PK processing.', usage="""
-    pk [-h] [--auto] [--use_phc1] [--ediff EDIFF]
+    pk [-h] [--auto] [--fit_phc1] [--ediff EDIFF]
                            [--gamma GAMMA] [--select {standard,max,cols}]
                            [--threshold THRESHOLD] [--mode MODE]
                            [--optmode {simplex,hopping}]
@@ -87,7 +88,7 @@ def pk(source=None, options= '', axis=-1):
     # positional arguments
     parser.add_argument('phases', default=(phc0,phc1), nargs='*', type=float, help='zero and first order phase')
     parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode' )
-    parser.add_argument('--use_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
+    parser.add_argument('--fit_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
     parser.add_argument('--ediff', '-ef', default=1, type=int, help='order of the derivative for entropy calculation', )
     parser.add_argument('--gamma', '-ga', default=1.0, type=float, help='weight', )
     parser.add_argument('--select', '-st', default='standard', choices=['standard','max','cols'], help='selection mode in automatic phasing', )
@@ -105,7 +106,7 @@ def pk(source=None, options= '', axis=-1):
     if not args.auto:
         # not automatic leaves here...
         data = ps(data, phc0, phc1)
-        source.history.append('Phasing phc0:%.2f phc1:%.2f' % (phc0, phc1))
+        source.history.append('Phasing phc0:%.2f, phc1:%.2f' % (phc0, phc1))
 
     else:
         # APK...
@@ -114,7 +115,9 @@ def pk(source=None, options= '', axis=-1):
             args.cols = zip(*ar)[0]
         data, phc0, phc1 = autophase(data, args)
 
-        source.history.append('Auto-phasing phc0:%.2f phc1:%.2f' % (phc0, phc1))
+        atxt = '(not optimized)' if not args.fit_phc1 else ''
+
+        source.history.append('Auto-phasing:  phc0 = %.3f, phc1%s = %.3f' % (phc0, atxt, phc1))
 
     data = data - basecorr(data)
 
@@ -186,19 +189,17 @@ def autophase(data, args):
     optmode = args.optmode
 
     # prepare the phase to optimized with bound
+    fp = FitParameters()
     bp0 = args.bound_phc0
     bp1 = args.bound_phc1
     phc0 = _checkin(phc0, bp0)
-    p0s = [phc0, -bp0, bp0]
-    bounds = [p0s[1:], ]
-    p = [p0s, ]
+    # fixed is false
+    fp['phc0'] = phc0, -bp0, bp0, False
 
-    use_phc1 = args.use_phc1
-    if use_phc1:
-        phc1 = _checkin(phc1, bp1)
-        p1s = [phc1, -bp1, bp1]
-        p.append(p1s)
-        bounds.append(p1s[1:])
+    fit_phc1 = args.fit_phc1
+    phc1 = _checkin(phc1, bp1)
+    fixed = not fit_phc1
+    fp['phc1'] = phc1, -bp1, bp1, fixed
 
     # optim
     global ni, nas, spe, err
@@ -206,29 +207,15 @@ def autophase(data, args):
     err = 0
 
     # internal error function ------------------------------------------------------------------------------------------
-    def _phase_error(p, bounds, s):
+    def _phase_error(p, s):
 
         global nas, spe, ni, err
 
-        # restore the external parameter
-        pe = []
-        for i, x in enumerate(bounds):
-            if not isinstance(x, list):
-                pe.append(p[i])
-            else:
-                # restore external parameters in case of bounding
-                pe.append(external(p[i], x[0], x[1]))
-
-        p0 = pe[0]
-
+        p0 = p['phc0']
+        p1 = p['phc1']
         sc = s.copy()
-        p1 = 0.0
-        if use_phc1:
-            p1 = pe[1]
-            sc = ps(sc, p0, p1)
-        else:
-            sc = ps(sc, p0)
-
+        sc = ps(sc, p0, p1)
+        
         # baseline correction
         scp = sc - basecorr(sc)
 
@@ -276,49 +263,41 @@ def autophase(data, args):
     # end callback function ---------------------------------------------------
 
     # convergence is not insured depending on the starting values
-    phase, err1 = optimize(_phase_error, p,
-                           args=(bounds, dat), method=optmode,
+    fp, err1 = optimize(_phase_error, fp,
+                           args=[dat,], method=optmode,
                            callback=print_fun)
-    nasave = nas
-    ssave = spe
-    p = phase[:]
-
-    p0s = [(phase[0] - 180.) % 360.0, -bp0, bp0]
-    phase1 = [p0s, ]
-    if len(phase) > 1:
-        p1s = [phase[1], -bp1, bp1]
-        phase1.append(p1s)
+    nas_save = nas
+    spe_save = spe
+    fp_save = fp.copy()
 
     if optmode.upper() != 'HOPPING':
+        fp['phc0'] = (fp['phc0']-180.0) % 360.0, -bp0, bp0, False
         ni = 0
-        phase2, err2 = optimize(_phase_error, phase1,
-                                args=(bounds, dat), method=optmode,
+        fp, err2 = optimize(_phase_error, fp,
+                                args=(dat,), method=optmode,
                                 callback=print_fun)
 
         # select the best
-        p = phase2[:]
         if err2 > err1:
-            p = phase[:]
-            nas = nasave
-            spe = ssave
+            fp = fp_save.copy()
+            nas = nas_save
+            spe = spe_save
 
     # extract results
+    phc0 = fp['phc0']
+    phc1 = fp['phc1']
 
     if verbose:
         print('Phase:')
-    if use_phc1:
-        phc0, phc1 = p
+
+    if fit_phc1:
         if verbose:
-            print('phc0', phc0)
-        if verbose:
-            print('phc1', phc1)
+            print('phc0: %.3f'%phc0)
+            print('phc1: %.3f'%phc1)
     else:
-        phc0 = p[0]
-        phc1 = 0.0
         if verbose:
-            print('phc0', phc0)
-        if verbose:
-            print('phc1', phc1, 'not optimized')
+            print('phc0: %.3f'%phc0)
+            print('phc1: %.3f (not optimized)'%phc1)
 
     if verbose:
         print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
