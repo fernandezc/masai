@@ -48,6 +48,7 @@ traits.has_traits.CHECK_INTERFACES = 2
 # ===============================================================================
 __plugin_main__ = 'Fit1d'
 
+
 # ===================================================================================
 # Process1d plugin
 # ===================================================================================
@@ -255,6 +256,7 @@ shape: voigtmodel
         # so we fill the array starting at row 1
         row = 0
         names = ['baseline', ]
+
         for model in models:
             calc = getmodel(x, modelname=model, par=parameters,
                             fd=self.source, sequence=self.sequence)
@@ -264,6 +266,7 @@ shape: voigtmodel
                 names.append(model)
             else:
                 modeldata[0] += calc
+                
 
         # call the userfunction
         # (in case something is executed in it - nothing by default)

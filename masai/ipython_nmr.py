@@ -27,7 +27,7 @@ from IPython.core.magic import Magics, magics_class, line_magic
 from IPython.display import display, HTML
 
 import logging
-LOGLEVEL = logging.DEBUG
+LOGLEVEL = logging.INFO
 logger = logging.getLogger('ipython_nmr')
 logger.setLevel(LOGLEVEL)
 
