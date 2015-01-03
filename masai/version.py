@@ -51,9 +51,6 @@ def _get_git_version():
     status, output = commands.getstatusoutput('git describe')
     if status == 0:
         return output.split('-')
-    else:
-        commands.getstatusoutput('git tag -a 0.1 -m "initial version"')
-        return '0.1', '0', '0'
 
 
 #===============================================================================
