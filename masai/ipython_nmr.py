@@ -16,6 +16,7 @@
 
 from __future__ import print_function
 
+from version import get_fullversion_string
 import numpy as np
 import glob      # Imported for handling command line arguments.
 import sys       # Imported for file directory listing capabilities.
@@ -118,7 +119,6 @@ class NMRMagics(Magics):
         ip = kargs.get('shell')
         self.plugins = _loadPlugins()
         ip.user_ns.update(self.plugins)
-        display(HTML("<p>ipython nmr tools loaded</p>"))
         super(NMRMagics, self).__init__(*args, **kargs)
 
     @line_magic
@@ -141,6 +141,8 @@ class NMRMagics(Magics):
 
 def load_ipython_extension(ipython):
     ipython.register_magics(NMRMagics)
+    display(HTML("<pre>%s</pre>"%get_fullversion_string()))
+    display(HTML("<p>ipython nmr tools loaded</p>"))
 
 if __name__ == '__main__':
     import IPython

@@ -18,12 +18,13 @@ This module contains version information. It use git to get the last version and
 revision number.
 """
 from __future__ import print_function, division
+import string
 
 #===============================================================================
 # Constants
 #===============================================================================
 _TOOLKIT_SETUP = False
-_TITLE_ = u"LCSLIB"
+_TITLE_ = u"MASAI"
 _COPYRIGHT_ = u"2015, C.Fernandez"
 
 #===============================================================================
@@ -61,7 +62,10 @@ def _get_git_version():
 def get_fullversion_string():
 
     x = _get_git_version()
-    _VERSION_, _REVISION_, _GITID_ = x
+    if len(x)==3:
+        _VERSION_, _REVISION_, _GITID_ = x
+    else:
+        _VERSION_, _REVISION_ = string.join(x,''), 0
 
     version = "*"*80 + "\n"
     version += "%s\nversion : %s.%s\nCopyright (c)%s" % (_TITLE_, _VERSION_,
