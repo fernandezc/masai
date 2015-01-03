@@ -49,7 +49,12 @@ def _get_git_version():
     """
     status, output = commands.getstatusoutput('git describe')
     if status == 0:
+
         return output.split('-')
+    else:
+        
+        commands.getstatusoutput('git tag -a 0.1 -m "initial version"')
+        return '0.1', '0', '0'
 
 
 #===============================================================================
@@ -58,10 +63,7 @@ def _get_git_version():
 def get_fullversion_string():
 
     x = _get_git_version()
-    if len(x)==3:
-        _VERSION_, _REVISION_, _GITID_ = x
-    elif len(x)==2:
-        _VERSION_, _REVISION_ = x
+    _VERSION_, _REVISION_, _GITID_ = x
 
     version = "*"*80 + "\n"
     version += "%s\nversion : %s.%s\nCopyright (c)%s" % (_TITLE_, _VERSION_,
