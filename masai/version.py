@@ -23,7 +23,7 @@ from __future__ import print_function, division
 # Constants
 #===============================================================================
 _TOOLKIT_SETUP = False
-_TITLE_ = u"LCSLIB"
+_TITLE_ = u"MASAI"
 _COPYRIGHT_ = u"2015, C.Fernandez"
 
 #===============================================================================
@@ -49,8 +49,10 @@ def _get_git_version():
     """
     status, output = commands.getstatusoutput('git describe')
     if status == 0:
+
         return output.split('-')
     else:
+        
         commands.getstatusoutput('git tag -a 0.1 -m "initial version"')
         return '0.1', '0', '0'
 
