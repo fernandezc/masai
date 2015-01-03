@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# lcslib.plugins.plots.plot1d_plugin
+# masai.plugins.plots.plot1d_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 # Laboratoire Catalyse et Spectrochimie, Caen, France.
@@ -132,7 +132,7 @@ class Plot1d(HasTraits):
             # look in args
             source = args[0]
         else:
-            raise ValueError("no valid source specified\nUsage: Plot1d(fd)")
+            raise ValueError("no a valid input\nUsage: Plot1d(<source>)")
 
         imag = kargs.get('imag', False)
         if isinstance(source, DataFrame):
