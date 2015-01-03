@@ -33,12 +33,27 @@ def optimize(func, fp0, args=(), method="SIMPLEX", maxfun=5000, maxiter=5000,
     :return:
 
     """
+    global keys
+
     def internal_func(p, dat, fp, keys):
         for i in range(len(p)):
             key = keys[i]
             # restore external parameters in case of bounding
             fp.to_external(key, p[i])
         return func(fp, dat)
+
+    def internal_callback(*args):
+        if callback is None:
+            return
+        global keys
+        p = args[0]
+        fp = fp0.copy()
+        for i in range(len(p)):
+            key = keys[i]
+            # restore external parameters in case of bounding
+            fp.to_external(key, p[i])
+        #print(fp[key], p[i])
+        return callback(fp)
 
     if not isinstance(fp0, FitParameters):
         raise TypeError('fp0 is not of FitParameter type')
@@ -61,7 +76,7 @@ def optimize(func, fp0, args=(), method="SIMPLEX", maxfun=5000, maxiter=5000,
                                      maxfun=maxfun, maxiter=maxiter,
                                      ftol=ftol, xtol=xtol,
                                      full_output=True, disp=False,
-                                     callback=callback)
+                                     callback=internal_callback)
         res, fopt, iterations, funcalls, warnmess = result
         # print(iterations, funcalls, warnmess)
 

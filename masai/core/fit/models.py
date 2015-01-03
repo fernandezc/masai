@@ -25,6 +25,8 @@ import logging
 logger = logging.getLogger()
 import os
 import numpy as np
+from numba import jit
+
 #from masai.processing.processbase import _ft
 from .pulsar.pypulsar import (parameters, compute, reset)
 

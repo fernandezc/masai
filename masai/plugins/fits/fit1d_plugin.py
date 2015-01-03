@@ -25,9 +25,11 @@ from __future__ import print_function, division
 from traits.api import (HasTraits, Bool, Any, ListStr,
                         Array, Str, Instance, provides, Property)
 import traits.has_traits
+import sys
 import re
 import numpy as np
 import pandas as pd
+from IPython import display
 
 import logging
 logger = logging.getLogger('ipython_nmr')
@@ -123,13 +125,16 @@ shape: voigtmodel
         """
         logger.info('Entering fitting procedure')
 
+        global niter, chi2
+        niter = 0
+
         # internally defined function chi2
         def chi2(params, dat):
             """
             Return sum((y - x)**2)
 
             """
-
+            global chi2
             # model spectrum
             modeldata = self._get_modeldata()
 
@@ -139,15 +144,22 @@ shape: voigtmodel
             return chi2
         # end chi2 function ---------------------------------------------------
 
+
         # callback function--------------------------------------------------------
         def callback(x, f=None, accepted=None):
             """
             callback print function
             """
+            global niter, chi2
             if f is not None:  # hopping
                 pass
             if f is None:  # simplex
-                print(x)
+                display.clear_output(wait=True)
+                print("Iteration: %d (chi2: %.5f)"%(niter, chi2))
+                sys.stdout.flush()
+
+                niter += 1
+
         # end callback function ---------------------------------------------------
 
         fp = self.fp
@@ -158,7 +170,7 @@ shape: voigtmodel
         fp, fopt = optimize(chi2, fp,
                            args=(self.source.real,),
                            method=optmode,
-                           callback=None) #callback)
+                           callback=callback)
 
         self.parameterscript.script = str(fp)
         self.source.modeldata = self._get_modeldata()
@@ -266,7 +278,7 @@ shape: voigtmodel
                 names.append(model)
             else:
                 modeldata[0] += calc
-                
+
 
         # call the userfunction
         # (in case something is executed in it - nothing by default)

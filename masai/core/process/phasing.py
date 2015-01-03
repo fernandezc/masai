@@ -246,26 +246,10 @@ def autophase(data, args):
 
     # end _phase_error function -------------------------------------------------------------------------------------
 
-    # callback function--------------------------------------------------------
-
-    def print_fun(x, f=None, accepted=None):
-        """
-        callback print function
-        """
-        global nas, spe, ni, err
-        if DEBUG and f is not None:  # hopping
-            print("i: %d >>> NA: %.3g, S: %.3g err: %.3g (accepted %d)" % (
-                ni, nas, spe, f, int(accepted)))
-        if DEBUG and f is None:  # simplex
-            print("i: %d >>> NA: %.3g, S: %.3g err: %.3g" % (
-                ni, nas, spe, err))
-
-    # end callback function ---------------------------------------------------
-
     # convergence is not insured depending on the starting values
     fp, err1 = optimize(_phase_error, fp,
                            args=[dat,], method=optmode,
-                           callback=print_fun)
+                           callback=None)
     nas_save = nas
     spe_save = spe
     fp_save = fp.copy()
@@ -275,7 +259,7 @@ def autophase(data, args):
         ni = 0
         fp, err2 = optimize(_phase_error, fp,
                                 args=(dat,), method=optmode,
-                                callback=print_fun)
+                                callback=None)
 
         # select the best
         if err2 > err1:
