@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# masai.plugins.plots.plotstacked_plugin
+# masai.plugins.plots.stackplot_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 # Laboratoire Catalyse et Spectrochimie, Caen, France.
@@ -26,6 +26,7 @@ import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
 from pandas import DataFrame, Series
 from matplotlib.ticker import MaxNLocator
+from masai.core.source import Source
 
 # ===============================================================================
 # other imports
@@ -40,16 +41,16 @@ DEBUG = False
 # ===============================================================================
 # Plugin signature
 # ===============================================================================
-__plugin_main__ = 'Plotstacked'
+__plugin_main__ = 'Stackplot'
 
 
 # ===================================================================================
-# Plot1d plugin
+# Stackplot plugin
 # ===================================================================================
 @provides(IPlugin)
-class Plot1d(HasTraits):
+class Stackplot(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Plotstacked (type: plots), output several stacked matplotlib 1D plot.")
+    description = Str("Stackplot (type: plots), output several stacked matplotlib 1D plot.")
     type = Str("plot")
 
     # specific attributes ----------------------------------------------------------
@@ -101,7 +102,8 @@ class Plot1d(HasTraits):
 
         Parameters
         ----------
-        fd: list of source (such as NMR or IR source)
+        fd: list of 1D sources (such as NMR or IR source), DataFrame, Series or a 2D source
+
         figure: Figure instance, optioanl
         axe: Axe instance, optional
             the axe where to plot
@@ -133,14 +135,34 @@ class Plot1d(HasTraits):
             sources = args[0]
         else:
             raise ValueError("no a valid input\nUsage: Plotstacked(<list of sources>)")
+
+        # in principle, if we want a stack plot we must provide a list of source or a 2D spectrum
         if isinstance(sources, list):
-            if isinstance(sources[0],DataFrame):
+            # ok we have a list
+            # is-it a list of source object?
+            if isinstance(sources[0], Source):
+                listdata = [source.data for source in sources]
+            # or of pandas DataFrame?
+            elif isinstance(sources[0],DataFrame):
                 listdata = sources
+            # or of pandas Series?
             elif isinstance(sources[0], Series):
                 # this routine needs DataFrame input, not Series
-                listdata = DataFrame(sources).T
-        else:
-            data = source.data
+                listdata = [DataFrame(source).T for source in sources]
+            else:
+                # cannot handle object which are not pandas object.
+                # Todo: may be we could provide the x scale to allow numpy arrays in general
+                raise TypeError('The input must be a list of pandas DataFrame or Series')
+            # ok now we have list of dataframes
+            # lets create a 2D dataframe
+            data = 
+        elif isinstance(sources, Source):
+            # it should be a 2D source
+            if sources.is_2d:
+                data = sources.data
+            else:
+                raise TypeError("I can't interpret the type of the input")
+
         spec = data.values.real if not imag else data.values.imag
 
         if (spec.ndim >= 2) & (spec.shape[0] > 1):
@@ -291,7 +313,7 @@ if __name__ == '__main__':
     from masai.plugins.sources.bruker_plugin import Bruker
 
     Bruker = Bruker()  # necessary for direct call
-    Plot1d = Plot1d()
+    Plot = Plot1d()
 
     DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
     user = 'christian'
