@@ -2,10 +2,9 @@
 MASAÏ 
 ######
 
-|masai|, a framework for processing, analysing and modelling 
-of solid state NMR spectra
+|masai|, a framework for processing, analysing and modelling of solid state NMR spectra designed to work with IPython notebook.
 
-:Version: 0.2.alpha.dev
+:Version: 0.1.dev
 
 Warning
 =======
@@ -25,10 +24,7 @@ What is |masai|?
 It (will) provides a general framework for the processing, analysis and modelling 
 of Solid State NMR spectra.
 
-A *GUI* application allows users to make basic processing and fitting of NMR spectra
-(for now limited to the Bruker format).
-
-The *API* should also be accessible to be included in other programs.
+The *API* is designed to work with IPython but likely can also be included in other programs.
 
 Can't wait? Here is how you can get it ready in three steps
 ============================================================
@@ -50,12 +46,15 @@ To update a previous installed version::
 
 	$ pip install -U masai
 	
-3. To run the program, just type in a terminal::
+3. To run the program, open a terminal, cd to the directory where masai/Doc is installed,
+and then issue the following command::
 
-	$ masai
-	
-and you should have access to the GUI interface.
-	
+	$ ipython notebook &
+
+This should open your default Browser (e.g. Safari), and open a page `<http://localhost:8888>`.
+
+Now you can create a notebook, following the Tutorial: doc/tutorial/tutorial.ipynb
+
 Look at the `documentation <http://fernandezc.github.com/masai>`_ for more information about installation.
 
 
