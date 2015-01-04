@@ -53,7 +53,12 @@ and then issue the following command::
 
 This should open your default Browser (e.g. Safari), and open a page `<http://localhost:8888>`.
 
-Now you can create a notebook, following the Tutorial: doc/tutorial/tutorial.ipynb
+![readme1.png](https://bitbucket.org/repo/qXj9K5/images/911010676-readme1.png)
+
+Now you can create a notebook.
+
+To start you can open the following in the doc folder: doc/tutorial/tutorial.ipynb
+
 
 Look at the `documentation <http://fernandezc.github.com/masai>`_ for more information about installation.
 
