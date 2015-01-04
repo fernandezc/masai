@@ -76,6 +76,6 @@ on this software, you are kindly requested to cite the program this way::
 
 	Christian Fernandez, 
 	Masaï: a framework for processing, analysing and modelling of solid state NMR spectra, 
-	http://fernandezc.github.com/masai, version 0.2, ENSICAEN/Université de Caen/CNRS, 2012
+	http://fernandezc.github.com/masai, version 0.2, ENSICAEN/Université de Caen/CNRS, 2015
 
 .. |masai| replace:: **Masaï**
