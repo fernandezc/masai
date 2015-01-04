@@ -1,0 +1,6 @@
+include *.txt
+include *.rst
+graft doc
+recursive-include masai/modelling/pulsar Makefile *.f90 *.pyf
+graft masai/modelling/script
+graft masai/images
