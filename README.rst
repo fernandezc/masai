@@ -51,7 +51,7 @@ and then issue the following command::
 
 	$ ipython notebook &
 
-This should open your default Browser (e.g. Safari), and open a page `<http://localhost:8888>`.
+This should open your default Browser (e.g. Safari), and open a page `http://localhost:8888`.
 
 ![readme1.png](https://bitbucket.org/repo/qXj9K5/images/911010676-readme1.png)
 
