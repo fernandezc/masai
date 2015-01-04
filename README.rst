@@ -56,7 +56,7 @@ This should open your default Browser (e.g. Safari), and open a page `http://loc
 Now you can create a notebook or start with the tutorial in the doc folder.
 
 if the notebook was open as above suggested, you can find it here: 
-`Tutorial <http://localhost:8888/notebooks/doc/tutorial/ipython_nmr.ipynb>`
+`Tutorial <http://localhost:8888/notebooks/doc/tutorial/ipython_nmr.ipynb>`_
 
 
 Look at the `documentation <http://fernandezc.github.com/masai>`_ for more information about installation.
