@@ -53,7 +53,7 @@ and then issue the following command::
 
 This should open your default Browser (e.g. Safari), and open a page `http://localhost:8888`.
 
-![readme1.png]%3Ahttps://bitbucket.org/repo/qXj9K5/images/911010676-readme1.png%3A
+![readme1.png] https://bitbucket.org/repo/qXj9K5/images/911010676-readme1.png
 
 Now you can create a notebook.
 
