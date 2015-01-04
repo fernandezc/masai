@@ -53,11 +53,10 @@ and then issue the following command::
 
 This should open your default Browser (e.g. Safari), and open a page `http://localhost:8888`.
 
-![readme1.png] https://bitbucket.org/repo/qXj9K5/images/911010676-readme1.png
+Now you can create a notebook or start with the tutorial in the doc folder.
 
-Now you can create a notebook.
-
-To start you can open the following in the doc folder: doc/tutorial/tutorial.ipynb
+if the notebook was open as above suggested, you can find it here: 
+`Tutorial <http://localhost:8888/notebooks/doc/tutorial/ipython_nmr.ipynb>`
 
 
 Look at the `documentation <http://fernandezc.github.com/masai>`_ for more information about installation.
