@@ -46,6 +46,7 @@ DEBUG = False
 # ===============================================================================
 __plugin_main__ = 'Stackplot'
 
+all = ['Stackplot', ]
 
 # ===================================================================================
 # Stackplot plugin
@@ -137,7 +138,7 @@ class Stackplot(HasTraits):
             # look in args
             sources = args[0]
         else:
-            raise ValueError("no a valid input\nUsage: Plotstacked(<list of sources>)")
+            raise ValueError("not a valid input\nUsage: Plotstacked(<list of sources>)")
 
         # in principle, if we want a stack plot we must provide a list of source or a 2D spectrum
         if isinstance(sources, list):

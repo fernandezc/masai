@@ -64,10 +64,10 @@ def get_fullversion_string():
     else:
         _VERSION_, _REVISION_ = string.join(x,''), 0
 
-    version = "*"*80 + "\n"
+    version = "*"*40 + "\n"
     version += "%s\nversion : %s.%s\nCopyright (c)%s" % (_TITLE_, _VERSION_,
                                  _REVISION_, _COPYRIGHT_)
-    version += "\n" + "*"*80 + "\n"
+    version += "\n" + "*"*40 + "\n"
     return version
 
 #===============================================================================
