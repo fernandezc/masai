@@ -81,9 +81,9 @@ def optimize(func, fp0, args=(), method="SIMPLEX", maxfun=5000, maxiter=5000,
         # print(iterations, funcalls, warnmess)
 
     elif method.upper() == "HOPPING":
-        result = scipy.optimize.basinhopping(func, par,
+        result = scipy.optimize.basinhopping(internal_func, par,
                                              niter=100, T=1.0, stepsize=0.5,
-                                             minimizer_kwargs={'args': args}, take_step=None,
+                                             minimizer_kwargs={'args': tuple(args)}, take_step=None,
                                              accept_test=None, callback=callback,
                                              interval=50, disp=False, niter_success=None)
 

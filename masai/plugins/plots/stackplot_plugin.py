@@ -138,7 +138,7 @@ class Stackplot(HasTraits):
             # look in args
             sources = args[0]
         else:
-            raise ValueError("not a valid input\nUsage: Plotstacked(<list of sources>)")
+            raise ValueError("not a valid input\nUsage: Stackplot(<list of sources> or <2D sources>)")
 
         # in principle, if we want a stack plot we must provide a list of source or a 2D spectrum
         if isinstance(sources, list):
@@ -174,7 +174,7 @@ class Stackplot(HasTraits):
         if y is None:
             y = np.arange(data.shape[0])
         # setup figure and axes
-        figsize = kargs.get('figsize', (3.4, 1.7))
+        figsize = kargs.get('figsize', (3.4, 3.4))
         dpi = kargs.get('dpi', 150)
         fontsize = kargs.get('fontsize', 10)
 
@@ -234,9 +234,11 @@ class Stackplot(HasTraits):
                line.set_color(c)
                line.set_linewidth(lw)
                line.set_linestyle(ls)
+
         else: # map
-            norm = mpl.colors.Normalize(vmin=0.0, vmax=y[-1])  # we normalize to the max time
-            # #TODO: add a kargs
+            norm = mpl.colors.Normalize(vmin=y[0], vmax=y[-1])  # we normalize to the max time
+
+            #TODO: add a kargs
             if normalize:
                 norm.vmax = normalize[-1]
                 norm.vmin = normalize[0]
@@ -252,6 +254,7 @@ class Stackplot(HasTraits):
                                         linestyles=ls,
                                         alpha=alpha,
                              )
+
             line_segments.set_array(y[::-1])
             line_segments.set_cmap(colormap)
             line_segments.set_norm(norm)
@@ -274,6 +277,7 @@ class Stackplot(HasTraits):
         else:
             xlim = axe.get_xlim()
             zlim = axe.get_ylim()
+
         xlim = list(kargs.get('xlim', xlim))
         xlim.sort()
         xl = [x[0], x[-1]]
@@ -367,6 +371,7 @@ if __name__ == '__main__':
 
     DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
 
+
     sources = Bruker(
                 data_dir=DATADIR,
                 user = 'siblanixenon',
@@ -375,7 +380,7 @@ if __name__ == '__main__':
                 varpars = "TE",
                 )
 
-    Process1d(sources, transform='em 50; zf 0; ft; pk --auto --fit_phc1 --byrow')
+    Process1d(sources, transform='em 50; zf 0; ft; cl -100 300; pk --auto')# --fit_phc1 --byrow')
 
-    Stackplot(sources)
-    #pl.show()
+    Stackplot(sources, offset=5., ylabel='temperature (K)')
+

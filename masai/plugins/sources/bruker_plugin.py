@@ -491,7 +491,7 @@ class Bruker(Source):
             self.par2 = addict.Dict()
             self.par2.TD = data.shape[-2]
             self.par2.TDeff = self.par2.TD
-            self.par2.units = varpars
+            self.par2.label = varpars
             self.par2.isfreq = True
             self.par2.lvarpars = lvarpars
 
@@ -738,7 +738,7 @@ class Bruker(Source):
             if self.is_2d or self.is_3d:
                 if self.par2.units in ['us', 'ms', 's']:
                     self.par2.label = r'$\mathrm{time\,(%s)}$'%self.par.units
-                else:
+                elif self.par2.units in ['hz', 'ppm']:
                     self.par2.label = r'$\mathrm{\delta\,(%s)}$'%self.par.units
 
         return
