@@ -171,9 +171,6 @@ class Stackplot(HasTraits):
             else:
                 raise TypeError("I can't interpret the type of the input")
 
-        spec = data.values.real
-        x = data.columns.values
-
         if y is None:
             y = np.arange(data.shape[0])
         # setup figure and axes
@@ -206,6 +203,7 @@ class Stackplot(HasTraits):
         normalize = kargs.get('normalize', None)
         colorbar = kargs.get('colorbar', True)
         poly = kargs.get('poly', True)
+        offset = kargs.get('offset', 0.0)
 
         # labels
         xlabel = kargs.get('xlabel', axe.get_xlabel())
@@ -223,10 +221,15 @@ class Stackplot(HasTraits):
         if not zlabel:
             zlabel = r'$\mathrm{intensity\,(a.u.)}$'
 
+        spec = data.values.real
+        x = data.columns.values
+
+        yoffset = spec.max()*offset/100.
+        speco = (spec.T + np.arange(spec.shape[0])*yoffset).T
 
         if c != 'map':
             # plot the source data
-            lines = axe.plot(x, spec.T)
+            lines = axe.plot(x, speco.T)
             for line in lines:
                line.set_color(c)
                line.set_linewidth(lw)
@@ -244,7 +247,7 @@ class Stackplot(HasTraits):
             else:
                 fun = LineCollection
 
-            line_segments = fun([list(zip(x, spec[i].tolist())) for i in xrange(len(y))][::-1],
+            line_segments = fun([list(zip(x, speco[i].tolist())) for i in xrange(len(y))][::-1],
                                         linewidths=lw,
                                         linestyles=ls,
                                         alpha=alpha,
@@ -277,8 +280,8 @@ class Stackplot(HasTraits):
         xl.sort()
         xlim[-1] = min(xlim[-1], xl[-1])
         xlim[0] = max(xlim[0], xl[0])
-        if hasattr(source, 'par'):
-            reverse = source.par.isfreq
+        if hasattr(sources, 'par'):
+            reverse = sources.par.isfreq
         else:
             reverse = False
         if kargs.get('reverse', reverse):
@@ -341,23 +344,38 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import os
-    from masai.plugins.sources.bruker_plugin import Bruker
+    from masai.plugins.list import Bruker, Process1d
 
     Bruker = Bruker()  # necessary for direct call
     Stackplot = Stackplot()
+    Process1d = Process1d()
 
-    DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd = Bruker(path)
 
-    sources = [fd, fd, fd, fd]
-    # plot a Source
-    ax = Stackplot(sources, poly=False)
+    #DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
+    #user = 'christian'
+    #name = 'example1'
+    #expno = 10
+    #path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
+    #fd = Bruker(path)
+
+    #sources = [fd, fd, fd, fd]
+    ## plot a Source
+    #ax = Stackplot(sources, poly=False)
 
     # plot a Dataframe
-    ax = Stackplot(sources, color='r')
+    #ax = Stackplot(sources, color='r')
 
+    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
+
+    sources = Bruker(
+                data_dir=DATADIR,
+                user = 'siblanixenon',
+                name = 'NaY1-QIN',
+                expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
+                varpars = "TE",
+                )
+
+    Process1d(sources, transform='em 50; zf 0; ft; pk --auto --fit_phc1 --byrow')
+
+    Stackplot(sources)
     #pl.show()
