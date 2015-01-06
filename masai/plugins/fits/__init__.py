@@ -13,3 +13,5 @@
 # at the following URL "http://www.cecill.info".
 # See Licence.txt in the main masai source directory
 # ===============================================================================
+
+from fit1d_plugin import *

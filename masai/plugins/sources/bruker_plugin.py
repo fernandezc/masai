@@ -25,8 +25,10 @@ from __future__ import print_function
 # ===============================================================================
 import os
 import glob
-from warnings import warn, filterwarnings
+import logging
+logging.getLogger()
 
+from warnings import warn, filterwarnings
 filterwarnings("ignore")
 
 import pandas as pd
@@ -45,6 +47,8 @@ traits.has_traits.CHECK_INTERFACES = 2
 # Plugin signature
 # ===============================================================================
 __plugin_main__ = 'Bruker'
+
+all = ['Bruker', ]
 
 # ===============================================================================
 # Constant
@@ -121,8 +125,8 @@ class Bruker(Source):
         """
         property getter: Check if the data are 2D or not
         """
-        if self._data is not None:
-            return len(self._data.shape) == 2 and self._data.shape[-2] > 1
+        if self._data_orig is not None:
+            return len(self._data_orig.shape) == 2 and self._data_orig.shape[-2] > 1
         else:
             # check parmode parameters
             if self.par.PARMODE == 1:
@@ -171,6 +175,15 @@ class Bruker(Source):
             processing number
 
         """
+
+        # As this routine is subject to several call we need to retore the initial state
+        if hasattr(self, 'par'):
+            del self.par
+            del self._data_orig
+            del self._data
+        if hasattr(self,'par2'):
+            del self.par2
+
         path = ''
         # noinspection PyUnusedLocal
         expnos = False
@@ -178,7 +191,7 @@ class Bruker(Source):
         user = kargs.get('user', '')
         name = kargs.get('name', '')
         # reading single expno
-        expno = kargs.get('expno', '')
+        expno = kargs.get('expno', None)
 
         if args:
             # look in args
@@ -215,6 +228,7 @@ class Bruker(Source):
         self._data = None
         self.par = None
         self.par2 = None
+        self.datatype = None
 
         # internal funct
         def _get_par_files(_dir, _procno, _processed=False):
@@ -238,6 +252,7 @@ class Bruker(Source):
             if _processed:
                 _dir = pdir
             return _dir, parfiles
+        #------------------------
 
         if os.path.isdir(path) is not True:
             raise IOError("directory %s does not exist" % path)
@@ -260,146 +275,234 @@ class Bruker(Source):
 
         self.path = path
 
-        # Acquisition parameters
-        if os.path.isfile(os.path.join(path, "fid")):
-            datatype = 'FID'
-        elif os.path.isfile(os.path.join(path, "ser")):
-            datatype = 'SER'
+        # List of expnos?
+        expnos = kargs.get('expnos', False)
+        paths = None
+        if expnos:
+            paths = [os.path.join(path,str(expno)) for expno in expnos]
         else:
-            if not processed:
-                warn('No binary fid or ser found in %s.\nTry processed files...' % path)
-                processed = True
+            paths = [path, ]
 
-        if os.path.isfile(os.path.join(path, 'pdata', procno, '1r')):
-            if not datatype or processed:
-                datatype = '1D'
-        elif os.path.isfile(os.path.join(path, 'pdata', procno, '2rr')):
-            if not datatype or processed:
-                datatype = '2D'
-        elif os.path.isfile(os.path.join(path, 'pdata', procno, '3rrr')):
-            if not datatype or processed:
-                datatype = '3D'
-        else:
-            if not datatype:
-                raise IOError("No Bruker binary file could be found in %s" % path)
-            else:
-                warn("No processed Bruker binary file could be found in %s. Use fid's." % path)
-
-        npath, par_files = _get_par_files(path, procno, processed)  # we read all parameters file whatever the datatype
-
-        if datatype in ['FID', 'SER']:
-            dic, data = ng.bruker.read(npath, acqus_files=par_files)
-            # look the case whn the reshaping was not correct
-            # for example, this happen when the number
-            # of accumulated row was incomplete
-            if datatype in ['SER'] and data.ndim == 1:
-                # we must reshape using the acqu parameters
-                td1 = dic['acqu2']['TD']
-                data = data.reshape(td1,-1)
-            #reduce to td
-            ntd = dic['acqus']['TD']/2
-            data = data[...,:ntd] # necessary for agreement with bruker data and phase
-        else:
-            dic, data = ng.bruker.read_pdata(npath, procs_files=par_files)
-
-        dic['datatype'] = datatype
-
-        # clean dict for pdata keys
-        for key in dic.keys():
-            if key.startswith('pdata'):
-                newkey = key.split(os.path.sep)[-1]
-                dic[newkey] = dic.pop(key)
-
-        # eliminate the digital filter
-        if datatype in ['FID', 'SER'] and kargs.get('dgfilter', True):
-            data = self._remove_digital_filter(dic, data)
-
-        # we now make some rearrangement of the dic
-        # to have something more user friendly
+        # This is the final dictionary
         adic = addict.Dict()
 
-        for key, val in dic.iteritems():
-            if isinstance(val, dict):
-                dic[key] = addict.Dict(val)
+        n = 0
+        ldata = []
+        lvarpars =[]
+        ldates = []
 
-        keys = sorted(dic.keys())
-        for item in keys:
+        for path in paths:
 
-            newitem = item.split(os.path.sep)[-1]
-            store = newitem
-            if newitem[:4] in ['acqu', 'proc']:
-                store = 'par'
-                if len(newitem) > 4 and newitem[4] in ['2', '3']:
-                    store += newitem[4]
+            # Acquisition parameters
+            if os.path.isfile(os.path.join(path, "fid")):
+                datatype = 'FID'
+            elif os.path.isfile(os.path.join(path, "ser")):
+                datatype = 'SER'
+            else:
+                if not processed:
+                    warn('No binary fid or ser found in %s.\nTry processed files...' % path)
+                    processed = True
 
-            if newitem[-1] != 's':  # not a status parameters
-                if isinstance(dic[item], addict.Dict):
+            if os.path.isfile(os.path.join(path, 'pdata', procno, '1r')):
+                if not datatype or processed:
+                    datatype = '1D'
+            elif os.path.isfile(os.path.join(path, 'pdata', procno, '2rr')):
+                if not datatype or processed:
+                    datatype = '2D'
+            elif os.path.isfile(os.path.join(path, 'pdata', procno, '3rrr')):
+                if not datatype or processed:
+                    datatype = '3D'
+            else:
+                if not datatype:
+                    raise IOError("No Bruker binary file could be found in %s" % path)
+                elif processed:
+                    logging.warn("No processed Bruker binary file could be found in %s. Use fid's." % path)
+
+            npath, par_files = _get_par_files(path, procno, processed)  # we read all parameters file whatever the datatype
+
+            if datatype in ['FID', 'SER']:
+                dic, data = ng.bruker.read(npath, acqus_files=par_files)
+                # look the case whn the reshaping was not correct
+                # for example, this happen when the number
+                # of accumulated row was incomplete
+                if datatype in ['SER'] and data.ndim == 1:
+                    # we must reshape using the acqu parameters
+                    td1 = dic['acqu2']['TD']
+                    data = data.reshape(td1,-1)
+                #reduce to td
+                ntd = dic['acqus']['TD']/2
+                data = data[...,:ntd] # necessary for agreement with bruker data and phase
+            else:
+                dic, data = ng.bruker.read_pdata(npath, procs_files=par_files)
+
+            # Clean dict for pdata keys
+            for key in dic.keys():
+                if key.startswith('pdata'):
+                    newkey = key.split(os.path.sep)[-1]
+                    dic[newkey] = dic.pop(key)
+
+            # Eliminate the digital filter
+            if datatype in ['FID', 'SER'] and kargs.get('dgfilter', True):
+                data = self._remove_digital_filter(dic, data)
+
+            if n>0 and datatype != adic.datatype:
+                raise ValueError("Experiments not compatibles. End")
+
+            dic['datatype'] = datatype
+
+            # we now make some rearrangement of the dic
+            # to have something more user friendly
+            # we assume that all experiments have similar (important) parameters so that the experiments are
+            # compatibles
+
+            # but we keep the original dictionary for further reference if necessary
+            adic.fulldic['exp_%d'%n] = dic
+
+            for key, val in dic.iteritems():
+                if isinstance(val, dict):
+                    dic[key] = addict.Dict(val)
+
+            keys = sorted(dic.keys())
+            for item in keys:
+
+                newitem = item.split(os.path.sep)[-1]
+                store = newitem
+                if newitem[:4] in ['acqu', 'proc']:
+                    store = 'par'
+                    if len(newitem) > 4 and newitem[4] in ['2', '3']:
+                        store += newitem[4]
+
+                if newitem[-1] != 's':  # not a status parameters
+                    if isinstance(dic[item], addict.Dict):
+                        for skey in dic[item].keys():
+                            adic[store][skey] = dic[item][skey]
+                    else:
+                        adic[store] = dic[item]
+                else:
                     for skey in dic[item].keys():
                         adic[store][skey] = dic[item][skey]
-                else:
-                    adic[store] = dic[item]
-            else:
-                for skey in dic[item].keys():
-                    adic[store][skey] = dic[item][skey]
 
-        # normalised amplitudes to ns=1K and rg=1
-        def _norm(dat):
-            fac = float(adic.par.NS) * float(adic.par.RG)
-            dat /= fac
-            maxi = np.max(np.abs(dat))
+            # correct some initial values
+            if datatype in ['FID', 'SER']:
+                adic.par.TD = data.shape[-1]
+                adic.par.TDeff = adic.par.TD
+                adic.par.units = 'ms'
+                adic.par.FnMODE = 0
+                adic.par.isfreq = False
+
+            if datatype in ['SER']:
+                adic.par2.TD = data.shape[-2]
+                adic.par2.TDeff = adic.par2.TD
+                adic.par2.units = 'ms'
+                adic.par2.isfreq = False
+
+                if not adic.par2.FnMODE:  # For historical reasons,
+                    # MC2 is interpreted when the acquisition status parameter FnMODE has the value undefined, i.e. 0
+                    adic.par2.FnMODE = int(adic.par2.MC2) + 1
+                adic.par2.encoding = FnMODE[adic.par2.FnMODE]
+
+                if adic.par.PARMODE == 2:
+                    adic.par3.TD = data.shape[-3]
+                    adic.par3.TDeff = adic.par3.TD
+                    adic.par3.units = 'ms'
+                    adic.par3.isfreq = False
+                    if not adic.par3.FnMODE:
+                        adic.par3.FnMODE = int(adic.par3.MC2) + 1
+                    adic.par3.encoding = FnMODE[adic.par3.FnMODE]
+
+            if datatype in ['1D', '2D', '3D']:
+                adic.par.SI = data.shape[-1]
+                adic.par.units = 'ppm'
+                adic.par.isfreq = True
+                if datatype in ['2D', '3D']:
+                    adic.par2.SI = data.shape[-2]
+                    adic.par2.units = 'ppm'
+                    adic.par2.isfreq = True
+                    if datatype in ['3D']:
+                        adic.par3.SI = data.shape[-3]
+                        adic.par3.units = 'ppm'
+                        adic.par2.isfreq = True
+
+            # normalised amplitudes to ns=1K and rg=1
+            def _norm(dat):
+                fac = float(adic.par.NS) * float(adic.par.RG)
+                dat /= fac
+                return dat
+
+            data = np.conj(data * 1.0j) # this transformation is to make data coherent with bruker processsing
+            data = _norm(data)
+
+            # make attributes from dict
+            for key in adic.keys():
+                setattr(self, key, adic[key])
+
+            # we need to create a DataFrame with scales
+            data = self._make_dataframe(data)
+
+            # store temporarily
+            ldata.append(data)
+
+            #store also the varpars of the series
+            varpars = kargs.get('varpars')
+            if isinstance(varpars, str):
+                # this should be one of the dic parameters
+                lvarpars.append(adic.par[varpars]) # store the variable
+                ldates.append(adic.par.DATE) # and the date
+            elif isinstance(varpars, list):
+                # this should be a list of parameters
+                p = []
+                for var in varpars:
+                    p.append(adic.par[var])
+                lvarpars.append(p) # store the variable
+                ldates.append(adic.par.DATE) # and the date
+            n += 1
+        # ---------------------------------------
+
+        if n>1:
+            # we need to concat the various arrays into a 2D array
+            # but first check if they are all compatibles
+            shapes = []
+            nc = 0
+            for item in ldata:
+                shapes.append(item.shape)
+                nc = max(item.shape[-1], nc)
+
+            # try to make a pseudo 2D.
+            data = pd.concat(ldata)
+            if data.shape[-1] != nc:
+                logging.warn('series of spectra not compatibles (scale different)')
+
+            # set the index using the provided list of varpar
+            # or just take the dates
+            if data.shape[0] == len(lvarpars):
+                data.index = lvarpars
+            else:
+                data.index = ldates
+
+            data.fillna(0, inplace=True) # replace NaN with zeros
+            self.datatype = 'FIDSER'
+
+            # correct some values
+            self.par.TD = data.shape[-1]
+            self.par.TDeff = self.par.TD
+            self.par.units = 'ms'
+            self.par.FnMODE = 0
+            self.par.isfreq = False
+            self.par2 = addict.Dict()
+            self.par2.TD = data.shape[-2]
+            self.par2.TDeff = self.par2.TD
+            self.par2.label = varpars
+            self.par2.isfreq = True
+            self.par2.lvarpars = lvarpars
+
+        # normalized to 1
+        def _globnorm(dat):
+            maxi = np.abs(dat.values).max()
             dat /= maxi
-            adic.par.norm = maxi
+            self.norm = maxi
             return dat
 
-        data = np.conj(data * 1.0j) # this transformation is to make data coherent with bruker processsing
-        data = _norm(data)
-
-        # correct some initial values
-        if datatype in ['FID', 'SER']:
-            adic.par.TD = data.shape[-1]
-            adic.par.TDeff = adic.par.TD
-            adic.par.units = 'ms'
-            adic.par.FnMODE = 0
-            adic.par.isfreq = False
-
-        if datatype in ['SER']:
-            adic.par2.TD = data.shape[-2]
-            adic.par2.TDeff = adic.par2.TD
-            adic.par2.units = 'ms'
-            adic.par2.isfreq = False
-            if not adic.par2.FnMODE:  # For historical reasons,
-                # MC2 is interpreted when the acquisition status parameter FnMODE has the value undefined, i.e. 0
-                adic.par2.FnMODE = int(adic.par2.MC2) + 1
-            adic.par2.encoding = FnMODE[adic.par2.FnMODE]
-
-            if adic.par.PARMODE == 2:
-                adic.par3.TD = data.shape[-3]
-                adic.par3.TDeff = adic.par3.TD
-                adic.par3.units = 'ms'
-                adic.par3.isfreq = False
-                if not adic.par3.FnMODE:
-                    adic.par3.FnMODE = int(adic.par3.MC2) + 1
-                adic.par3.encoding = FnMODE[adic.par3.FnMODE]
-
-        if datatype in ['1D', '2D', '3D']:
-            adic.par.SI = data.shape[-1]
-            adic.par.units = 'ppm'
-            adic.par.isfreq = True
-            if datatype in ['2D', '3D']:
-                adic.par2.SI = data.shape[-2]
-                adic.par2.units = 'ppm'
-                adic.par2.isfreq = True
-                if datatype in ['3D']:
-                    adic.par3.SI = data.shape[-3]
-                    adic.par3.units = 'ppm'
-                    adic.par2.isfreq = True
-
-        # make attributes from dict
-        for key in adic.keys():
-            setattr(self, key, adic[key])
-
-        # we need to create a DataFrame with scales
-        data = self._make_dataframe(data)
+        data = _globnorm(data)
 
         # store it as data_orig
         # we use the hidden properties because the associated properties is read_only
@@ -424,7 +527,10 @@ class Bruker(Source):
 
         x = self._scale(self.par)
         if is2d:
-            y = self._scale(self.par2)
+            if self.datatype in ['FIDSER']:
+                y = self.par2.lvarpars
+            else:
+                y = self._scale(self.par2)
             df = pd.DataFrame(data.astype(np.complex128), index=y, columns=x)
         elif is3d:
             raise NotImplementedError('3D dataframe not yet implemented')
@@ -565,6 +671,11 @@ class Bruker(Source):
             if self.datatype in ['SER']:
                 txt += "- Encoding: %s\n" % self.par2.encoding
                 txt += "- TD1: %d, TD2: %d\n" % (self.par2.TD, self.par.TD)
+            elif self.datatype in ['FIDSER']:
+                if not self.par.isfreq:
+                    txt += "- n: %d, TD: %d\n" % (self._data_orig.shape[0], self.par.TD)
+                else:
+                    txt += "- n: %d, SI: %d\n" % (self._data_orig.shape[0], self.par.SI)
             else:
                 txt += "- SI1: %d, SI2: %d\n" % (self.par2.SI, self.par.SI)
             txt += "- F1 limits: %.2f to %.3f" % tuple(self.get_limits(axis=0))
@@ -611,6 +722,8 @@ class Bruker(Source):
             print(self.history[-1])
 
         elif '_data'  in name:
+            if new is None:
+                return
             if name == '_data_orig':
                 self.history = ['Loaded %s'%self.datatype]
 
@@ -625,7 +738,7 @@ class Bruker(Source):
             if self.is_2d or self.is_3d:
                 if self.par2.units in ['us', 'ms', 's']:
                     self.par2.label = r'$\mathrm{time\,(%s)}$'%self.par.units
-                else:
+                elif self.par2.units in ['hz', 'ppm']:
                     self.par2.label = r'$\mathrm{\delta\,(%s)}$'%self.par.units
 
         return
@@ -643,6 +756,33 @@ if __name__ == '__main__':
     Bruker = Bruker()
 
     DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
+
+    sources = Bruker(
+                data_dir=DATADIR,
+                user = 'siblanixenon',
+                name = 'NaY1-QIN',
+                expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
+                varpars = "TE",
+                )
+
+    sources = Bruker(
+                 data_dir=DATADIR,
+                 user = 'siblanixenon',
+                 name = 'NaY1-QIN',
+                 expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
+                 varpars = "TE",
+                 )
+
+    sources.data.T.plot(legend=False)
+    print(sources)
+    pl.show()
+
+
+
+
+
+    import sys
+    sys.exit()
 
     user = 'christian'
     name = 'example1'

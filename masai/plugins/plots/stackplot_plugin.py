@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# masai.plugins.plots.plotstacked_plugin
+# masai.plugins.plots.stackplot_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 # Laboratoire Catalyse et Spectrochimie, Caen, France.
@@ -22,10 +22,14 @@ from __future__ import print_function, division
 # Python imports
 #
 from IPython.display import display, display_pretty
+import numpy as np
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, concat
+import matplotlib as mpl
+from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.ticker import MaxNLocator
+from masai.core.source import Source
 
 # ===============================================================================
 # other imports
@@ -40,16 +44,17 @@ DEBUG = False
 # ===============================================================================
 # Plugin signature
 # ===============================================================================
-__plugin_main__ = 'Plotstacked'
+__plugin_main__ = 'Stackplot'
 
+all = ['Stackplot', ]
 
 # ===================================================================================
-# Plot1d plugin
+# Stackplot plugin
 # ===================================================================================
 @provides(IPlugin)
-class Plot1d(HasTraits):
+class Stackplot(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Plotstacked (type: plots), output several stacked matplotlib 1D plot.")
+    description = Str("Stackplot (type: plots), output several stacked matplotlib 1D plot.")
     type = Str("plot")
 
     # specific attributes ----------------------------------------------------------
@@ -101,7 +106,8 @@ class Plot1d(HasTraits):
 
         Parameters
         ----------
-        fd: list of source (such as NMR or IR source)
+        fd: list of 1D sources (such as NMR or IR source), DataFrame, Series or a 2D source
+
         figure: Figure instance, optioanl
         axe: Axe instance, optional
             the axe where to plot
@@ -132,24 +138,43 @@ class Plot1d(HasTraits):
             # look in args
             sources = args[0]
         else:
-            raise ValueError("no a valid input\nUsage: Plotstacked(<list of sources>)")
+            raise ValueError("not a valid input\nUsage: Stackplot(<list of sources> or <2D sources>)")
+
+        # in principle, if we want a stack plot we must provide a list of source or a 2D spectrum
         if isinstance(sources, list):
-            if isinstance(sources[0],DataFrame):
+            # ok we have a list
+            # is-it a list of source object?
+            if isinstance(sources[0], Source):
+                listdata = [source.data for source in sources]
+            # or of pandas DataFrame?
+            elif isinstance(sources[0],DataFrame):
                 listdata = sources
+            # or of pandas Series?
             elif isinstance(sources[0], Series):
                 # this routine needs DataFrame input, not Series
-                listdata = DataFrame(sources).T
-        else:
-            data = source.data
-        spec = data.values.real if not imag else data.values.imag
+                listdata = [DataFrame(source).T for source in sources]
+            else:
+                # cannot handle object which are not pandas object.
+                # Todo: may be we could provide the x scale to allow numpy arrays in general
+                raise TypeError('The input must be a list of pandas DataFrame or Series')
+            # ok now we have list of dataframes
+            # lets create a 2D dataframe
+            data = concat(listdata)
+            # todo: set the index
+            y = kargs.get('index')
 
-        if (spec.ndim >= 2) & (spec.shape[0] > 1):
-            # not well suitable for this
-            print('Cannot plot a 2D source.\n Use Plot2d.')
-            return
+        elif isinstance(sources, Source):
+            # it should be a 2D source
+            if sources.is_2d:
+                data = sources.data
+                y = data.index.values
+            else:
+                raise TypeError("I can't interpret the type of the input")
 
+        if y is None:
+            y = np.arange(data.shape[0])
         # setup figure and axes
-        figsize = kargs.get('figsize', (3.4, 1.7))
+        figsize = kargs.get('figsize', (3.4, 3.4))
         dpi = kargs.get('dpi', 150)
         fontsize = kargs.get('fontsize', 10)
 
@@ -169,73 +194,108 @@ class Plot1d(HasTraits):
         else:
             axe = kargs.get('axe')
 
-        # data
+        # attribute
+        c = kargs.get('color', kargs.get('c', 'map'))
+        alpha = kargs.get('alpha', 0.5)
+        lw = kargs.get('linewidth',  kargs.get('lw', 1.))
+        ls = kargs.get('linestyle', kargs.get('lw', 'solid'))
+        colormap = kargs.get('colormap', kargs.get('cm', 'jet'))
+        normalize = kargs.get('normalize', None)
+        colorbar = kargs.get('colorbar', True)
+        poly = kargs.get('poly', True)
+        offset = kargs.get('offset', 0.0)
+
+        # labels
+        xlabel = kargs.get('xlabel', axe.get_xlabel())
+        if not xlabel and hasattr(sources, 'par'):
+            xlabel = sources.par.label
+        elif not xlabel and hasattr(sources[0], 'par'):
+            xlabel = sources[0].par.label
+        axe.set_xlabel(xlabel)
+
+        ylabel = kargs.get('ylabel', None)
+        if not ylabel and hasattr(sources, 'par2'):
+            ylabel = sources.par2.label
+
+        zlabel = kargs.get('zlabel', axe.get_ylabel())
+        if not zlabel:
+            zlabel = r'$\mathrm{intensity\,(a.u.)}$'
+
+        spec = data.values.real
         x = data.columns.values
 
-        # plot the source data
-        line, = axe.plot(x, spec.T)
+        yoffset = spec.max()*offset/100.
+        speco = (spec.T + np.arange(spec.shape[0])*yoffset).T
 
-        # attribute
-        c = kargs.get('color', kargs.get('c'))
-        if c:
-            line.set_color(c)
-        lw = kargs.get('linewidth', kargs.get('lw', 1.))
-        if lw:
-            line.set_linewidth(lw)
-        ls = kargs.get('linestyle', kargs.get('ls', '-'))
-        if ls:
-            line.set_linestyle(ls)
+        if c != 'map':
+            # plot the source data
+            lines = axe.plot(x, speco.T)
+            for line in lines:
+               line.set_color(c)
+               line.set_linewidth(lw)
+               line.set_linestyle(ls)
 
-        # plot the models
-        if kargs.get('plot_model', False) and source.modeldata is not None:
-            # we now plot the model if it exists
-            mdata = source.modeldata
-            offset = (mdata.values.max())*(float(kargs.get('offset', 1.0))/100.)
-            # print('offset',offset)
-            for model in mdata.index:
-                l, = axe.plot(x, mdata.loc[model],alpha=.75)
-                l.set_linestyle('-')
-                l.set_linewidth(lw*.8)
-                if model=='baseline':
-                    l.set_color('k')
-                    l.set_linestyle(':')
-                    l.set_linewidth(lw*.4)
-                    l.set_ydata(l.get_ydata()-offset)
-                elif model != 'modelsum':
-                    l.set_linestyle('-')
-                    l.set_linewidth(lw*.4)
-                    l.set_ydata(l.get_ydata()-offset)
+        else: # map
+            norm = mpl.colors.Normalize(vmin=y[0], vmax=y[-1])  # we normalize to the max time
+
+            #TODO: add a kargs
+            if normalize:
+                norm.vmax = normalize[-1]
+                norm.vmin = normalize[0]
+
+            if poly:
+                fun = PolyCollection
+                lw /= 5.
+            else:
+                fun = LineCollection
+
+            line_segments = fun([list(zip(x, speco[i].tolist())) for i in xrange(len(y))][::-1],
+                                        linewidths=lw,
+                                        linestyles=ls,
+                                        alpha=alpha,
+                             )
+
+            line_segments.set_array(y[::-1])
+            line_segments.set_cmap(colormap)
+            line_segments.set_norm(norm)
+
+            axe.add_collection(line_segments)
+
+            if colorbar:
+                fig = pl.gcf()
+                axcb = fig.colorbar(line_segments, ax=axe)
+                if ylabel:
+                    axcb.set_label(ylabel)
 
 
         # limits of the spectra
-        xlim = list(kargs.get('xlim', axe.get_xlim()))
+        if not axe in kargs:
+            xlim = (x[0], x[-1])
+            mi,ma = spec.min(),spec.max()
+            amp = ma-mi
+            zlim = (mi-amp*.05,ma+amp*.05)
+        else:
+            xlim = axe.get_xlim()
+            zlim = axe.get_ylim()
+
+        xlim = list(kargs.get('xlim', xlim))
         xlim.sort()
         xl = [x[0], x[-1]]
         xl.sort()
         xlim[-1] = min(xlim[-1], xl[-1])
         xlim[0] = max(xlim[0], xl[0])
-        if hasattr(source, 'par'):
-            reverse = source.par.isfreq
+        if hasattr(sources, 'par'):
+            reverse = sources.par.isfreq
         else:
             reverse = False
         if kargs.get('reverse', reverse):
             xlim.reverse()
-        zlim = list(kargs.get('zlim', kargs.get('ylim', axe.get_ylim())))
+        zlim = list(kargs.get('zlim', kargs.get('ylim', zlim)))
         zlim.sort()
         axe.set_xlim(xlim)
         axe.set_ylim(zlim)
         axe.xaxis.set_major_locator(MaxNLocator(4))
         axe.yaxis.set_major_locator(MaxNLocator(4))
-
-        # label
-        xlabel = kargs.get('xlabel', axe.get_xlabel())
-        if not xlabel and hasattr(source, 'par'):
-            xlabel = source.par.label
-        axe.set_xlabel(xlabel)
-
-        zlabel = kargs.get('zlabel', kargs.get('ylabel', axe.get_ylabel()))
-        if not zlabel:
-            zlabel = r'$\mathrm{intensity\,(a.u.)}$'
 
         if kargs.get('showz', True):
             axe.set_ylabel(zlabel)
@@ -288,23 +348,39 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import os
-    from masai.plugins.sources.bruker_plugin import Bruker
+    from masai.plugins.list import Bruker, Process1d
 
     Bruker = Bruker()  # necessary for direct call
-    Plot1d = Plot1d()
+    Stackplot = Stackplot()
+    Process1d = Process1d()
 
-    DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd = Bruker(path)
 
-    # plot a Source
-    ax = Plot1d(fd, hold=True)
-    ax = Plot1d(fd, axe=ax, imag=True, xlim=(0, 4), ylim=(-1, 1), c='orange')
+    #DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
+    #user = 'christian'
+    #name = 'example1'
+    #expno = 10
+    #path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
+    #fd = Bruker(path)
+
+    #sources = [fd, fd, fd, fd]
+    ## plot a Source
+    #ax = Stackplot(sources, poly=False)
 
     # plot a Dataframe
-    #Plot1d(fd.data)
+    #ax = Stackplot(sources, color='r')
 
-    #pl.show()
+    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
+
+
+    sources = Bruker(
+                data_dir=DATADIR,
+                user = 'siblanixenon',
+                name = 'NaY1-QIN',
+                expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
+                varpars = "TE",
+                )
+
+    Process1d(sources, transform='em 50; zf 0; ft; cl -100 300; pk --auto')# --fit_phc1 --byrow')
+
+    Stackplot(sources, offset=5., ylabel='temperature (K)')
+

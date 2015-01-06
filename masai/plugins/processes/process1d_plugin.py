@@ -39,6 +39,7 @@ traits.has_traits.CHECK_INTERFACES = 2
 # ===============================================================================
 __plugin_main__ = 'Process1d'
 
+all = ['Process1d', ]
 
 # ===================================================================================
 # Process1d plugin
@@ -123,6 +124,12 @@ class Process1d(HasTraits):
             elif 'zf' in trans:
                 zf(source, options=options)
 
+            elif 'us' in trans:
+                us(source, options=options)
+
+            elif 'cl' in trans:
+                cl(source, options=options)
+
             elif 'ft' in trans:
                 ft(source, options=options)
 
@@ -168,9 +175,11 @@ if __name__ == '__main__':
     expno = 10
     path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
     fd = Bruker(path)
+    Process1d(fd, 'us 1')
     Process1d(fd, "em 50")
     Process1d(fd, "zf 0")
     Process1d(fd, "ft")
-    Process1d(fd, "pk -25 0 --auto --use_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
-    Process1d(fd, "ab --mode poly")
+    Process1d(fd, 'cl -60 60')
+    Process1d(fd, "pk -25 0 --auto --fit_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
+   # Process1d(fd, "ab --mode poly")
     Plot1d(fd)

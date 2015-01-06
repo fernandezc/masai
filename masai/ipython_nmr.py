@@ -21,16 +21,10 @@ import numpy as np
 import glob      # Imported for handling command line arguments.
 import sys       # Imported for file directory listing capabilities.
 import os        # Imported for file path manipulation capabilities.
-import logging
 
 from addict import Dict as aDict
 from IPython.core.magic import Magics, magics_class, line_magic
 from IPython.display import display, HTML
-
-import logging
-LOGLEVEL = logging.INFO
-logger = logging.getLogger('ipython_nmr')
-logger.setLevel(LOGLEVEL)
 
 #===============================================================================
 # Load all plugins
@@ -56,8 +50,6 @@ def _loadPlugins():
         # Extract just the first part of the .py file name.
         path, basename = os.path.split(file)
         name = basename.split('_plugin')[0]
-
-        logger.debug("Loading plugin > " + name)
 
         # Dynamically set the PYTHONPATH so the user doesn't have to. It assumes
         # the plugins are contained in subdirectories where the main file lives.

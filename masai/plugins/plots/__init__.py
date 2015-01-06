@@ -13,3 +13,7 @@
 # at the following URL "http://www.cecill.info".
 # See Licence.txt in the main masai source directory
 # ===============================================================================
+
+from stackplot_plugin import *
+from plot1d_plugin import *
+from plot2d_plugin import *

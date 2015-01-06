@@ -13,3 +13,5 @@
 # at the following URL "http://www.cecill.info".
 # See Licence.txt in the main masai source directory
 # ===============================================================================
+
+from bruker_plugin import *

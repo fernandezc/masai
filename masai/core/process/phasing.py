@@ -19,8 +19,10 @@ from __future__ import print_function, division
 #
 # imports
 #
+import sys
 import numpy as np
 import argparse
+from IPython import display
 
 from nmrglue.process.proc_base import ps
 
@@ -52,28 +54,20 @@ def pk(source=None, options= '', axis=-1):
     axis: optional, default=-1
 
     """
-    if source:
-            if axis == -1:
-                par = source.par
-            else:
-                par = source.par2
+    if not source:
+        return None
 
-            if not par.isfreq:
-                print('This source is not already transformed: are you sure this is what you want?')
-
-            # we will work on the ndarray, not DataFrame
-            data = source.data.values
-
-            if axis == 0:
-                # transpose temporarily the data for indirect dimension ft
-                data = data.T
-
-            # get the initial phase setting
-            phc0 = par.PHC0
-            phc1 = par.PHC1
+    if axis == -1:
+        par = source.par
     else:
-        phc0 = 0
-        phc1 = 0
+        par = source.par2
+
+    if not par.isfreq:
+        print('This source is not already transformed: are you sure this is what you want?')
+
+    # get the initial phase setting
+    phc0 = par.PHC0
+    phc1 = par.PHC1
 
     # options evaluation
     parser = argparse.ArgumentParser(description='PK processing.', usage="""
@@ -97,15 +91,20 @@ def pk(source=None, options= '', axis=-1):
     parser.add_argument('--optmode', '-om', default='simplex', choices=['simplex','hopping'], help = "method of optimisation")
     parser.add_argument('--bound_phc0', '-bp0', default=360., type=float, help = "phc0 boundary")
     parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help = "phc1 boundary")
-
+    parser.add_argument('--byrow', '-br', action='store_true', help='to phase each row separately for series or 2D')
     parser.add_argument('--verbose', action='store_true', help='verbose flag' )
     args  = parser.parse_args(options.split())
 
     phc0, phc1 = args.phases
 
+    data = source.data
+    if axis == 0:
+        # transpose temporarily the data for indirect dimension ft
+        data = data.T
+
     if not args.auto:
         # not automatic leaves here...
-        data = ps(data, phc0, phc1)
+        data = ps(data.values, phc0, phc1) # this return an array not a dataframe
         source.history.append('Phasing phc0:%.2f, phc1:%.2f' % (phc0, phc1))
 
     else:
@@ -113,7 +112,18 @@ def pk(source=None, options= '', axis=-1):
         if args.select=='cols' and source.is_2d:
             ar = picking(source, args.threshold, index=True)
             args.cols = zip(*ar)[0]
-        data, phc0, phc1 = autophase(data, args)
+
+        if args.byrow and source.is_2d:
+            rows = []
+            for index in range(data.index.size):
+                row = data.iloc[index:index+1].values
+                row, phc0, phc1 = autophase(row, args)
+                row = row - basecorr(row)
+                rows.append(row)
+            #merge all rows to recreate data
+            data = np.vstack(rows)
+        else:
+            data, phc0, phc1 = autophase(data.values, args) # return an array not a dataframe
 
         atxt = '(not optimized)' if not args.fit_phc1 else ''
 
@@ -202,9 +212,10 @@ def autophase(data, args):
     fp['phc1'] = phc1, -bp1, bp1, fixed
 
     # optim
-    global ni, nas, spe, err
+    global ni, nas, spe, err, niter
     ni = 0
     err = 0
+    niter = 0
 
     # internal error function ------------------------------------------------------------------------------------------
     def _phase_error(p, s):
@@ -246,6 +257,25 @@ def autophase(data, args):
 
     # end _phase_error function -------------------------------------------------------------------------------------
 
+    # callback function--------------------------------------------------------
+    def callback(x, f=None, accepted=None):
+        """
+        callback print function
+        """
+        global niter, err
+        if f is not None:  # hopping
+            pass
+        if f is None:  # simplex
+            display.clear_output(wait=True)
+            print("Iteration: %d (chi2: %.5f)"%(niter, err))
+            print(x)
+            print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
+            sys.stdout.flush()
+
+            niter += 1
+
+    # end callback function ---------------------------------------------------
+
     # convergence is not insured depending on the starting values
     fp, err1 = optimize(_phase_error, fp,
                            args=[dat,], method=optmode,
@@ -259,7 +289,7 @@ def autophase(data, args):
         ni = 0
         fp, err2 = optimize(_phase_error, fp,
                                 args=(dat,), method=optmode,
-                                callback=None)
+                                callback=callback)
 
         # select the best
         if err2 > err1:

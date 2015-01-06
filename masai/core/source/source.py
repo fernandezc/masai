@@ -204,6 +204,17 @@ class Source(HasTraits):
             print('No data')
             return False
 
+    def position2index(self, pos, axis=-1):
+        if axis == -1:
+            a = self.data.columns
+        else:
+            a = self.data.index
+        x0, x1 = a[0], a[-1]
+        if x0<x1:
+            return a[a<=pos].size-1
+        else:
+            return a[a>=pos].size-1
+
     # *******************************************************************************
     # Private functions
     # *******************************************************************************
@@ -241,8 +252,8 @@ class Source(HasTraits):
             lb = max(index - w2, x[0])
             ub = min(lb + width, x[-1])
             lb = ub - width
-            x0 = x[x < lb].size
-            x1 = x[x < ub].size
+            x0 = x[x < lb].size-1
+            x1 = x[x < ub].size-1
             if x1<=x0:
                 x1 = x0 + 1
             lb = x[x0]
