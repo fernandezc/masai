@@ -19,6 +19,7 @@ from __future__ import print_function, division
 #
 # imports
 #
+import sys
 import numpy as np
 import argparse
 from IPython import display
@@ -211,9 +212,10 @@ def autophase(data, args):
     fp['phc1'] = phc1, -bp1, bp1, fixed
 
     # optim
-    global ni, nas, spe, err
+    global ni, nas, spe, err, niter
     ni = 0
     err = 0
+    niter = 0
 
     # internal error function ------------------------------------------------------------------------------------------
     def _phase_error(p, s):
@@ -255,6 +257,25 @@ def autophase(data, args):
 
     # end _phase_error function -------------------------------------------------------------------------------------
 
+    # callback function--------------------------------------------------------
+    def callback(x, f=None, accepted=None):
+        """
+        callback print function
+        """
+        global niter, err
+        if f is not None:  # hopping
+            pass
+        if f is None:  # simplex
+            display.clear_output(wait=True)
+            print("Iteration: %d (chi2: %.5f)"%(niter, err))
+            print(x)
+            print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
+            sys.stdout.flush()
+
+            niter += 1
+
+    # end callback function ---------------------------------------------------
+
     # convergence is not insured depending on the starting values
     fp, err1 = optimize(_phase_error, fp,
                            args=[dat,], method=optmode,
@@ -268,7 +289,7 @@ def autophase(data, args):
         ni = 0
         fp, err2 = optimize(_phase_error, fp,
                                 args=(dat,), method=optmode,
-                                callback=None)
+                                callback=callback)
 
         # select the best
         if err2 > err1:
