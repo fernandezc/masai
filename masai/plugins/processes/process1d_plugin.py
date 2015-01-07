@@ -107,6 +107,9 @@ class Process1d(HasTraits):
             transforms = args[1]
         else:
             transforms = kargs.get('transform', '-h; em 10; zf; ft; pk --auto')
+        rblanks = re.compile(r"[\t\n\r]*")
+        transforms = rblanks.sub("", transforms)
+        print(transforms)
         transforms = transforms.lower().split(';')
 
         for trans in transforms:

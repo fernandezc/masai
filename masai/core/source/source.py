@@ -205,12 +205,13 @@ class Source(HasTraits):
             return False
 
     def position2index(self, pos, axis=-1):
-        if axis == -1:
-            a = self.data.columns
-        else:
+        if axis == 0:
             a = self.data.index
+        else:
+            a = self.data.columns
+
         x0, x1 = a[0], a[-1]
-        if x0<x1:
+        if x0 < x1:
             return a[a<=pos].size-1
         else:
             return a[a>=pos].size-1

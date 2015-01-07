@@ -24,8 +24,8 @@ import numpy as np
 import argparse
 from IPython import display
 
-from nmrglue.process.proc_base import ps
-
+from masai.core.process.proc_base import ps
+from masai.core.utils.misc import position2index
 from masai.core.fit.parameters import FitParameters
 from masai.core.fit.optimize import optimize
 from masai.core.process.baseline import basecorr
@@ -81,6 +81,8 @@ def pk(source=None, options= '', axis=-1):
     """)
     # positional arguments
     parser.add_argument('phases', default=(phc0,phc1), nargs='*', type=float, help='zero and first order phase')
+    parser.add_argument('--pivot', '-pv', default=None, type=float, help='pivot position in spectral units')
+    parser.add_argument('--exp', '-ex', action='store_true', help='perform an exponential phase correction')
     parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode' )
     parser.add_argument('--fit_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
     parser.add_argument('--ediff', '-ef', default=1, type=int, help='order of the derivative for entropy calculation', )
@@ -93,18 +95,35 @@ def pk(source=None, options= '', axis=-1):
     parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help = "phc1 boundary")
     parser.add_argument('--byrow', '-br', action='store_true', help='to phase each row separately for series or 2D')
     parser.add_argument('--verbose', action='store_true', help='verbose flag' )
-    args  = parser.parse_args(options.split())
 
-    phc0, phc1 = args.phases
+    args  = parser.parse_args(options.replace('\n',' ').replace('\r',' ').split())
 
+    # set data depending on the axis
     data = source.data
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
+    # get initial phase and pivot
+    phc0, phc1 = args.phases
+    ppivot = args.pivot
+    if ppivot:
+        # if the pivot is not None, it is given in spectral units
+        # we need to transform into index
+        pivot = position2index(data, ppivot)
+    else:
+        pivot = 0
+    args.pivot = pivot
+
+    # if the correction is exponential we need a second parameter tc=phc1
+    if args.exp:
+        args.fit_phc1 = True
+
+    print(options)
+
     if not args.auto:
         # not automatic leaves here...
-        data = ps(data.values, phc0, phc1) # this return an array not a dataframe
+        data = ps(data.values, phc0, phc1, pivot=pivot, is_exp=args.exp) # this return an array not a dataframe
         source.history.append('Phasing phc0:%.2f, phc1:%.2f' % (phc0, phc1))
 
     else:
@@ -162,7 +181,8 @@ def autophase(data, args):
     # get parameters
     # --------------
     phc0, phc1 = args.phases
-
+    pivot = args.pivot
+    is_exp = args.exp
     verbose = args.verbose
 
     if DEBUG:
@@ -225,7 +245,7 @@ def autophase(data, args):
         p0 = p['phc0']
         p1 = p['phc1']
         sc = s.copy()
-        sc = ps(sc, p0, p1)
+        sc = ps(sc, p0, p1, pivot=pivot, is_exp=is_exp)
         
         # baseline correction
         scp = sc - basecorr(sc)
@@ -317,7 +337,7 @@ def autophase(data, args):
         print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
 
     # apply to the original data and return
-    data = ps(data, phc0, phc1)
+    data = ps(data, phc0, phc1, pivot=pivot, is_exp=is_exp)
     return data, phc0, phc1
 
 
