@@ -119,8 +119,6 @@ def pk(source=None, options= '', axis=-1):
     if args.exp:
         args.fit_phc1 = True
 
-    print(options)
-
     if not args.auto:
         # not automatic leaves here...
         data = ps(data.values, phc0, phc1, pivot=pivot, is_exp=args.exp) # this return an array not a dataframe
