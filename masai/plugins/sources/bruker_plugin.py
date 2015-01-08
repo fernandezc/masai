@@ -764,7 +764,25 @@ if __name__ == '__main__':
     Process1d = Process1d()
     Plot2d = Plot2d()
 
+    path = '/Users/christian/Dropbox/PycharmProjects/masai/exemples/user/nmr/HMQC/31'
+    fd = Bruker(path)
+    print(fd)
+    d6 = fd.par.D[6]*1e3
+    Process1d(fd, transform='em 5000 --shifted %.2f'%d6)
+    #Process1d(fd, transform='zf 0; ft; pk -78 -10')
+    Plot2d(fd)
+
+
+    import sys
+    sys.exit()
+
     DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
+
+    user = 'christian'
+    name = 'example1'
+    expno = 10
+    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
+    fd = Bruker(path, dgfilter=True)
 
     user = 'aurelie'
     name = 'RbNO3'
@@ -773,20 +791,6 @@ if __name__ == '__main__':
     fd = Bruker(path, dgfilter=True)
 
 
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-    fd = Bruker(path, dgfilter=True)
-
-    path = '/Users/christian/Dropbox/PycharmProjects/masai/exemples/user/nmr/HMQC/31'
-    fd = Bruker(path)
-    print(fd)
-    Process1d(fd, transform='em 50; zf 0; ft; pk -78 -10')
-    Plot2d(fd)
-
-    import sys
-    sys.exit()
 
     #_----------------------------------
     import warnings

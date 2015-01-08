@@ -209,7 +209,7 @@ class Plot2d(HasTraits):
                 else r'$\mathrm{\delta\, (%s)}$' % fd.par.units
         axe.set_xlabel(xlabel)
 
-        # 
+        #
         zlabel = kargs.get('zlabel', axe.get_ylabel())
         if hasattr(fd, 'par2'):
             ppm = fd.par2.isfreq
