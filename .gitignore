@@ -1,0 +1,25 @@
+# image
+*.png
+*.jpg
+*.eps
+*.eps
+
+# ipython
+.ipynb_checkpoints/
+
+# setup
+*.egg-info/
+
+# test dir
+data/
+sandbox/
+
+#OS junk files
+[Tt]humbs.db
+*.DS_Store
+*.pyc
+org.eclipse.core.resources.prefs
+lcslib/cfpylib
+.idea
+Cython Magics.ipynb
+*.pyx
