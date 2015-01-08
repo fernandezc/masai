@@ -96,7 +96,7 @@ def pk(source=None, options= '', axis=-1):
     parser.add_argument('--byrow', '-br', action='store_true', help='to phase each row separately for series or 2D')
     parser.add_argument('--verbose', action='store_true', help='verbose flag' )
 
-    args  = parser.parse_args(options.replace('\n',' ').replace('\r',' ').split())
+    args  = parser.parse_args(options.split())
 
     # set data depending on the axis
     data = source.data
