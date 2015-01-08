@@ -758,7 +758,12 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import pylab as pl
+    from masai.plugins.list import Process1d, Plot2d
+
     Bruker = Bruker()
+    Process1d = Process1d()
+    Plot2d = Plot2d()
+
     DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
 
     user = 'aurelie'
@@ -777,7 +782,8 @@ if __name__ == '__main__':
     path = '/Users/christian/Dropbox/PycharmProjects/masai/exemples/user/nmr/HMQC/31'
     fd = Bruker(path)
     print(fd)
-
+    Process1d(fd, transform='em 50; zf 0; ft; pk -78 -10')
+    Plot2d(fd)
 
     import sys
     sys.exit()

@@ -132,7 +132,7 @@ class Plot1d(HasTraits):
             # look in args
             source = args[0]
         else:
-            raise ValueError("no a valid input\nUsage: Plot1d(<source>)")
+            raise ValueError("No a valid input\nUsage: Plot1d(<source>)")
 
         imag = kargs.get('imag', False)
         if isinstance(source, DataFrame):
@@ -225,8 +225,8 @@ class Plot1d(HasTraits):
         zlim.sort()
         axe.set_xlim(xlim)
         axe.set_ylim(zlim)
-        axe.xaxis.set_major_locator(MaxNLocator(4))
-        axe.yaxis.set_major_locator(MaxNLocator(4))
+        axe.xaxis.set_major_locator(MaxNLocator(5))
+        axe.yaxis.set_major_locator(MaxNLocator(5))
 
         # label
         xlabel = kargs.get('xlabel', axe.get_xlabel())

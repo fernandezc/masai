@@ -60,12 +60,10 @@ def ft(source=None, options='', axis=-1):
         return
 
     # data on which we apply ft
-
     data = source.data.values
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
-
 
     # read parameters TDeff and SI
 
