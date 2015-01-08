@@ -1,0 +1,43 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.2
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= christian
+$$ /Users/christian/Documents/data_storage/bruker/Data/PST5_MQMAS/51/pdata/1/auditp.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-04-14 14:12:49.176 +0200>,<nmr>,<lcs185n>,<go>,<TOPSPIN 3.2>,
+      <created by zg
+	started at 2014-04-14 09:26:27.780 +0200,
+	POWCHK enabled, PULCHK disabled,
+       configuration hash MD5:
+       90 77 12 D2 69 2B 95 14 32 8C 0D 19 55 C7 C4 C0
+       data hash MD5: 5188 * 128
+       DC 42 34 5F 45 1A E3 2A DF 1B 38 14 BC 75 27 73>)
+(   2,<2014-05-02 11:31:30.178 +0200>,<christian>,<macbookcf.local>,<proc2d>,<TOPSPIN 3.2>,
+      <Start of raw data processing
+       xf2 same raw n F2: TDeff = 2K SI = 2K FT_mod = 6 PKNL = 1 PHC0 = 105.9305 PHC1 = -94.4 F1: TDeff = 78 SI = 512
+       data hash MD5: 2K * 512
+       7C E8 C2 A3 69 62 C6 20 A9 29 0E 76 C4 0D 1C 4D>)
+(   3,<2014-05-02 11:31:30.206 +0200>,<christian>,<macbookcf.local>,<proc2d>,<TOPSPIN 3.2>,
+      <abs2 F2: ABSG = 5 ABSF1 = 205.3742 ABSF2 = -163.5924
+       data hash MD5: 2K * 512
+       9E 83 23 51 7D AD 3B 96 6E 69 CB 6B A6 1F 3D DC>)
+(   4,<2014-05-02 11:31:30.226 +0200>,<christian>,<macbookcf.local>,<xfshear>,<TOPSPIN 3.2>,
+      <shear: F1 shift -10 ppm
+       data hash MD5: 2K * 512
+       CF 40 17 0B 44 BE 65 86 A6 42 52 C5 F5 16 A2 83>)
+(   5,<2014-05-02 11:31:30.276 +0200>,<christian>,<macbookcf.local>,<proc2d>,<TOPSPIN 3.2>,
+      <xht2
+       data hash MD5: 2K * 512
+       CF 40 17 0B 44 BE 65 86 A6 42 52 C5 F5 16 A2 83>)
+(   6,<2014-05-02 11:31:30.309 +0200>,<christian>,<macbookcf.local>,<proc2d>,<TOPSPIN 3.2>,
+      <xif2 F2: FT_mod = 2
+       data hash MD5: 2K * 512
+       85 2A 20 5F A3 F7 E0 04 A6 9B F6 D7 2E 05 95 43>)
+(   7,<2014-05-02 11:31:30.427 +0200>,<christian>,<macbookcf.local>,<proc2d>,<TOPSPIN 3.2>,
+      <xfb same F2: WDW = 1 LB = 40 FT_mod = 6 F1: TDeff = 78 SI = 512 WDW = 1 LB = 20 FT_mod = 6 PHC0 = 19.71563 PHC1 = -92
+       data hash MD5: 2K * 512
+       C4 72 D9 60 04 CF 79 E4 E4 2C 83 1B 9D 67 04 14>)
+##END=
+
+$$ hash MD5
+$$ E4 C1 FE 25 B6 C6 33 10 6A 1D 79 B7 2E 32 AD 1B

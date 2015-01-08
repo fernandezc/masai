@@ -1,0 +1,18 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.2
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= nmr
+$$ /home/nmr/data/Nak ho/nmr/PST-5/51/audita.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-04-14 14:12:49.176 +0200>,<nmr>,<lcs185n>,<go>,<TOPSPIN 3.2>,
+      <created by zg
+	started at 2014-04-14 09:26:27.780 +0200,
+	POWCHK enabled, PULCHK disabled,
+       configuration hash MD5:
+       90 77 12 D2 69 2B 95 14 32 8C 0D 19 55 C7 C4 C0
+       data hash MD5: 5188 * 128
+       DC 42 34 5F 45 1A E3 2A DF 1B 38 14 BC 75 27 73>)
+##END=
+
+$$ hash MD5
+$$ 1E 9B 97 D5 F2 6C C6 AD 6C 9A 41 AD 71 DA 05 15
