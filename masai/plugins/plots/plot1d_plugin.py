@@ -70,7 +70,8 @@ class Plot1d(HasTraits):
 
     # -------------------------------------------------------------------------------
     def help(self):
-        return self.__call__.__doc__
+        from IPython.display import HTML
+        return HTML(self._repr_html_())
 
     def _repr_html_(self):
         import re
@@ -101,7 +102,7 @@ class Plot1d(HasTraits):
 
         Parameters
         ----------
-        fd: source (such as NMR or IR source)
+        source: source (such as NMR or IR source)
         figure: Figure instance, optioanl
         axe: Axe instance, optional
             the axe where to plot
@@ -165,7 +166,7 @@ class Plot1d(HasTraits):
         pl.rcParams['ytick.labelsize']=fontsize
 
         if 'axe' not in kargs.keys():
-            fig = pl.figure(figsize=figsize, dpi=dpi)
+            fig = self.fig = pl.figure(figsize=figsize, dpi=dpi)
             axe = fig.add_subplot(1, 1, 1)
         else:
             axe = kargs.get('axe')
@@ -273,12 +274,13 @@ class Plot1d(HasTraits):
         if not kargs.get('hold', False):
             pl.show()
 
-        return axe
+        self.axe = axe
+        return self
 
     def savefig(self, savename=None):
         if savename is None:
             savename = self.savename
-        pl.savefig(savename)
+        self.fig.savefig(savename)
         self.savename = savename
 
 
