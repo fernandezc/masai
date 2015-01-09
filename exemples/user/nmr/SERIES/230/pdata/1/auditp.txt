@@ -1,0 +1,12 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.2
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= nmr
+$$ /home/nmr/data/siblanixenon/nmr/Y1a-QIN/230/pdata/1/auditp.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-10-21 16:34:49.520 +0200>,<nmr>,<lcs175n>,<cprserver>,<TOPSPIN 3.2>,
+      <new/edc PROCNO=1>)
+##END=
+
+$$ hash MD5
+$$ A8 91 BF EB A4 CA 23 B2 BA D9 F9 31 D6 42 5A B4
