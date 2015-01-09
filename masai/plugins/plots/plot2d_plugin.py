@@ -147,6 +147,7 @@ class Plot2d(HasTraits):
 
         if 'axe' not in kargs.keys():
             fig = pl.figure(figsize=figsize, dpi=dpi)
+            self.fig = fig
             axe = fig.add_subplot(1,1,1)
             if proj:
                 # create new axes on the right and on the top of the current axes
@@ -161,9 +162,12 @@ class Plot2d(HasTraits):
                 pl.setp(axex.get_xticklabels() + axex.get_yticklabels()
                         + axey.get_xticklabels() + axey.get_yticklabels(),
                         visible=False)
+                self.axex = axex
+                self.axey = axey
             xlim = [x[0], x[-1]]
             ylim = (y[0], y[-1])
             cl = self.clevels(spec.values, **kargs)
+            self.axe = axe
 
         else:
             axe = kargs.get('axe')
@@ -247,14 +251,18 @@ class Plot2d(HasTraits):
                 getattr(axe, com)(*args, **kargs)
 
         # should be after all plot commands
-        savename = kargs.get('savefig', False)
+        savename = kargs.get('savename', None)
         if savename:
-            pl.savefig(savename)
+            self.savename = savename
+            self.fig.savefig(savename)
 
-        if not kargs.get('hold', False):
-            pl.show()
+        return self
 
-        return axe
+    def savefig(self, savename=None):
+        if savename is None:
+            savename = self.savename
+        self.fig.savefig(savename)
+        self.savename = savename
 
    #===========================================================================
     # clevels

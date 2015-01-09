@@ -275,6 +275,12 @@ class Plot1d(HasTraits):
             pl.show()
 
         self.axe = axe
+
+        savename = kargs.get('savename', None)
+        if savename:
+            self.savename = savename
+            self.fig.savefig(savename)
+
         return self
 
     def savefig(self, savename=None):
