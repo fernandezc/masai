@@ -116,29 +116,40 @@ class Process1d(HasTraits):
             p = re.compile('^(\w*)\s(.*)')
             m = p.match(trans.strip())
             if m :
+                command = m.group(1)
                 options = m.group(2)
             else:
+                command = trans
                 options = ''
 
-            if 'em' in trans:
+            if 'em' in command:
                 em(source, options=options)
 
-            elif 'zf' in trans:
+            elif 'zf' in command:
                 zf(source, options=options)
 
-            elif 'us' in trans:
+            elif 'cs' in command:
+                cs(source, options=options)
+
+            elif 'ls' in command:
+                ls(source, options=options)
+
+            elif 'rs' in command:
+                rs(source, options=options)
+
+            elif 'us' in command:
                 us(source, options=options)
 
-            elif 'cl' in trans:
+            elif 'cl' in command:
                 cl(source, options=options)
 
-            elif 'ft' in trans:
+            elif 'ft' in command:
                 ft(source, options=options)
 
-            elif 'pk' in trans:
+            elif 'pk' in command:
                 pk(source, options=options)
 
-            elif 'ab' in trans:
+            elif 'ab' in command:
                 ab(source, options=options)
 
     def _repr_html_(self):
@@ -179,9 +190,11 @@ if __name__ == '__main__':
     fd = Bruker(path)
     Process1d(fd, 'us 1')
     Process1d(fd, "em 50")
-    Process1d(fd, "zf 0")
-    Process1d(fd, "ft")
-    Process1d(fd, 'cl -60 60')
-    Process1d(fd, "pk -25 0 --auto --fit_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
+   # Process1d(fd, transform = 'zf 0; cs %.3f --time'%0)
+   # Process1d(fd, "ft")
+   # Process1d(fd, 'cl -60 60')
+    #Process1d(fd, "pk -25 0 --auto --fit_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
    # Process1d(fd, "ab --mode poly")
+    Plot1d(fd)
+    Process1d(fd, transform = 'cs -%.3f --time'%10.01)
     Plot1d(fd)

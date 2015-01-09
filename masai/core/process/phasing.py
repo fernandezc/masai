@@ -82,6 +82,7 @@ def pk(source=None, options= '', axis=-1):
     # positional arguments
     parser.add_argument('phases', default=(phc0,phc1), nargs='*', type=float, help='zero and first order phase')
     parser.add_argument('--pivot', '-pv', default=None, type=float, help='pivot position in spectral units')
+    parser.add_argument('--shifted', default=0.0, type=float, help = "position of the top in units of time")
     parser.add_argument('--exp', '-ex', action='store_true', help='perform an exponential phase correction')
     parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode' )
     parser.add_argument('--fit_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
@@ -115,13 +116,16 @@ def pk(source=None, options= '', axis=-1):
         pivot = 0
     args.pivot = pivot
 
+    sw = source.par.SW_h
+    p_shifted = args.shifted = 0.360 * args.shifted * sw  # time are in ms
+
     # if the correction is exponential we need a second parameter tc=phc1
     if args.exp:
         args.fit_phc1 = True
 
     if not args.auto:
         # not automatic leaves here...
-        data = ps(data.values, phc0, phc1, pivot=pivot, is_exp=args.exp) # this return an array not a dataframe
+        data = ps(data.values, phc0, phc1+p_shifted, pivot=pivot, is_exp=args.exp) # this return an array not a dataframe
         source.history.append('Phasing phc0:%.2f, phc1:%.2f' % (phc0, phc1))
 
     else:
@@ -215,7 +219,7 @@ def autophase(data, args):
     ediff = args.ediff
     gamma = args.gamma
     optmode = args.optmode
-
+    p_shifted = args.shifted
     # prepare the phase to optimized with bound
     fp = FitParameters()
     bp0 = args.bound_phc0
@@ -243,7 +247,7 @@ def autophase(data, args):
         p0 = p['phc0']
         p1 = p['phc1']
         sc = s.copy()
-        sc = ps(sc, p0, p1, pivot=pivot, is_exp=is_exp)
+        sc = ps(sc, p0, p1+p_shifted, pivot=pivot, is_exp=is_exp)
         
         # baseline correction
         scp = sc - basecorr(sc)
@@ -335,7 +339,7 @@ def autophase(data, args):
         print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
 
     # apply to the original data and return
-    data = ps(data, phc0, phc1, pivot=pivot, is_exp=is_exp)
+    data = ps(data, phc0, phc1+p_shifted, pivot=pivot, is_exp=is_exp)
     return data, phc0, phc1
 
 

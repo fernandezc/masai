@@ -21,13 +21,10 @@ from traits.api import (HasTraits, Instance)
 import numpy as np
 import pandas as pd
 import argparse
+from masai.core.process import proc_base
+from masai.core.utils.misc import position2index
 
-# import nmrglue as ng
-# from nmrglue.process.proc_lp import lp as linear_predict
-from nmrglue.process.proc_base import zf_size, largest_power_of_2
-
-__all__ = ["em", "zf",]
-
+__all__ = ["zf", "cs", "ls", "rs", "em" ]
 
 #
 # zf : zero-filling
@@ -65,29 +62,225 @@ def zf(source=None, options='', axis=-1):
         print('This source is already transformed: zf skipped!')
         return
 
-    # data on which we apply ft
+    # data on which we apply zf
 
-    data = source.data.values
+    datv = source.data.values
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
-        data = data.T
+        datv = datv.T
 
     nzf = args.nzf
-    si = largest_power_of_2(data.shape[-1]) * 2**nzf
-    data = zf_size(data, si)
+    si = proc_base.largest_power_of_2(datv.shape[-1]) * 2**nzf
+    data = proc_base.zf_size(datv, si)
 
     # store the new pars
-    par.TD = data.shape[-1]
+    par.TD = datv.shape[-1]
     par.SI = par.TD
 
     # un-transpose the data if needed
     if axis == 0:
-        data = data.T
+        datv = datv.T
 
     # change the current data with the transformed data
-    source.data = data  # scale will be calculated here
+    source.data = datv  # scale will be calculated here
 
     source.history.append('Zero-filling to si:%d' % par.SI)
+
+#
+# cs : circular shift
+#
+def cs(source=None, options='', axis=-1):
+    """
+    Circular shift
+
+    Parameters
+    ----------
+    source: source instance
+        The source to be zero filled
+    ncs: circular shift in point, optional
+        Positive for right shift
+        Negative for left shift
+    tcs: circular shift in unit of time
+        Positive for right shift
+        Negative for left shift
+    axis: optional
+
+    """
+
+    # options evaluation
+    parser = argparse.ArgumentParser(description='CS shift.',
+                                     usage="""
+    cs [ncs|tcs] [-h]
+    """,)
+    # positional arguments
+    parser.add_argument('ncs', default=0, type=float,  help='circular shit in points or time units')
+    parser.add_argument('--time', action='store_true', help='is time')
+    args  = parser.parse_args(options.split())
+
+    if axis == -1:
+        par = source.par
+    else:
+        par = source.par2
+
+    if par.isfreq:
+        print('This source is already transformed: cs skipped!')
+        return
+
+    # data on which we apply cs
+
+    data = source.data
+    if axis == 0:
+        # transpose temporarily the data for indirect dimension ft
+        data = data.T
+
+    ncs = args.ncs
+    if args.time:
+        sign = ncs/abs(ncs)
+        ncs = sign * position2index(data, abs(ncs))
+    datv = data.values
+    datv = proc_base.cs(datv, int(ncs))
+    #if ncs<0:
+    #    datv[:, ncs:] = -np.conjugate(datv[:, ncs:])
+    # store the new pars
+    par.TD = datv.shape[-1]
+    par.SI = par.TD
+
+    # un-transpose the data if needed
+    if axis == 0:
+        datv = datv.T
+
+    # change the current data with the transformed data
+    source.data = datv  # scale will be calculated here
+
+    source.history.append('circular shift by: %d' % ncs)
+
+#
+# ls : left shift
+#
+def ls(source=None, options='', axis=-1):
+    """
+    Left shift
+
+    Parameters
+    ----------
+    source: source instance
+        The source to be zero filled
+    nls: int
+        left shift in point, optional
+    tls: float
+        left shift in unit of time
+    axis: optional
+
+    """
+
+    # options evaluation
+    parser = argparse.ArgumentParser(description='LS shift.',
+                                     usage="""
+    ls [nls|tls] [-h]
+    """,)
+    # positional arguments
+    parser.add_argument('nls', default=0, type=float,  help='left shift in points or time units')
+    parser.add_argument('--time', action='store_true', help='is time')
+    args  = parser.parse_args(options.split())
+
+    if axis == -1:
+        par = source.par
+    else:
+        par = source.par2
+
+    if par.isfreq:
+        print('This source is already transformed: ls skipped!')
+        return
+
+    # data on which we apply cs
+
+    data = source.data
+    if axis == 0:
+        # transpose temporarily the data for indirect dimension ft
+        data = data.T
+
+    nls = args.nls
+    if args.time:
+        nls = position2index(data, nls)
+    datv = data.values
+    datv = proc_base.ls(datv, int(nls))
+
+    # store the new pars
+    par.TD = datv.shape[-1]
+    par.SI = par.TD
+
+    # un-transpose the data if needed
+    if axis == 0:
+        datv = datv.T
+
+    # change the current data with the transformed data
+    source.data = datv  # scale will be calculated here
+
+    source.history.append('left shift by: %d' % nls)
+
+#
+# rs : circular shift
+#
+def rs(source=None, options='', axis=-1):
+    """
+    Right shift
+
+    Parameters
+    ----------
+    source: source instance
+        The source to be zero filled
+    ncs: int
+        right shift in point, optional
+    tcs: float
+        right shift in unit of time
+    axis: optional
+
+    """
+
+    # options evaluation
+    parser = argparse.ArgumentParser(description='RS shift.',
+                                     usage="""
+    rs [nrs|trs] [-h]
+    """,)
+    # positional arguments
+    parser.add_argument('nrs', default=0, type=float, help='right shift in points or time units')
+    parser.add_argument('--time', action='store_true', help='is time')
+    args = parser.parse_args(options.split())
+
+    if axis == -1:
+        par = source.par
+    else:
+        par = source.par2
+
+    if par.isfreq:
+        print('This source is already transformed: cs skipped!')
+        return
+
+    # data on which we apply rs
+
+    data = source.data
+    if axis == 0:
+        # transpose temporarily the data for indirect dimension ft
+        data = data.T
+
+    nrs = args.nrs
+    if args.time:
+        nrs = position2index(data, nrs)
+    datv = data.values
+    datv = proc_base.rs(datv, int(nrs))
+
+    # store the new pars
+    par.TD = datv.shape[-1]
+    par.SI = par.TD
+
+    # un-transpose the data if needed
+    if axis == 0:
+        datv = datv.T
+
+    # change the current data with the transformed data
+    source.data = datv  # scale will be calculated here
+
+    source.history.append('right shift by: %d' % nrs)
 
 #
 # em
@@ -161,13 +354,13 @@ def em(source=None, options='', axis=-1, **kargs):
     kargs['shifted'] = shifted
     kargs['states'] = True if 'STATES' in par.fnmode else False
 
-    data = _apodization(data, command, **kargs)
+    datv = _apodization(data, command, **kargs)
 
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
-        data = data.T
+        datv = datv.T
 
-    source.data = data
+    source.data = datv
     source.history.append('Exponential apodization lb:%.2f' % par.LB)
 
 #
@@ -182,9 +375,9 @@ def _apodization(data, func, **kargs):
 
     _func = getattr(model, func)
 
-    data = (data.values * _func(**kargs))
+    datv = (data.values * _func(**kargs))
 
-    return data
+    return datv
 
 #
 # ApodModels

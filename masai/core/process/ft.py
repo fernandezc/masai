@@ -22,7 +22,7 @@ from __future__ import print_function, division
 # from traits.api import (HasTraits, Instance)
 import numpy as np
 import argparse
-from nmrglue.process.proc_base import largest_power_of_2, zf_size, fft
+from .proc_base import largest_power_of_2, zf_size, fft
 # from nmrglue.process.proc_lp import lp as linear_predict
 
 __all__ = ["ft", ]
