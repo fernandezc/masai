@@ -23,6 +23,7 @@ import pandas as pd
 import argparse
 from masai.core.process import proc_base
 from masai.core.utils.misc import position2index
+from masai.core.process.mqstmas import k_ratio
 
 __all__ = ["zf", "cs", "ls", "rs", "em" ]
 
@@ -71,7 +72,7 @@ def zf(source=None, options='', axis=-1):
 
     nzf = args.nzf
     si = proc_base.largest_power_of_2(datv.shape[-1]) * 2**nzf
-    data = proc_base.zf_size(datv, si)
+    datv = proc_base.zf_size(datv, si)
 
     # store the new pars
     par.TD = datv.shape[-1]
@@ -311,7 +312,7 @@ def em(source=None, options='', axis=-1, **kargs):
     # positional arguments
     parser.add_argument('lb', default=10.,  nargs='?', type=float, help='broadening value in Hz')
     parser.add_argument('--shifted', default=0.0, type=float, help = "position of the top in units of time")
-    parser.add_argument('--k_shifted', action='store_true', help = "k-ratio shifting")
+    parser.add_argument('--k_shifted', default=None, type=int, nargs=2, help = "p and q parameters")
     # optional arguments
     parser.add_argument('--verbose', action='store_true', help='verbose flag' )
     args  = parser.parse_args(options.split())
@@ -344,9 +345,10 @@ def em(source=None, options='', axis=-1, **kargs):
         p = k_shifted[0] # coherence
         q = k_shifted[1] # satellite order
 
-        shifted = np.abs(k_ratio(source, p, q))
+        ratio = k_ratio(source, p, q)
+        shifted = np.abs(ratio)
         if args.verbose:
-            print('k_ratio: %.3f' % k_ratio)
+            print('k_ratio: %.3f' % ratio)
 
     par.LB = lb
 
@@ -463,8 +465,10 @@ class ApodModels(HasTraits):
         r = (y[1]-y[0])/(x[1]-x[0])
         ratio = ratio * r
 
-        f = np.fromfunction(lambda y, x, lb, ratio: np.exp(-np.pi * np.abs(x - y*ratio) * lb),
+        f = np.fromfunction(lambda y, x, lb, ratio: (np.exp(-np.pi * np.abs(x - y*ratio)* lb)
+                                                            + np.exp(-np.pi * np.abs(x + y*ratio)* lb))/2.,
                             data.shape, dtype=float, lb=lb, ratio=ratio)
+
         # If we are in states mode (general case two rows correspond
         # to the same time: we need to correct f for this
         # TODO: check this from parameters

@@ -88,12 +88,15 @@ def ft(source, options='', axis=-1):
     # zero filling (SI is taken at least taken
     # as the nearest power of two from TDeff)
 
-    si = args.si #kargs.get("si", par.SI)
+    si = args.si
     if si and isinstance(si, str) and "k" in si:
         si = eval(si.replace("k", "*2**10"))
 
     if si is None:
-        si = par.TD
+        if par.SI is None:
+            si = par.TD
+        else:
+            si = par.SI
 
     si = int(si)
     si = largest_power_of_2(max(si, par.TD))
@@ -101,7 +104,7 @@ def ft(source, options='', axis=-1):
 
 
     # now perform the fft
-
+    #if axis!=0:
     data = fft(data) #/float(si)
 
     # store the new pars
@@ -133,7 +136,7 @@ def _makestates(source, tppi=False):
 
     ar = data[::2]  # transposed real part
     ai = data[1::2]  # transposed imag part
-    data = ar.real + ai.real * 1.0j
+    data = ar.real - ai.real * 1.0j
     #data = ar.imag + ai.imag * 1.0j
 
     if tppi:
@@ -143,46 +146,6 @@ def _makestates(source, tppi=False):
 
     source.data = data
     source.history.append('Data transform according to encoding %s' % source.par2.encoding)
-
-#
-# efp
-#
-def efp(source, axis=-1, **kargs):
-    """
-    Group actions: em + ft + apk + baseline
-
-    Parameters
-    ----------
-    axis: optional, default=-1
-
-    """
-    strg = 'efp'
-    if kargs.get('xf2'):
-        del kargs['xf2']
-        strg = 'xf2'
-    if kargs.get('debug', False):
-        print('performing %s' % strg)
-
-    em(source, axis=axis, **kargs)
-
-    ft(source, axis=axis)
-
-    apk(source, axis=axis, **kargs)
-
-
-#
-# xf2 - Alias of efp
-#
-def xf2(source, **kargs):
-    """
-    Performs efp along the direct axis
-
-    see `efp' parameters
-
-    """
-    kargs['xf2'] = True
-    efp(source, **kargs)
-
 
 #
 # xf1

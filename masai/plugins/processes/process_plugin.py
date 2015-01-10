@@ -155,6 +155,9 @@ class Process(HasTraits):
             elif 'ab' in command:
                 ab(source, options=options, axis=axis)
 
+            elif 'lp' in command:
+                lp(source, options=options, axis=axis)
+
     def _repr_html_(self):
         import re
         import string
@@ -177,6 +180,7 @@ class Process(HasTraits):
 
 if __name__ == '__main__':
     import sys, os
+    import pylab as pl
     from masai.plugins.list import Bruker
     from masai.plugins.list import Plot1d, Plot2d
 
@@ -185,9 +189,9 @@ if __name__ == '__main__':
     Plot2d = Plot2d()
     Process = Process()
 
-    def test_2Dprocess(path2D):
+    def test_2D_process(path):
 
-        source = Bruker(path2D)
+        source = Bruker(path)
 
         d6 = source.par.D[6]*1.e3 # in ms
 
@@ -206,10 +210,32 @@ if __name__ == '__main__':
         Process(source, axis=0, transform='ft')
         Process(source, axis=0, transform='pk 180 0 --auto --select cols --verbose')
 
-        #p_2 = Plot2d(source, figsize=(3,2.7))
+        p_2 = Plot2d(source, figsize=(3,2.7))
 
-        row = source.row(20.87,width=1.)
+        row = source.row(-27,width=1.)
         p_1 = Plot1d(row)
+
+    def test_STMAS_process(path):
+
+        source = Bruker(path)
+
+        Process(source, transform = 'em 10 --k_shifted 1 2')
+        Process(source, transform = 'zf 2')
+        Process(source, transform = 'ft')
+        Process(source, transform = 'pk -256.364 0 --fit_phc1  --auto')
+
+        #p_2 = Plot2d(source, figsize=(3,2.7), ylim=(0, 5))
+
+        row = source.row(0, byindex=True)
+        #p_1 = Plot1d(row)
+
+        Process(source, axis=0, transform='lp 128 --tdeff 108') # must be before zf in any case
+        Process(source, axis=0, transform='em 1')
+        Process(source, axis=0, transform='zf 1')
+        Process(source, axis=0, transform='ft')
+        Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --verbose')
+
+        p_2 = Plot2d(source, proj=False, figsize=(3,2.7))
 
     #tests
     here = os.path.split(__file__)
@@ -220,8 +246,13 @@ if __name__ == '__main__':
     expno = 31
     path2D = os.path.join(DATADIR, user,'nmr',name, str(expno))
 
-    test_2Dprocess(path2D)
+    #test_2D_process(path2D)
 
+    name = 'STMAS'
+    expno = 15
+    pathSTMAS = os.path.join(DATADIR, user,'nmr',name, str(expno))
+
+    test_STMAS_process(pathSTMAS)
 
     sys.exit()
 

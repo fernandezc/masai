@@ -105,6 +105,7 @@ def lp(data, pred=1, slice=slice(None), order=8, mode="f", append="after",
         s[-1] = s[-1] + pred
         new = np.empty(s, dtype=data.dtype)
         # vector-wise 1D LP
+        #TODO: could be parallelized
         for i, trace in enumerate(data):
             new[i] = lp_1d(trace, pred, slice, order, mode, append, bad_roots,
                            fix_mode, mirror, method)
