@@ -176,13 +176,54 @@ class Process(HasTraits):
 
 
 if __name__ == '__main__':
-    import os
+    import sys, os
     from masai.plugins.list import Bruker
-    from masai.plugins.list import Plot1d
+    from masai.plugins.list import Plot1d, Plot2d
 
     Bruker = Bruker()
     Plot1d = Plot1d()
+    Plot2d = Plot2d()
     Process = Process()
+
+    def test_2Dprocess(path2D):
+
+        source = Bruker(path2D)
+
+        d6 = source.par.D[6]*1.e3 # in ms
+
+        Process(source, transform = 'em 50 --shifted %.3f'%d6)
+        Process(source, transform = 'zf 0')
+        Process(source, transform = 'ft')
+        Process(source, transform = 'pk 0 0 --auto --fit_phc1 --pivot 38.4 --shifted %.3f'%d6)
+
+        #p_2 = Plot2d(source, figsize=(3,2.7), ylim=(0, 5))
+
+        row = source.row(0, byindex=True)
+        #p_1 = Plot1d(row)
+
+        Process(source, axis=0, transform='em 0')
+        Process(source, axis=0, transform='zf 0')
+        Process(source, axis=0, transform='ft')
+        Process(source, axis=0, transform='pk 180 0 --auto --select cols --verbose')
+
+        #p_2 = Plot2d(source, figsize=(3,2.7))
+
+        row = source.row(20.87,width=1.)
+        p_1 = Plot1d(row)
+
+    #tests
+    here = os.path.split(__file__)
+    DATADIR = os.path.join(here[0],'..','..','..','exemples')
+    print (DATADIR)
+    user = 'user'
+    name = 'HMQC'
+    expno = 31
+    path2D = os.path.join(DATADIR, user,'nmr',name, str(expno))
+
+    test_2Dprocess(path2D)
+
+
+    sys.exit()
 
     # global
     DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))

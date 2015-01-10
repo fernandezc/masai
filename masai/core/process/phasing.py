@@ -130,9 +130,9 @@ def pk(source=None, options= '', axis=-1):
 
     else:
         # APK...
-        if args.select=='cols' and source.is_2d:
+        if args.select=='cols' and source.is_2d and axis==0:
             ar = picking(source, args.threshold, index=True)
-            args.cols = zip(*ar)[0]
+            args.cols = zip(*ar)[1]
 
         if args.byrow and source.is_2d:
             rows = []
@@ -289,11 +289,8 @@ def autophase(data, args):
             pass
         if f is None:  # simplex
             display.clear_output(wait=True)
-            print("Iteration: %d (chi2: %.5f)"%(niter, err))
-            print(x)
-            print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
+            print("Iteration: %d (chi2: %.5f)"%(niter, err), 'Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
             sys.stdout.flush()
-
             niter += 1
 
     # end callback function ---------------------------------------------------

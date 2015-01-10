@@ -73,6 +73,9 @@ class Bruker(Source):
     par = Instance(addict.Dict)
     par2 = Instance(addict.Dict)
 
+    statesapplied = Bool
+    _ = Any
+
     # *******************************************************************************
     # public functions
     # *******************************************************************************
@@ -758,18 +761,18 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import pylab as pl
-    from masai.plugins.list import Process1d, Plot2d
+    from masai.plugins.list import Process, Plot2d
 
     Bruker = Bruker()
-    Process1d = Process1d()
+    Process = Process()
     Plot2d = Plot2d()
 
     path = '/Users/christian/Dropbox/PycharmProjects/masai/exemples/user/nmr/HMQC/31'
     fd = Bruker(path)
     print(fd)
     d6 = fd.par.D[6]*1e3
-    Process1d(fd, transform='em 5000 --shifted %.2f'%d6)
-    #Process1d(fd, transform='zf 0; ft; pk -78 -10')
+    Process(fd, transform='em 5000 --shifted %.2f'%d6)
+    #Process(fd, transform='zf 0; ft; pk -78 -10')
     Plot2d(fd)
 
 
@@ -819,9 +822,6 @@ if __name__ == '__main__':
     sources.data.T.plot(legend=False)
     print(sources)
     pl.show()
-
-
-
 
 
     import sys

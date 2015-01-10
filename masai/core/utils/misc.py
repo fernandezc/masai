@@ -18,6 +18,8 @@
 Various methods used in other part of the program
 
 """
+import pandas as pd
+
 def position2index(data, pos):
     """
     Return the index of a position along the last axis (columns) of a DataFrame
@@ -34,9 +36,23 @@ def position2index(data, pos):
             the index of the position
 
     """
-    a = data.columns
-    x0, x1 = a[0], a[-1]
-    if x0 < x1:
-        return a[a<=pos].size-1
+    if isinstance(data, pd.DataFrame):
+        a = data.columns
     else:
-        return a[a>=pos].size-1
+        a = data
+    if a[0] < a[-1]:
+        id = a[a<=pos].size
+    else:
+        id = a[a>=pos].size
+
+    # check closest
+    dpos0 = 1.e15
+    idx = 0
+    id0 = id
+    for i in [-1,0,+1]:
+        id = max(min(id0+i, a.size-1),0)
+        dpos = abs(pos - a[id])
+        if dpos<dpos0:
+            idx=id
+            dpos0 = dpos
+    return idx

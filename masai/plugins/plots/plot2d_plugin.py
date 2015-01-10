@@ -250,6 +250,9 @@ class Plot2d(HasTraits):
                 print(kargs)
                 getattr(axe, com)(*args, **kargs)
 
+        if not kargs.get('hold', False):
+            pl.show()
+
         # should be after all plot commands
         savename = kargs.get('savename', None)
         if savename:

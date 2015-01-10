@@ -352,7 +352,7 @@ def em(source=None, options='', axis=-1, **kargs):
 
     kargs['lb'] = lb / source.get_multiplicator(axis)
     kargs['shifted'] = shifted
-    kargs['states'] = True if 'STATES' in par.fnmode else False
+    kargs['states'] = True if 'STATES' in par.encoding else False
 
     datv = _apodization(data, command, **kargs)
 
@@ -414,10 +414,14 @@ class ApodModels(HasTraits):
 
         lb = float(kargs.get('lb'))
         shifted = float(kargs.get('shifted'))
+        states = kargs.get('states', True)
 
         x = self.data.columns.values
 
-        return np.exp(-np.pi * np.abs(x - shifted) * lb)
+        f = np.exp(-np.pi * np.abs(x - shifted) * lb)
+        if states:
+            f[1::2] = f[::2]
+        return f
 
     #===============================================================================
     # k_shifted_em
@@ -448,6 +452,7 @@ class ApodModels(HasTraits):
 
         lb = float(kargs.get('lb'))
         shifted = float(kargs.get('shifted'))
+
         states = kargs.get('states', True)
 
         x = data.columns.values

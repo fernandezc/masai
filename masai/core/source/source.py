@@ -35,6 +35,7 @@ from traits.api import *
 
 from masai.core.database import Isotopes
 import masai.core.fit.models as models
+from masai.core.utils.misc import position2index
 
 class Source(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
@@ -241,6 +242,7 @@ class Source(HasTraits):
         else:
             data = data.T
             txt1 = 'taking vertical (axis=%d) section'%axis
+
         x = data.index
         y = data.columns
 
@@ -250,34 +252,31 @@ class Source(HasTraits):
         if not byindex:
             txt2 = ' by position'
             w2 = width / 2.0
-            lb = max(index - w2, x[0])
-            ub = min(lb + width, x[-1])
-            lb = ub - width
-            x0 = x[x < lb].size-1
-            x1 = x[x < ub].size-1
-            if x1<=x0:
-                x1 = x0 + 1
-            lb = x[x0]
-            ub = x[x1]
+            lb = position2index(x, index-w2)
+            ub = position2index(x, index+w2)
+            x0 = x[lb]
+            x1 = x[ub]
             if width != 0:
-                txt3 = ' from %.2f to %.2f'%(lb,ub)
+                txt3 = ' from %.2f to %.2f'%(x0,x1)
             else:
-                txt3 = ' at %.2f'%lb
+                txt3 = ' at %.2f'%x0
             print(txt1+txt2+txt3)
 
         else:
             txt2 = ' by index'
             w2 = int(width / 2)
-            x0 = max(index - w2, 0)
-            x1 = min(x0 + width, x.size-1)
-            x0 = x1 - width
+            lb = max(index - w2, 0)
+            ub = min(lb + width, x.size-1)
+            ub = ub - width
             if width != 0:
-                txt3 = ' from index %d to %d'%(x0,x1)
+                txt3 = ' from index %d to %d'%(lb,ub)
             else:
-                txt3 = ' at index %d'%x0
+                txt3 = ' at index %d'%lb
             print(txt1+txt2+txt3)
 
-        section = data.iloc[x0:x1+1].sum(axis=0)
+        if lb>ub:
+            lb, ub = ub, lb
+        section = data.iloc[lb:ub+1].sum(axis=0)
 
         assert section.size == y.size
 

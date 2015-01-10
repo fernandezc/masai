@@ -29,7 +29,7 @@ __all__ = ["ft", ]
 #
 # Fourier transform (ft)
 #
-def ft(source=None, options='', axis=-1):
+def ft(source, options='', axis=-1):
     """
     Fourier transform along one axis (limited to 1D et 2D data)
 
@@ -60,13 +60,18 @@ def ft(source=None, options='', axis=-1):
         return
 
     # data on which we apply ft
+    states = ('STATES' in par.encoding)
+    tppi = ('TPPI' in par.encoding)
+    if states:
+        _makestates(source, tppi)
+
     data = source.data.values
+
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
 
     # read parameters TDeff and SI
-
     tdeff = args.tdeff #kargs.get('tdeff', par.TDeff)
     if tdeff > par.TD or tdeff < 4:
         tdeff = par.TD
@@ -118,6 +123,26 @@ def ft(source=None, options='', axis=-1):
 
     source.history.append('Fourier transform with si:%d' % par.SI)
 
+
+def _makestates(source, tppi=False):
+    """
+    Transforms according to the States or states-tppi procedure.
+
+    """
+    data = source.data.values
+
+    ar = data[::2]  # transposed real part
+    ai = data[1::2]  # transposed imag part
+    data = ar.real + ai.real * 1.0j
+    #data = ar.imag + ai.imag * 1.0j
+
+    if tppi:
+         data[1::2] = -data[1::2]
+
+    source.par2.TD = data.shape[0]
+
+    source.data = data
+    source.history.append('Data transform according to encoding %s' % source.par2.encoding)
 
 #
 # efp
