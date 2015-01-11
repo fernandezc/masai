@@ -33,6 +33,7 @@ from traits.api import (HasTraits, Bool, Str, Any, provides)
 from matplotlib import pyplot as pl
 # from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.ticker import MaxNLocator
 
 # ===============================================================================
 # other imports
@@ -115,7 +116,7 @@ class Plot2d(HasTraits):
             # look in args
             fd = args[0]
         else:
-            raise ValueError("no valid source specified\nUsage: Plot2d(fd)")
+            raise ValueError("No valid source specified\nUsage: Plot2d(fd)")
 
         if not fd.is_2d:
             print("This is not a 2D source.\nCannot Plot!")
@@ -127,73 +128,106 @@ class Plot2d(HasTraits):
         spec = fd.real
 
         # setup figure and axes
-        figsize = kargs.get('figsize', (6.8, 6.8))
+        figsize = kargs.get('figsize', (3.4, 3.4))
+        dpi = kargs.get('dpi', 150)
+        fontsize = kargs.get('fontsize', 10)
+
+        # when using matplotlib inline
+        # dpi is the savefig.dpi so we should set it here
+        pl.rcParams['figure.figsize']=figsize
+        pl.rcParams['figure.dpi']=dpi
+        pl.rcParams['savefig.dpi']=dpi
+        pl.rcParams['font.size']=fontsize
+        pl.rcParams['legend.fontsize'] = int(fontsize*.8)
+        pl.rcParams['xtick.labelsize']=fontsize
+        pl.rcParams['ytick.labelsize']=fontsize
 
         # get the proj keyword
         proj = kargs.get('proj')
 
-        if 'ax' not in kargs.keys():
-            fig = pl.figure(figsize=figsize)
-            ax = fig.add_subplot(111)
+        if 'axe' not in kargs.keys():
+            fig = pl.figure(figsize=figsize, dpi=dpi)
+            self.fig = fig
+            axe = fig.add_subplot(1,1,1)
             if proj:
                 # create new axes on the right and on the top of the current axes
                 # The first argument of the new_vertical(new_horizontal) method is
                 # the height (width) of the axes to be created in inches.
-                divider = make_axes_locatable(ax)
+                divider = make_axes_locatable(axe)
                 # print divider.append_axes.__doc__
-                axx = divider.append_axes("top", 1.1, pad=0.1, sharex=ax, frameon=0, yticks=[])
-                axy = divider.append_axes("right", 1.1, pad=0.1, sharey=ax, frameon=0, xticks=[])
-                axx.tick_params(bottom='off', top='off')
-                axy.tick_params(right='off', left='off')
-                pl.setp(axx.get_xticklabels() + axx.get_yticklabels()
-                        + axy.get_xticklabels() + axy.get_yticklabels(),
+                axex = divider.append_axes("top", 1.1, pad=0.1, sharex=axe, frameon=0, yticks=[])
+                axey = divider.append_axes("right", 1.1, pad=0.1, sharey=axe, frameon=0, xticks=[])
+                axex.tick_params(bottom='off', top='off')
+                axey.tick_params(right='off', left='off')
+                pl.setp(axex.get_xticklabels() + axex.get_yticklabels()
+                        + axey.get_xticklabels() + axey.get_yticklabels(),
                         visible=False)
+                self.axex = axex
+                self.axey = axey
             xlim = [x[0], x[-1]]
             ylim = (y[0], y[-1])
             cl = self.clevels(spec.values, **kargs)
+            self.axe = axe
 
         else:
-            ax = kargs.get('ax')
-            xlim = ax.get_xlim()
-            ylim = ax.get_ylim()
-            cl = ax.get_c
-
+            axe = kargs.get('axe')
+            xlim = axe.get_xlim()
+            ylim = axe.get_ylim()
+            cl = axe.get_c
 
         # limits of the spectra
         xlim = list(kargs.get('xlim', xlim))
         xlim.sort()
-        if kargs.get('xreverse', False):
+        if hasattr(fd, 'par'):
+            reverse = fd.par.isfreq
+        else:
+            reverse = False
+        if kargs.get('xreverse', reverse):
             xlim.reverse()
         ylim = list(kargs.get('ylim', ylim))
         ylim.sort()
-        if kargs.get('yreverse', False):
-            xlim.reverse()
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
+        if hasattr(fd, 'par2'):
+            reverse = fd.par2.isfreq
+        else:
+            reverse = False
+        if kargs.get('yreverse', reverse):
+            ylim.reverse()
+        axe.set_xlim(xlim)
+        axe.set_ylim(ylim)
 
         # attribute
         colormap = kargs.get('colormap', kargs.get('cmap','jet'))
         lw = kargs.get('linewidth', kargs.get('lw', 1.))
         alpha = kargs.get('alpha', kargs.get('alpha', .8))
 
-        c = ax.contour(x, y, spec.values, cl, linewidths=lw, alpha=alpha)
+        c = axe.contour(x, y, spec.values, cl, linewidths=lw, alpha=alpha)
         c.set_cmap(colormap)
 
         # label
-        xlabel = kargs.get('xlabel', ax.get_xlabel())
+        xlabel = kargs.get('xlabel', axe.get_xlabel())
+        if hasattr(fd, 'par'):
+            ppm = fd.par.isfreq
         if not xlabel:
             xlabel = r'$\mathrm{time\, (%s)}$' % fd.par.units \
-                if fd.datatype in ['FID', 'SER'] \
+                if fd.datatype in ['FID', 'SER'] and not ppm \
                 else r'$\mathrm{\delta\, (%s)}$' % fd.par.units
-        ax.set_xlabel(xlabel)
+        axe.set_xlabel(xlabel)
 
-        zlabel = kargs.get('zlabel', ax.get_ylabel())
-        if not zlabel:
-            zlabel = r'$\mathrm{intensity\,(a.u.)}$'
+        #
+        zlabel = kargs.get('zlabel', axe.get_ylabel())
+        if hasattr(fd, 'par2'):
+            ppm = fd.par2.isfreq
+        if not zlabel and hasattr(fd, 'par2'):
+            zlabel = r'$\mathrm{time\, (%s)}$' % fd.par2.units \
+                if fd.datatype in ['SER'] and not ppm \
+                else r'$\mathrm{\delta\, (%s)}$' % fd.par2.units
         if kargs.get('showz', True):
-            ax.set_ylabel(zlabel)
+            axe.set_ylabel(zlabel)
         else:
-            ax.set_yticks([])
+            axe.set_yticks([])
+
+        axe.xaxis.set_major_locator(MaxNLocator(5))
+        axe.yaxis.set_major_locator(MaxNLocator(5))
 
         # Layout
         pl.tight_layout()
@@ -214,17 +248,24 @@ class Plot2d(HasTraits):
                         args.append(eval(item))
                 print(args)
                 print(kargs)
-                getattr(ax, com)(*args, **kargs)
-
-        # should be after all plot commands
-        savename = kargs.get('savefig', False)
-        if savename:
-            pl.savefig(savename)
+                getattr(axe, com)(*args, **kargs)
 
         if not kargs.get('hold', False):
             pl.show()
 
-        return ax
+        # should be after all plot commands
+        savename = kargs.get('savename', None)
+        if savename:
+            self.savename = savename
+            self.fig.savefig(savename)
+
+        return self
+
+    def savefig(self, savename=None):
+        if savename is None:
+            savename = self.savename
+        self.fig.savefig(savename)
+        self.savename = savename
 
    #===========================================================================
     # clevels

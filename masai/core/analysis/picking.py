@@ -17,7 +17,7 @@
 
 import numpy as np
 from nmrglue.analysis.peakpick import pick
-
+import pandas as pd
 
 #
 # picking
@@ -35,23 +35,35 @@ def picking(source, thres=None, index=False):
     Returns
     -------
     """
+    if isinstance(source, pd.DataFrame):
+        data = source
+    else:
+        data = source._data
+
     if thres is None:
         thres = 80.
 
-    pthres = np.abs(source.data.values).max() * thres / 100.
+    pthres = np.abs(data.values).max() * thres / 100.
 
-    ar = pick(np.abs(source.data.values), pthres, table=False)[0]
+    ar = pick(np.abs(data.values), pthres, table=False)[0]
+
+    x = source.data.columns
+    y = source.data.index
+    # if x[0]>x[-1]:
+    #     x = x[::-1]
+    # if y[0]>y[-1]:
+    #     y = y[::-1]
+    ars = []
+    for i, item in enumerate(ar):
+        ar1 = x[item[1]]
+        ar0 = y[item[0]]
+        ars.append([ar0, ar1])
 
     if not index:
-        x = source.data.columns
-        y = source.data.index
-        ars = []
-        for i, item in enumerate(ar):
-            ar1 = x[item[1]]
-            ar0 = y[item[0]]
-            ars.append([ar0, ar1])
         return ars
     else:
+        #print(ars)
+        #print(ar)
         return ar
 
 

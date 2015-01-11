@@ -21,7 +21,7 @@ __all__ = ['k_ratio', 'mqmas_analysis', 'stmas_analysis']
 # ===============================================================================
 # k_ratio
 # ===============================================================================
-def k_ratio(I, p=3, q=0):
+def k_ratio(source, p=3, q=0):
     """
     Calculation of the MQMAS or STMAS experiments shearing ratio
     see. for instance  Fernandez and Pruski, Probing Quadrupolar Nuclei
@@ -36,7 +36,7 @@ def k_ratio(I, p=3, q=0):
 
     """
 
-    I = fd.getSpin()
+    I = source.get_spin()
 
     n_spin = int(np.ceil(2.0 * I))
     p = float(np.abs(p))
@@ -62,9 +62,9 @@ def k_ratio(I, p=3, q=0):
     # pntratio = ratio*fres0/fres1
 
     # Store this ratio
-    fd.storePar('ratio', ratio)
-
+    source.par.k_ratio = ratio
     return ratio
+
 
 
 # ==============================================================================

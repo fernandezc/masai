@@ -14,4 +14,4 @@
 # See Licence.txt in the main masai source directory
 # ===============================================================================
 
-from process1d_plugin import *
+from process_plugin import *

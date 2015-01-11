@@ -1,0 +1,24 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.2
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= christian
+$$ /Users/christian/Dropbox/storage/Bruker/data/aurelie/nmr/RbNO3/15/pdata/1/auditp.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-01-16 17:08:22.691 +0100>,<nmr>,<lcs185n>,<go>,<TOPSPIN 3.2>,
+      <created by zg
+	started at 2014-01-16 16:35:53.322 +0100,
+	POWCHK disabled, PULCHK disabled,
+       terminated by command 'stop'
+       configuration hash MD5:
+       43 7D 77 D2 EC AD 67 68 EA 5A 76 5E BC A5 C3 8D
+       data hash MD5: 2K * 111
+       34 70 DC 84 30 FD 9A 2A 4A 68 E3 A3 17 41 33 20>)
+(   2,<2014-12-05 19:54:44.338 +0100>,<christian>,<macbookcf.local>,<proc2d>,<TOPSPIN 3.2>,
+      <Start of raw data processing
+       xtrf2 F2: SI = 256 WDW = 1 LB = 25 PHC0 = 118.2438 PHC1 = -32.8 F1: SI = 128
+       data hash MD5: 256 * 128
+       DF 3A AE 0A F0 4D C8 77 79 81 BA B0 C1 62 43 BA>)
+##END=
+
+$$ hash MD5
+$$ E5 66 19 DE C6 05 ED 83 56 C5 7D BC 62 CC EA D5

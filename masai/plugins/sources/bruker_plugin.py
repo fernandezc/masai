@@ -73,6 +73,9 @@ class Bruker(Source):
     par = Instance(addict.Dict)
     par2 = Instance(addict.Dict)
 
+    statesapplied = Bool
+    _ = Any
+
     # *******************************************************************************
     # public functions
     # *******************************************************************************
@@ -328,7 +331,16 @@ class Bruker(Source):
                 if datatype in ['SER'] and data.ndim == 1:
                     # we must reshape using the acqu parameters
                     td1 = dic['acqu2']['TD']
-                    data = data.reshape(td1,-1)
+                    try:
+                        data = data.reshape(td1,-1)
+                    except ValueError:
+                        try:
+                            td = dic['acqu']['TD']/2
+                            data = data.reshape(-1, td)
+                        except ValueError:
+                            print ("Inconsistency between TD's and data size")
+                            raise ValueError
+
                 #reduce to td
                 ntd = dic['acqus']['TD']/2
                 data = data[...,:ntd] # necessary for agreement with bruker data and phase
@@ -749,13 +761,47 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import pylab as pl
+    from masai.plugins.list import Process, Plot2d
 
+    Bruker = Bruker()
+    Process = Process()
+    Plot2d = Plot2d()
+
+    path = '/Users/christian/Dropbox/PycharmProjects/masai/exemples/user/nmr/HMQC/31'
+    fd = Bruker(path)
+    print(fd)
+    d6 = fd.par.D[6]*1e3
+    Process(fd, transform='em 5000 --shifted %.2f'%d6)
+    #Process(fd, transform='zf 0; ft; pk -78 -10')
+    Plot2d(fd)
+
+
+    import sys
+    sys.exit()
+
+    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
+
+    user = 'christian'
+    name = 'example1'
+    expno = 10
+    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
+    fd = Bruker(path, dgfilter=True)
+
+    user = 'aurelie'
+    name = 'RbNO3'
+    expno = 15
+    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
+    fd = Bruker(path, dgfilter=True)
+
+
+
+    #_----------------------------------
     import warnings
     warnings.filterwarnings("ignore")
 
     Bruker = Bruker()
 
-    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
+
 
     sources = Bruker(
                 data_dir=DATADIR,
@@ -776,9 +822,6 @@ if __name__ == '__main__':
     sources.data.T.plot(legend=False)
     print(sources)
     pl.show()
-
-
-
 
 
     import sys

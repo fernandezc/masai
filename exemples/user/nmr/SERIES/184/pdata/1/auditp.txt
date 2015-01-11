@@ -1,0 +1,27 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.2
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= nmr
+$$ /home/nmr/data/siblanixenon/nmr/Y1a-QIN/184/pdata/1/auditp.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-10-21 13:41:05.250 +0200>,<nmr>,<lcs175n>,<go>,<TOPSPIN 3.2>,
+      <created by zg
+	started at 2014-10-21 13:39:57.050 +0200,
+	POWCHK enabled, PULCHK disabled,
+       configuration hash MD5:
+       6F 65 75 CC 89 0E 6F 2A E6 D1 28 7C 9E 2C 1B 25
+       data hash MD5: 12K
+       0A E1 E6 07 2C C7 76 D9 51 D4 CA 29 B0 EE 17 69>)
+(   2,<2014-10-21 13:41:22.731 +0200>,<nmr>,<lcs175n>,<proc1d>,<TOPSPIN 3.2>,
+      <Start of raw data processing
+       efp BC_mod = 2 LB = 0 FT_mod = 6 PKNL = 1 PHC0 = 8.509561 PHC1 = 72.20047 SI = 8K 
+       data hash MD5: 8K
+       64 5F E5 30 22 91 F7 FF B9 61 27 BA 58 26 DF EB>)
+(   3,<2014-10-21 13:41:24.629 +0200>,<nmr>,<lcs175n>,<proc1d>,<TOPSPIN 3.2>,
+      <apks 
+       data hash MD5: 8K
+       51 30 6B 6B 09 05 01 2C 47 61 F2 CF 16 4F 8D 6A>)
+##END=
+
+$$ hash MD5
+$$ 92 FC 7F 4A 8B 8F F0 5B CF 16 68 4D 1E FB 60 8D

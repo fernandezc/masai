@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# masai.plugins.processes.process1d_plugin
+# masai.plugins.processes.process_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.
@@ -14,7 +14,7 @@
 # See Licence.txt in the main masai source directory
 # ===============================================================================
 """
-Define process1d plugin functionalities
+Define process plugin functionalities
 """
 from __future__ import print_function, division
 
@@ -37,18 +37,18 @@ traits.has_traits.CHECK_INTERFACES = 2
 # ===============================================================================
 # Plugin signature
 # ===============================================================================
-__plugin_main__ = 'Process1d'
+__plugin_main__ = 'Process'
 
-all = ['Process1d', ]
+all = ['Process', ]
 
 # ===================================================================================
-# Process1d plugin
+# Process plugin
 # ===================================================================================
 @provides(IPlugin)
-class Process1d(HasTraits):
+class Process(HasTraits):
 
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Process1d (type: processes), output a transformed 1D source.")
+    description = Str("Process (type: processes), output a transformed 1D source.")
     type = Str("processes")
 
     # specific attributes ----------------------------------------------------------
@@ -92,7 +92,7 @@ class Process1d(HasTraits):
         fd: source (such as NMR or IR source)
         transforms: str
             line(s) of commands among: em, zf, ft, pk, ab
-            type Process1d.<command_name> to get help on individual command
+            type Process.<command_name> to get help on individual command
         """
         #todo: add new commands
         # object to apply the transform
@@ -100,44 +100,63 @@ class Process1d(HasTraits):
             # look in args
             source = args[0]
         else:
-            raise ValueError("no valid source specified\nUsage: Process1d(fd)")
+            raise ValueError("no valid source specified\nUsage: Process(fd)")
 
         # type of transform, by default em+zf ft+apk
         if len(args)>1:
             transforms = args[1]
         else:
             transforms = kargs.get('transform', '-h; em 10; zf; ft; pk --auto')
+
+        rlines = re.compile(r"[ \t\n\r]+")
+        transforms = rlines.sub(" ", transforms)
         transforms = transforms.lower().split(';')
+
+        axis = kargs.get('axis', -1 )
 
         for trans in transforms:
 
             p = re.compile('^(\w*)\s(.*)')
             m = p.match(trans.strip())
             if m :
+                command = m.group(1)
                 options = m.group(2)
             else:
+                command = trans
                 options = ''
 
-            if 'em' in trans:
-                em(source, options=options)
+            if 'em' in command:
+                em(source, options=options, axis=axis)
 
-            elif 'zf' in trans:
-                zf(source, options=options)
+            elif 'zf' in command:
+                zf(source, options=options, axis=axis)
 
-            elif 'us' in trans:
-                us(source, options=options)
+            elif 'cs' in command:
+                cs(source, options=options, axis=axis)
 
-            elif 'cl' in trans:
-                cl(source, options=options)
+            elif 'ls' in command:
+                ls(source, options=options, axis=axis)
 
-            elif 'ft' in trans:
-                ft(source, options=options)
+            elif 'rs' in command:
+                rs(source, options=options, axis=axis)
 
-            elif 'pk' in trans:
-                pk(source, options=options)
+            elif 'us' in command:
+                us(source, options=options, axis=axis)
 
-            elif 'ab' in trans:
-                ab(source, options=options)
+            elif 'cl' in command:
+                cl(source, options=options, axis=axis)
+
+            elif 'ft' in command:
+                ft(source, options=options, axis=axis)
+
+            elif 'pk' in command:
+                pk(source, options=options, axis=axis)
+
+            elif 'ab' in command:
+                ab(source, options=options, axis=axis)
+
+            elif 'lp' in command:
+                lp(source, options=options, axis=axis)
 
     def _repr_html_(self):
         import re
@@ -160,13 +179,79 @@ class Process1d(HasTraits):
 
 
 if __name__ == '__main__':
-    import os
+    import sys, os
+    import pylab as pl
     from masai.plugins.list import Bruker
-    from masai.plugins.list import Plot1d
+    from masai.plugins.list import Plot1d, Plot2d
 
     Bruker = Bruker()
     Plot1d = Plot1d()
-    Process1d = Process1d()
+    Plot2d = Plot2d()
+    Process = Process()
+
+    def test_2D_process(path):
+
+        source = Bruker(path)
+
+        d6 = source.par.D[6]*1.e3 # in ms
+
+        Process(source, transform = 'em 50 --shifted %.3f'%d6)
+        Process(source, transform = 'zf 0')
+        Process(source, transform = 'ft')
+        Process(source, transform = 'pk 0 0 --auto --fit_phc1 --pivot 38.4 --shifted %.3f'%d6)
+
+        #p_2 = Plot2d(source, figsize=(3,2.7), ylim=(0, 5))
+
+        row = source.row(0, byindex=True)
+        #p_1 = Plot1d(row)
+
+        Process(source, axis=0, transform='em 0')
+        Process(source, axis=0, transform='zf 0')
+        Process(source, axis=0, transform='ft')
+        Process(source, axis=0, transform='pk 180 0 --auto --select cols --verbose')
+
+        p_2 = Plot2d(source, figsize=(3,2.7))
+
+        row = source.row(-27,width=1.)
+        p_1 = Plot1d(row)
+
+    def test_STMAS_process(path):
+
+        source = Bruker(path)
+
+        Process(source, transform = 'em 10 --k_shifted 1 2 --verbose')
+        Process(source, transform = 'us 2')
+        Process(source, transform = 'zf 1')
+        Process(source, transform = 'ft')
+        Process(source, transform = 'cl -200 0')
+        Process(source, transform = 'pk -256.364 0 --fit_phc1  --auto')
+
+        #Process(source, axis=0, transform='lp 128 --tdeff 108') # must be before zf in any case
+        Process(source, axis=0, transform='em 1')
+        Process(source, axis=0, transform='zf 3')
+        Process(source, axis=0, transform='ft --shear 1 2 --shift 0')
+        Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --verbose')
+
+        p_2 = Plot2d(source, proj=False, figsize=(3,2.7)) #, xlim=(-20,-50))
+
+    #tests
+    here = os.path.split(__file__)
+    DATADIR = os.path.join(here[0],'..','..','..','exemples')
+    print (DATADIR)
+    user = 'user'
+    name = 'HMQC'
+    expno = 31
+    path2D = os.path.join(DATADIR, user,'nmr',name, str(expno))
+
+    #test_2D_process(path2D)
+
+    name = 'STMAS'
+    expno = 15
+    pathSTMAS = os.path.join(DATADIR, user,'nmr',name, str(expno))
+
+    test_STMAS_process(pathSTMAS)
+
+    sys.exit()
 
     # global
     DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
@@ -175,11 +260,13 @@ if __name__ == '__main__':
     expno = 10
     path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
     fd = Bruker(path)
-    Process1d(fd, 'us 1')
-    Process1d(fd, "em 50")
-    Process1d(fd, "zf 0")
-    Process1d(fd, "ft")
-    Process1d(fd, 'cl -60 60')
-    Process1d(fd, "pk -25 0 --auto --fit_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
-   # Process1d(fd, "ab --mode poly")
+    Process(fd, 'us 1')
+    Process(fd, "em 50")
+   # Process(fd, transform = 'zf 0; cs %.3f --time'%0)
+   # Process(fd, "ft")
+   # Process(fd, 'cl -60 60')
+    #Process(fd, "pk -25 0 --auto --fit_phc1 --ediff 2 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
+   # Process(fd, "ab --mode poly")
+    Plot1d(fd)
+    Process(fd, transform = 'cs -%.3f --time'%10.01)
     Plot1d(fd)
