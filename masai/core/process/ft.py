@@ -23,7 +23,7 @@ from __future__ import print_function, division
 import numpy as np
 import argparse
 from .proc_base import largest_power_of_2, zf_size, fft
-# from nmrglue.process.proc_lp import lp as linear_predict
+from .mqstmas import k_ratio
 
 __all__ = ["ft", ]
 #
@@ -48,6 +48,10 @@ def ft(source, options='', axis=-1):
     # positional arguments
     parser.add_argument('--si',  nargs='?', help='size of fourier transform')
     parser.add_argument('--tdeff', default=0,  nargs='?', type=int, help='size of fourier transform')
+    if axis==0:
+        parser.add_argument('--shear', default=None, type=int, nargs=2, help = "p and q parameters for shearing")
+        parser.add_argument('--shift', default=0, type=float, help = "shift in ppm unit")
+
     args  = parser.parse_args(options.split())
 
     if axis == -1:
@@ -70,6 +74,7 @@ def ft(source, options='', axis=-1):
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
+
 
     # read parameters TDeff and SI
     tdeff = args.tdeff #kargs.get('tdeff', par.TDeff)
@@ -102,9 +107,76 @@ def ft(source, options='', axis=-1):
     si = largest_power_of_2(max(si, par.TD))
     data = zf_size(data, si)
 
+    # shearing and shift
+    if axis == 0:
+        shear = args.shear
+        shift = args.shift
+        if (shear is not None) or (shift is not None):
+            sfo12 = source.par.SFO1
+            sfo11 = source.par2.SFO1
+            bf12 = source.par.BF1
+            bf11 = source.par2.BF1
+            sf2 = source.par.SF
+            sf1 = source.par2.SF
+            si2 = source.par.SI
+            sw2 = source.par.SW_h
+            sw1 = 1. / source.par.IN[0]
+            source.par2.SW_h = sw1
+            O1 = (sfo12-bf12)*1.e6
+            SR = (sf2-bf12)*1.e6
+
+            p0 = 0.
+            p1 = 0.
+            # phase for shearing and shift in F1
+
+            if shear is not None:
+                p, q = shear
+                ratio = k_ratio(source, p, q)
+
+                dra = abs(ratio - float(p))
+
+                # for MQMAS
+                if p < 0:
+                    p1 = -p1
+
+                # for TROSY
+                if p == 1 and q == 0:
+                    dra = 1.0
+
+                # for STMAS of inner satellite
+                # if (p == 1 and q!=0): dra = abs(ratio - 1.0);
+
+                sfo11 = sfo12 * dra
+                bf11 = bf12 * dra
+                sr2 = (sf2 - bf12) * 1.e6
+                sr1 = sr2 * dra
+
+                p0 = -2. * np.pi * float(shift) * bf11 / sw1
+
+                bf11 += sr1 * 1.e-6 - float(shift) * bf11 * 1.e-6
+                sf1 = bf11
+
+                print("dra:", dra)
+
+            par.SFO1 = sfo11
+            par.BF1 = bf11
+            par.SF = sf1
+            par.O1 = (sfo11 - bf11) * 1.0e6
+
+            # shearing and/or shift
+            if shear is not None or shift != 0.0:
+                # create a 2D array of phases and performs the phase correction
+                twopi = 2. * np.pi
+                w2 = source.data.columns # it's transposed
+                def func(i2, i1):
+                    w = np.array([w2[i] for i in i2])*bf12
+                    return np.exp((twopi * ratio * (w - O1 +SR)/ sw1 - p0) * i1.astype(float) * 1.0j)
+                phases = np.fromfunction(func,
+                                    data.shape, dtype=int)
+
+                data = data * phases
 
     # now perform the fft
-    #if axis!=0:
     data = fft(data) #/float(si)
 
     # store the new pars
@@ -121,7 +193,6 @@ def ft(source, options='', axis=-1):
         data = data.T
 
     # change the current data with the transformed data
-
     source.data = data  # scale will be calculated here
 
     source.history.append('Fourier transform with si:%d' % par.SI)
@@ -146,105 +217,3 @@ def _makestates(source, tppi=False):
 
     source.data = data
     source.history.append('Data transform according to encoding %s' % source.par2.encoding)
-
-#
-# xf1
-#
-def xf1(source, **kargs):
-    """
-    Fourier transform of the indirect dimension of a 2D NMR spectra
-
-    """
-
-    if kargs.get('debug', False): print('performing xf1')
-
-    fnmode = source.fnmode
-    tppi = True if 'TPPI' in fnmode else False
-    ftppi = 0.5 if tppi else 1.
-
-    if kargs.get('debug', False): print('... fnMODE: %s' % fnmode)
-
-    if 'STATES' in fnmode:
-        _makestates(source, tppi=tppi)
-    else:
-        # not yet implemented
-        print("FnMODE(or MC2)= '%s' mode not yet implemented" % fnmode,
-              file=sys.stderr)
-        return
-
-    sw = source.fetchPar('SW_h')
-    sfo1 = source.fetchPar('SFO1')
-    sfo11 = source.fetchPar('SFO1', axis=0)
-    bf1 = source.fetchPar('BF1')
-    bf11 = source.fetchPar('BF1', axis=0)
-    sf = source.fetchPar('SF')
-    sf1 = source.fetchPar('SF', axis=0)
-
-    si = source.data.shape[-1]
-    sw1 = 1. / source.fetchPar('IN')[0]
-    source.storePar('SW_h', sw1, axis=0)
-
-    p0 = 0.
-    p1 = 0.
-    # phase for shearing and shift in F1
-    shearing = kargs.get('shearing', None)
-    shift = kargs.get('shift', 0.0)
-
-    if shearing is not None:
-        p, q = shearing
-        ratio = k_ratio(source, p, q)
-
-        # shearing phase
-        p1 = -2. * np.pi * ratio * sw / sw1 / float(si)
-
-        dra = abs(ratio - p)
-
-        # for MQMAS
-        if p < 0:
-            p1 = -p1
-
-        # for TROSY
-        if p == 1 and q == 0:
-            dra = 1.0
-
-        # for STMAS of inner satellite
-        # if (p == 1 and q!=0): dra = abs(ratio - 1.0);
-
-        sfo11 = sfo1 * dra
-        bf11 = bf1 * dra
-        sr = (sf - bf1) * 1.e6
-        sr1 = sr * dra
-        p0 = -2. * np.pi * shift * sfo11 / sw1
-        bf11 += sr1 * 1.e-6 - shift * sfo11 * 1.e-6  # * ftppi
-        sf1 = bf11
-
-    source.storePar('SFO1', sfo11, axis=0)
-    source.storePar('BF1', bf11, axis=0)
-    source.storePar('SF', sf1, axis=0)
-    source.storePar('O1', (sfo11 - bf11) * 1.0e6, axis=0)
-
-    # shearing and/or shift
-    if shearing is not None or shift != 0.0:
-        # create a 2D array of phases and performs the phase correction
-        data = source.data.T
-
-        phases = np.fromfunction(lambda i0, i1:
-                                 np.exp((p1 * (i0.astype(float) - float(si) / 2.) + p0) * i1.astype(float) * 1.0j),
-                                 map(float, data.shape), dtype=float)
-        data = data * phases
-        source.data = data.T
-
-    if kargs.get('lp1', True):
-        # linear prediction
-        lp(source, axis=0, **kargs)
-
-    if kargs.get('lastft', True):
-        # fourier transform
-        ft(source, axis=0)
-
-        # autophasing
-        kargs['apk'] = 'max'
-
-        apk(source, axis=0, **kargs)
-
-    source.storePar('REVERSE', True, axis=0)

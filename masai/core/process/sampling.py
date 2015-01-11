@@ -13,6 +13,8 @@
 # at the following URL "http://www.cecill.info".
 # See Licence.txt in the main masai source directory
 # ===============================================================================
+from __future__ import print_function, division
+
 import numpy as np
 import argparse
 
@@ -20,7 +22,7 @@ __all__ = ["us", "cl" ]
 #
 # undersampling
 #
-def us(source=None, options=''):
+def us(source=None, options='', axis=-1):
     """
     undersampling along axis -1
 
@@ -37,7 +39,7 @@ def us(source=None, options=''):
     # positional arguments
     parser.add_argument('nbtimes', default=1,  type=int, help='number of undersampling')
     args  = parser.parse_args(options.split())
-    n = args.nbtimes
+    n = args.nbtimes + 1
 
     par = source.par
 
@@ -46,11 +48,12 @@ def us(source=None, options=''):
         return
 
     # data on which we apply undersampling
-    data = source.data.values
+    data = source.data
     nr, nc = data.shape
-    nc0 = n*int(nc/n) # we need to have nc divide by 2
+    nc0 = n*int(nc/n)
 
-    source.par.TD = nc0
+    data = data.iloc[:, :nc0:n]
+    source.par.TD = data.shape[-1]
     source.par.SW_h /= float(n)
 
     # change the current data with the transformed data
@@ -58,21 +61,6 @@ def us(source=None, options=''):
 
     source.history.append('Undersampling: %d' % n)
 
-
-def undersampling(source, N):
-    """
-    Under sampling the F2 dimension
-    """
-    #TODO: needs to understand why apk is not perfomring well with undersampling?
-    if not source.getIsTransformed():
-        source.history.append('undersampling -1')
-        nr, nc = source.data.shape
-        nc0 = N*int(nc/N) # we need to have nc divide by 2
-
-        source.storePar('TD',nc0)
-        source.storePar('SW_h', source.fetchPar('SW_h')/float(N))
-
-        source.data = source.data.iloc[:, :nc0:N]
 
 def cl(source=None, options='', axis=-1):
     """
@@ -84,13 +72,15 @@ def cl(source=None, options='', axis=-1):
         number of undersampling, default 1
 
     """
+    # TODO: this routine is not suitable when  a shearing is applied after it
+
     # options evaluation
-    parser = argparse.ArgumentParser(description='US undersampling.', usage = """
-    us [-h] [limits]
+    parser = argparse.ArgumentParser(description='CL clipping.', usage = """
+    clipping [-h] [limits]
     """)
 
     # positional arguments
-    parser.add_argument('limits', default=None, nargs=2,  type=int, help='clipping limits')
+    parser.add_argument('limits', default=None, nargs=2,  type=float, help='clipping limits')
     args = parser.parse_args(options.split())
 
     c0, c1 = args.limits
@@ -114,20 +104,22 @@ def cl(source=None, options='', axis=-1):
     # clip the data
     x = data.columns
     select = x[(x>=c0) & (x<=c1)]
-    if select.size % 2 != 0: select = select[:-1]
+    if select.size % 2 != 0:
+        select = select[:-1]
     S = data.ix[:,select]
 
     # recompute SI, SW and new apparent SF
     SI0 = data.shape[-1]
     SI = S.shape[-1]
-    par.SW_h *= float(SI) / float(SI0)
-    SW_h = par.SW_h
     par.SI = SI
     BF1 = par.BF1
     SFO1 = par.SFO1
-    delta = SW_h / (float(SI) * BF1)
-    SF = SFO1 - (select[-1] + delta * float(SI) / 2.) * BF1 * 1.e-6
-    par.SF= SF
+    par.SW_h = (select[0]-select[-1])*BF1  #float(SI) / float(SI0)
+    SW_h = par.SW_h
+    SF = par.SF
+    delta = SW_h / float(SI * BF1)
+    SF = SFO1 - (S.columns[-1] + SW_h/2./BF1) * BF1 * 1.e-6
+    par.SF = SF
 
     # change the current data with the transformed data
     if source.is_2d and axis == 0:

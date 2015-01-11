@@ -219,23 +219,20 @@ if __name__ == '__main__':
 
         source = Bruker(path)
 
-        Process(source, transform = 'em 10 --k_shifted 1 2')
-        Process(source, transform = 'zf 2')
+        Process(source, transform = 'em 10 --k_shifted 1 2 --verbose')
+        Process(source, transform = 'us 2')
+        Process(source, transform = 'zf 1')
         Process(source, transform = 'ft')
+        Process(source, transform = 'cl -200 0')
         Process(source, transform = 'pk -256.364 0 --fit_phc1  --auto')
 
-        #p_2 = Plot2d(source, figsize=(3,2.7), ylim=(0, 5))
-
-        row = source.row(0, byindex=True)
-        #p_1 = Plot1d(row)
-
-        Process(source, axis=0, transform='lp 128 --tdeff 108') # must be before zf in any case
+        #Process(source, axis=0, transform='lp 128 --tdeff 108') # must be before zf in any case
         Process(source, axis=0, transform='em 1')
-        Process(source, axis=0, transform='zf 1')
-        Process(source, axis=0, transform='ft')
+        Process(source, axis=0, transform='zf 3')
+        Process(source, axis=0, transform='ft --shear 1 2 --shift 0')
         Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --verbose')
 
-        p_2 = Plot2d(source, proj=False, figsize=(3,2.7))
+        p_2 = Plot2d(source, proj=False, figsize=(3,2.7)) #, xlim=(-20,-50))
 
     #tests
     here = os.path.split(__file__)
