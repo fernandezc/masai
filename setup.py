@@ -1,8 +1,10 @@
 from setuptools import setup 
+from masai.version import get_git_version
+
 
 setup(
     name='masai',
-    version='0.1.dev',
+    version=get_git_version(),
     packages=['masai', 'masai.core', 'masai.plugins'],
     install_requires=['nmrglue', 'numpy', 'traits', 'matplotlib', 'addict', 'pandas'],
     url='',

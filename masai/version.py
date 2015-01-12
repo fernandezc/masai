@@ -44,13 +44,13 @@ if _TOOLKIT_SETUP:
 #===============================================================================
 # get_git_version
 #===============================================================================
-def _get_git_version():
+def get_git_version():
     """Get the current version  of the local git repository using
     the 'git describe' shell command.
     """
     status, output = commands.getstatusoutput('git describe')
     if status == 0:
-        return output.split('-')
+        return output
 
 
 #===============================================================================
@@ -58,7 +58,7 @@ def _get_git_version():
 #===============================================================================
 def get_fullversion_string():
 
-    x = _get_git_version()
+    x = get_git_version().split('-')
     if not x:
         return '0.1'
 
