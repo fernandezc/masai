@@ -15,3 +15,4 @@
 # ===============================================================================
 
 from bruker_plugin import *
+from multiplex_plugin import  *
