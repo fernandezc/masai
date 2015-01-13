@@ -23,7 +23,7 @@ from scipy.interpolate import pchip
 import pandas as pd
 import argparse
 
-from masai.process.smooth import smooth
+from masai.core.process.smooth import smooth
 
 __all__ = ["ab", "basecorr"]
 
