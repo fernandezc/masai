@@ -114,10 +114,10 @@ def read_multiplex(path, expno=None, procno=1, coherence=3, acqus_files=None, de
 
         # End of loop over phases ip
 
-        # Cosine Part (SRH) 
+        # Cosine Part (SRH)
         data[2*row]= (-C1.imag + C0.real) + (C1.real + C0.imag)*1.0j
         # Sine Part (SRH)
-        data[2*row-1]= (-S1.imag + S0.real) + (S1.real + S0.imag)*1.0j
+        data[2*row+1]= (-S1.imag + S0.real) + (S1.real + S0.imag)*1.0j
 
     #reverse
     #data = -data[::-1]

@@ -135,10 +135,6 @@ def ft(source, options='', axis=-1):
 
                 dra = abs(ratio - float(p))
 
-                # for MQMAS
-                if p < 0:
-                    p1 = -p1
-
                 # for TROSY
                 if p == 1 and q == 0:
                     dra = 1.0
@@ -163,6 +159,11 @@ def ft(source, options='', axis=-1):
             par.SF = sf1
             par.O1 = (sfo11 - bf11) * 1.0e6
 
+            # for MQMAS
+            sign = 1
+            if p < 0:
+                 sign = -1
+
             # shearing and/or shift
             if shear is not None or shift != 0.0:
                 # create a 2D array of phases and performs the phase correction
@@ -170,7 +171,7 @@ def ft(source, options='', axis=-1):
                 w2 = source.data.columns # it's transposed
                 def func(i2, i1):
                     w = np.array([w2[i] for i in i2])*bf12
-                    return np.exp((twopi * ratio * (w - O1 +SR)/ sw1 - p0) * i1.astype(float) * 1.0j)
+                    return np.exp((sign * twopi * ratio * (w - O1 +SR)/ sw1 - p0) * i1.astype(float) * 1.0j)
                 phases = np.fromfunction(func,
                                     data.shape, dtype=int)
 
