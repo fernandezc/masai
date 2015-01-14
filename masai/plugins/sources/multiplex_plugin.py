@@ -394,21 +394,44 @@ if __name__ == '__main__':
     import sys, os
     import pylab as pl
     from masai.plugins.list import Bruker
-    from masai.plugins.list import Plot1d, Plot2d
+    from masai.plugins.list import Plot1d, Plot2d, Process
 
     Bruker = Bruker()
     Plot1d = Plot1d()
     Plot2d = Plot2d()
+    Process = Process()
+
     Multiplex = Multiplex()
 
-    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
-    user = 'christian'
-    name = 'maniptest'
-    expno = 3
-    path = os.path.join(DATADIR,user,'nmr', name, str(expno))
-
+    print(__file__)
+    DATADIR = os.path.expanduser(os.path.join('..','..','..' ,'exemples'))
+    FIGDIR = 'figures' # this directory should exist in the current directory, however
+    user = 'user'
+    name = 'MULTIPLEX'
+    expno = 4
+    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
     source = Multiplex(path)
-    print(source)
+    # possibly correct the F1 encoding
+    source.par2.encoding = 'STATES'
 
-    Plot2d(source)
+    #source.par.SF = source.par.BF1
 
+
+    # Process(source, transform = 'em .1 --k_shifted 3 0 --verbose')
+    # Process(source, transform = 'us 3')
+    # F2 dimension
+
+    Process(source, transform = 'zf 1')  # 1 zero-filling
+    Process(source, transform = 'ft')
+    Process(source, transform = 'cl -25 25') # clipping
+    #Process(source, transform = 'pk 0 0 --auto --fit_phc1')
+
+    # F1 dimension
+    #Process(source, axis=0, transform='em .1')
+
+    #Process(source, axis=0, transform='lp 128 --tdeff 106') # must be before any zf command
+    Process(source, axis=0, transform='zf 1')
+    Process(source, axis=0, transform='ft --shear 3 0')
+    #Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols')
+
+    p_2 = Plot2d(source, figsize=(3, 2.7))#, xlim=(-48, -20), ylim=(-40, -20) )
