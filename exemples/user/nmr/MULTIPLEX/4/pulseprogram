@@ -1,0 +1,92 @@
+# 1 "C:/Bruker/XWIN-NMR/exp/stan/nmr/lists/pp/MQMultiplex32"
+;--------------------------------------------------------------;
+;                  MultiplexSPAMMQMAS sequence                 ;
+;                      version: 20050224                       ;
+;--------------------------------------------------------------;
+;                                                              ;
+;Authors:                                                      ;
+;C. Fernandez, N. Malicki, and L. Mafra                        ;
+;LCS (Laboratoire Catalyse et Spectrochimie)                   ;
+;UMR6506 CNRS/ENSICAEN,                                        ;
+;Universite de Caen-Basse Normandie                            ;
+;6 bd du Marechal Juin,                                        ;
+;14050 Caen,                                                   ;
+;France                                                        ;
+;mailto: Christian.fernandez@ensicaen.fr                       ;
+;                                                              ;   
+;--------------------------------------------------------------;
+;Copyright (c)2005 LCS (C.Fernandez, N.Malicki, L.Mafra)       ;
+;                                                              ;
+;This program is free software; you can redistribute it and/or ;
+;modify it under the terms of the GNU General Public License   ;
+;as published by the Free Software Foundation; either version 2;
+;of the License, or (at your option) any later version.        ;
+;                                                              ;
+;This program is distributed in the hope that it will be useful;
+;but WITHOUT ANY WARRANTY; without even the implied warranty of;
+;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the ;
+;GNU General Public License for more details.                  ;
+;                                                              ;
+;--------------------------------------------------------------;
+;References:                                                   ;
+;(1) N.Ivchenko et al., J.Magn.Reson. 160 (2003) 52-58         ;
+;(2) Z.Gan, H.T.Kwak, J.Magn.Reson. 168 (2004) 346-351.        ;
+;(3) N.Malicki, et al., Solid State NMR, 2005                  ;
+;                                                              ;
+;--------------------------------------------------------------; 
+; Description and Usage:                                       ;
+; The generated 3D spectra have to be specially processed with ;
+; the AU program: MSM (Multiplex Spam MQMAS)                   ;
+;--------------------------------------------------------------;
+
+; Nb of rows to acquire in the MQ dimensions
+define loopcounter nrows
+"nrows=td2"
+
+; Nb of individual spectra 
+define loopcounter np
+"np=td1/2"
+
+1 ze
+2 d1 
+  10u pl1:f1
+
+;---- Sequence MQMAS (3 pulses)
+  1.7u:f1 ph1          ; preset the ph1 phase
+  (p1 ph1):f1
+  d0
+  1.7u:f1 ph2          ; preset the ph2 phase
+  (p2 ph2):f1
+  1u pl11:f1
+  1.7u:f1 ph3          ; preset the ph3 phase
+  (p3 ph3):f1
+
+;---- Acquire
+  go=2 ph31            
+  10m wr #0 if #0 zd   ; write individual FIDS
+
+;---- 2 experiments for SPAM
+  10m ip3*2            ; increment ph3 by 180° for SPAM
+lo to 2 times 2
+
+;---- nphase/2 experiments for multiplex
+  10m rp3              ; reset ph3 to 0°
+  10m ip1              ; increment ph1 for Multiplex
+lo to 2 times np       ; acquisition of np phases
+  10m rp1              ; reset ph1 to 0° 
+
+;---- perform time evolution in the MQ dimension  
+  10m id0              ; increment d0  
+lo to 2 times nrows  
+
+exit
+
+; 7 phases for the 3QMAS on 3/2 nucleus (set TD1=7*2=14)
+; Comment this line for 5/2 nucleus
+ph1=(7) 0   
+; 11 phases for the 3Q and 5QMAS on 5/2 nucleus (set TD1=11*2=22)
+; Uncomment the following line for 5/2 nucleus
+; ph1=(11) 0
+ph2= 0 
+ph3= 0
+ph31= 0
