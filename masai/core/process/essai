@@ -1,0 +1,513 @@
+/*** ^^A -*-C++-*- **********************************************/
+/*	xfshear			01.04.2005			*/
+/****************************************************************/
+/*	Short Description :					*/
+/*	Program used for shearing of 2D MQMAS and STMAS spectra	*/
+/*	of half integer quadrupolar nuclei. Data must be	*/
+/*	aquired in States, States/TPPI, or echo/antiecho mode	*/
+/*	Program used for shearing of ZQ-TROSY experiments	*/
+/*	like trosyzqgpphwg					*/
+/****************************************************************/
+/*	Keywords :						*/
+/*	shear, half integer spin nuclei, multi quantum, mq, MQ	*/
+/*	ZQ-TROSY						*/
+/****************************************************************/
+/*	Description/Usage :					*/
+/*	Program is used						*/
+/*	a) for 2D MQMAS and STMAS experiments of nuclei with	*/
+/*	half integer spin for shearing-FT of 2D spectrum	*/
+/*	including 2D FT and referencing in F1 dimension		*/
+/*	according to delta(MQ)=3Ddelta(iso)+(p-R)delta(qis)	*/
+/*								*/
+/*	b) for ZQ-TROSY experiments to eliminate the		*/
+/*	contribution of proton chemical shift in the		*/
+/*	F1 direction						*/
+/*								*/
+/*	When the program is started without any options it asks	*/
+/*	to apply abs2 and to enter a F1 shift in ppm.		*/
+/*	abs2 will be applied after the first xf2, the F1 shift	*/
+/*	allows to rotate the spectrum about the F2 axis		*/
+/*	in case of folded peaks.				*/
+/*								*/
+/*	The program can be started with the following options:	*/
+/*	abs:	perform abs2 after F2 transform (before		*/
+/*		shearing operation)				*/
+/*	noabs:	do not perform abs2 after F2 transform		*/
+/*	rotate:	no shearing is done and only the F1 shift is	*/
+/*		applied. This option can be useful for all	*/
+/*		types of States, States/TPPI, and echo/antiecho	*/
+/*		experiments in which case a number must be	*/
+/*		specified with this option.			*/
+/*	ratio:	allows to shear at a different angle, which is	*/
+/*		defined by the parameter R.			*/
+/*	lastf1:	applies the same F1 shift as applied at		*/
+/*		previous processing.				*/
+/****************************************************************/
+/*	Author(s) :						*/
+/*	Name		: Christian Fernandez			*/
+/*	Organisation	: ENSICAEN LCS UMR6506			*/
+/*	Email		: christian.fernandez@ensicaen.fr	*/
+/*								*/
+/*	Name		: Stefan Steuernagel			*/
+/*	Organisation	: Bruker BioSpin GmbH			*/
+/*	Email		: stefan.steuernagel@bruker-biospin.de	*/
+/****************************************************************/
+/*	Name		Date		Modification:		*/
+/*	wem		20050401	created			*/
+/*								*/
+/****************************************************************/
+/*
+$Id: xfshear,v 1.24 2009/09/10 13:13:20 wem Exp $
+*/
+
+  static const double rtab[5][10] =
+/* mq 0        1    2     3        4    5        6     7        8    9         spin */
+  { { 0.,     -1.,  0.,   0.,      0.,  0.,      0.,   0.,      0.,  0.   }, /* 1/2 */
+    {-8./9.,  -1.,  0.,   7./9.,   0.,  0.,      0.,   0.,      0.,  0.   }, /* 3/2 */
+    { 7./24., -1.,  0.,  19./12.,  0., 25./12.,  0.,   0.,      0.,  0.   }, /* 5/2 */
+    {28./45., -1.,  0., 101./45.,  0., 11./9.,   0., 161./45.,  0.,  0.   }, /* 7/2 */
+    {55./72., -1.,  0.,  91./36.,  0., 95./36.,  0.,   7./18.,  0., 31./6.}  /* 9/2 */
+  };
+
+  int *in2rr;
+  int pparmod, bytordp, si2, si1, infile2rr, size[2], xdim[2],
+      nbytes, nbytesread, xdim2, xdim1, loopcount4, i,
+      mq, nspin = 0, wdw, bcmod, phmod, stsi1, stsi2, tdeff1, fnmode;
+  int absflag = 0, f1flag = 0, ratioflag = 0, rotateflag = 0;
+
+  double dra, ph1 = 0, phc2, sfo1, ratio = 0, f1shift = 0;
+
+  float swh1;
+
+  off_t pos = 0;
+
+  FILE* fp;
+
+  char  name2rr[PATH_MAX], audittext[512], nucl[80], pulprog[80];
+
+  char* auditp = audittext + sprintf(audittext, "shear");
+
+/* is it a 2D spectrum either States, States-TPPI or EA?
+   ===================== */
+  FETCHPARS("PPARMOD",&pparmod)
+  if (pparmod != 1)
+    STOPMSG("Program is only suitable for 2D data!");
+
+  FETCHPAR1S("FnMODE",&fnmode)
+  if (fnmode == 0)
+  {
+    int mc2;
+
+    FETCHPAR("MC2",&mc2)
+    if (mc2 != 3 && mc2 != 4 && mc2 != 5)
+      STOPMSG("MC2 must be States, States-TPPI, or Echo-Antiecho!");
+
+    fnmode = mc2 + 1;
+  }
+  else if (fnmode != 4 && fnmode != 5 && fnmode != 6)
+    STOPMSG("FnMode must be in States, States-TPPI, or Echo-Antiecho!");
+
+/* check command line options
+   ========================== */
+
+  for (i = 2; i < i_argc; i++)
+  {
+    char* endptr;
+
+    auditp += sprintf(auditp, " %s", i_argv[i]);
+
+    if (strcmp(i_argv[i], "lastf1") == 0)
+      f1flag = 1;
+
+    if (strcmp(i_argv[i], "abs") == 0)
+      absflag = 1;
+
+    if (strcmp(i_argv[i], "noabs") == 0)
+      absflag = -1;
+
+    if (strcmp(i_argv[i], "rotate") == 0)
+      rotateflag = 1;
+
+    if (strcmp(i_argv[i], "ratio") == 0)
+    {
+      ratioflag = 1;
+
+      if (i + 1 < i_argc)
+      {
+	ratio = strtod(i_argv[i + 1], &endptr);
+
+	if (*endptr == 0)
+	{
+	  ratioflag = 2;
+	  i++;
+	}
+      }
+    }
+
+    if (f1flag == 0)
+    {
+      f1shift = strtod(i_argv[i], &endptr);
+
+      if (*endptr == 0)
+	f1flag = 2;
+    }
+  }
+
+  auditp += sprintf(auditp, ":");
+
+/* init some variables
+   =================== */
+  FETCHPARS("SFO1",&sfo1)
+  FETCHPARS("NUC1",nucl)
+  if (strcmp(nucl,"off") == 0)
+    FETCHPARS ("NUCLEUS",nucl)
+
+  sprintf(name2rr, "%s/nmr/lists/nuclei.all", PathXWinNMRExpStan());
+  fp = fopen(name2rr, "r");
+
+  if (fp == 0)
+    Proc_err(DEF_ERR_OPT, "cannot open\n%s", name2rr);
+  else
+  {				/* search spin quantum number of	*/
+    size_t nlen = strlen(nucl);	/* nucleus in nuclei table		*/
+
+    for (;;)
+    {
+      char* cp;
+      char* ep;
+
+      name2rr[0] = 0;
+				/* read a single line of nuclei table	*/
+      if (fgets(name2rr, sizeof(name2rr), fp) == 0)
+	break;
+
+      for (cp = name2rr; isspace((int)*cp); cp++)
+	;				/* skip leading blanks in line	*/
+
+      if (strncmp(nucl, cp, nlen) == 0)
+      {					/* found nucleus in line	*/
+	for (cp += nlen; isdigit((int)*cp) == 0; cp++)
+	  ;				/* skip non digits in line	*/
+
+	strtod(cp, &ep);
+	cp = ep;			/* skip Receptivity entry	*/
+	nspin = (int)strtol(cp, &ep, 10);
+
+	if (*ep != '/')
+	  nspin *= 2;			/* integer spin detected	*/
+
+	break;				/* got spin quantum number	*/
+      }
+    }
+
+    fclose(fp);
+  }
+
+  if (nspin == 0)
+  {
+    double spin = 1.5;
+
+    GETDOUBLE("Enter spin quantum number:", spin);
+    auditp += sprintf(auditp, " spin quantum number %.1g", spin);
+    nspin = (int)(2. * spin);
+  }
+
+  if (nspin <= 0  ||  nspin > 9  ||  nspin % 2 == 0)
+    STOPMSG("Invalid spin quantum number")
+
+  FETCHPARS("PULPROG",pulprog)
+  (void)strlwr(pulprog);
+
+  if (strstr(pulprog,"3q"))			mq = 3;
+  else if (strstr(pulprog,"5q"))		mq = 5;
+  else if (strstr(pulprog,"7q"))		mq = 7;
+  else if (strstr(pulprog,"9q"))		mq = 9;
+  else if (strncmp(pulprog,"stmas",5) == 0)	mq = 0;
+  else if (nspin == 1)				mq = 1;
+  else
+  {
+    mq = 3;
+    GETINT("Enter the pQ order for MQMAS or enter 0 for STMAS:", mq);
+    auditp += sprintf(auditp, " pQ order %d", mq);
+  }
+
+  if (mq < 0  ||  mq > (rotateflag ? 9 : nspin)  ||
+      (mq == 0  &&  nspin == 1)  ||  (mq  &&  mq % 2 == 0))
+    STOPMSG("Invalid pQ order")
+
+  if (f1flag < 2  &&  mq != 1)
+  {
+    char ti[80];
+
+    FETCHPARS("TI",ti)
+
+    if (strcmp(ti, "shearing done") == 0)
+    {
+      float noisf1;
+
+      FETCHPAR1S("NOISF1",&noisf1)
+      f1shift = noisf1;
+    }
+  }
+
+/* if lastf1 selected, don't ask for ABS2 and additional F1 shift
+   ============================================================== */
+
+  if (absflag == 0  &&  f1flag != 1  &&  mq != 1)
+  {
+/* automatic baseline correction for MQMAS and STMAS ?
+   =================================================== */
+    char yes[80];
+
+    (void)strcpy(yes, "yes");
+    GETSTRING("Apply abs2?", yes);
+
+    if (yes[0] == 'y')
+      absflag = 1;
+    else
+      absflag = -1;
+  }
+
+  if (absflag == 0)
+  {
+    if (mq != 1)
+      absflag = 1;
+    else
+      absflag = -1;
+  }
+
+/* additional F1 shift ?
+   ===================== */
+  if (f1flag == 0  &&  (mq != 1  ||  rotateflag))
+    GETDOUBLE("Enter F1 shift in ppm:", f1shift);
+
+  auditp += sprintf(auditp, " F1 shift %.7g ppm", f1shift);
+
+  if (ratioflag < 2)
+    ratio = rtab[nspin / 2][mq];
+
+  if (ratioflag == 1)
+    GETDOUBLE("Enter different shearing ratio:", ratio);
+
+  if (ratioflag)
+    auditp += sprintf(auditp, " shearing ratio %.15g", ratio);
+
+/* ignore strip parameters in F1 for 1H spectra!
+   ============================================= */
+  FETCHPAR1("STSI",&stsi1)
+  STOREPAR1("STSR",0)
+  STOREPAR1("STSI",0)
+
+  if (mq == 1)
+  {
+    if (stsi1 != 0)
+      Proc_err(DEF_ERR_OPT,"F1 Strip-FT not yet implemented,\nparameters disabled");
+  }
+
+/* ignore all strip parameters for MQMAS spectra !
+   =============================================== */
+  if (mq != 1)
+  {
+    if (mq == nspin) mq = -mq;
+
+    FETCHPAR("STSI",&stsi2)
+    STOREPAR("STSR",0)
+    STOREPAR("STSI",0)
+    if (stsi2 != 0 || stsi1 != 0)
+      Proc_err(DEF_ERR_OPT,"Strip-FT not yet implemented,\nparameters disabled");
+  }
+
+/* calculate F2 transform
+   ====================== */
+  FETCHPAR("WDW",&wdw)
+  STOREPAR("WDW",0)
+  XCMD("xf2 same raw n")
+  i = AUERR;
+  STOREPAR("WDW",wdw)
+
+  if (i < 0)
+    ABORT
+
+  if (absflag > 0)
+  {
+    ABS2
+    ERRORABORT
+  }
+
+/* get required status parameters after F2 transform
+   ================================================= */
+  FETCHPARS("BYTORDP",&bytordp)
+  FETCHPARS("SI",&si2)
+  FETCHPARS("XDIM",&xdim2)
+  FETCHPAR1S("SWH",&swh1)
+  FETCHPAR1S("SI",&si1)
+  FETCHPAR1S("XDIM",&xdim1)
+  FETCHPAR1S("TDeff",&tdeff1)
+  nbytes = xdim2 * (2 * (int)sizeof(int));
+
+/* calculate phase for shearing and scaling for MQMAS/STMAS F1
+   =========================================================== */
+  if (rotateflag == 0)
+  {
+    double sw2;
+
+    FETCHPARS("SW_p",&sw2)
+    ph1 = -M_PI * ratio * sw2 / swh1 / (double)si2;
+  }
+
+  dra = fabs(ratio - (double)mq);
+
+/* for MQMAS */
+  if (mq < 0) ph1 = -ph1;
+
+/* for TROSY */
+  if (mq == 1) dra = 1.0;
+
+/* for STMAS of inner satellite */
+  if (mq == 0) dra = fabs(ratio - 1.0);
+
+/* for rotate */
+  if (mq > nspin) dra = 1.0;
+
+  sfo1 *= dra;
+
+/* additional F1 shift
+   =================== */
+  phc2 = -M_PI * f1shift * sfo1 / (double)swh1;
+
+/* compensate for strip transformation of 1H spectra
+   ================================================= */
+  if (mq == 1)
+  {
+    int stsr;
+
+    FETCHPARS("STSR",&stsr)
+    phc2 -= ph1 * stsr;
+  }
+
+/* allocate memory for I/O buffer
+   ============================== */
+  in2rr = (int*)malloc(nbytes);
+  if (in2rr == 0)
+    STOPMSG("Not enough memory");
+
+/* Open source file RR
+   =================== */
+  strcpy(name2rr, PROCPATH("2rr"));
+  infile2rr = open(name2rr, O_RDWR);
+
+  if (infile2rr == -1)
+  {					/* on Windows GUI may access	*/
+    sleep(1);				/* 2rr exclusively		*/
+    infile2rr = open(name2rr, O_RDWR);	/* second attempt		*/
+  }
+
+  if (infile2rr == -1)
+  {
+    Perror(DEF_ERR_OPT, name2rr);
+    return -1;
+  }
+
+  Show_status("shearing calculation");
+
+/* Read data in submatrix
+   ====================== */
+  for (loopcount1 = 0; loopcount1 < tdeff1; loopcount1 += xdim1)
+    for (loopcount2 = -si2 / 2; loopcount2 < si2 / 2; loopcount2 += xdim2)
+    {
+      for (loopcount3 = loopcount1; loopcount3 < loopcount1 + xdim1  &&
+				    loopcount3 < tdeff1; loopcount3 += 2)
+      {
+	if ((nbytesread=read(infile2rr,in2rr,nbytes)) != nbytes) /* Read 2 rows ! */
+	{
+	  if (nbytesread < 0)
+	    Perror(DEF_ERR_OPT, name2rr);
+	  else
+	    Proc_err(DEF_ERR_OPT, "%s\nread off file limits", name2rr);
+
+	  return -1;
+	}
+
+	for (loopcount4 = 0; loopcount4 < xdim2; loopcount4++)
+	{
+	  double ev = in2rr[loopcount4];
+	  double od = in2rr[loopcount4 + xdim2];
+	  double ph = (ph1 * (loopcount2 + loopcount4) + phc2) * loopcount3;
+	  double co = cos(ph);
+	  double si = sin(ph);
+
+/* perform shearing transformation
+   =============================== */
+	  in2rr[loopcount4]	    = (int)(ev * co + od * si);
+	  in2rr[loopcount4 + xdim2] = (int)(od * co - ev * si);
+	}
+
+/* Save
+   ==== */
+	if (lseek(infile2rr, pos, SEEK_SET) == -1  ||
+	    write(infile2rr,in2rr,nbytes) < 0)
+	{
+	  Perror(DEF_ERR_OPT, name2rr);
+	  return -1;
+	}
+
+	pos += nbytes;
+      }
+
+      if (loopcount1 + xdim1 > tdeff1)
+	pos += nbytes * ((loopcount1 + xdim1 - (tdeff1 - 1)) / 2);
+    }
+
+  close(infile2rr);
+
+/* Audit file entry
+   ================ */
+  size[0] = si2;
+  size[1] = si1;
+  xdim[0] = xdim2;
+  xdim[1] = xdim1;
+
+  if (CheckSumFile(name2rr, 0, auditp, 0, 0, bytordp, 0, 2, size[0], size, xdim) > 0)
+    AuditAppend(PROCPATH("auditp.txt"), audittext);
+
+/* F1 Scaling for MQ MAS experiments
+   ================================= */
+  if (ratioflag == 0  &&  dra != 1.0)
+  {
+    double bf1;
+    float  sr;
+
+    FETCHPARS("SR",&sr)
+    FETCHPARS("BF1",&bf1)
+    bf1 *= dra;
+    STOREPAR1S("BF1",bf1)
+    bf1 += (dra * sr + f1shift * sfo1) * 1e-6;
+    STOREPAR1S("SF",bf1)
+    STOREPAR1S("SFO1",sfo1)
+    STOREPAR1S("SWH",swh1)
+  }
+
+ /* store TI to recall shearing and shifting
+    ======================================== */
+  STOREPARS("TI","shearing done")
+  STOREPAR1S("NOISF1",f1shift)
+
+ /* inverse F2 and subsequent F2+F1 transform
+    ========================================= */
+  XHT2
+  ERRORABORT
+
+  XIF2
+  ERRORABORT
+
+  FETCHPAR("PH_mod",&phmod)
+  STOREPAR("PH_mod",0)
+  FETCHPAR("BC_mod",&bcmod)
+  STOREPAR("BC_mod",0)
+  STOREPAR1S("AXUNIT","")
+  XFB
+  STOREPAR("PH_mod",phmod)
+  STOREPAR("BC_mod",bcmod)
+  VIEWDATA
+  Show_status("shearing calculation finished");
+  QUIT

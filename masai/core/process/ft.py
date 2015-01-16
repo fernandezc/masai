@@ -131,7 +131,14 @@ def ft(source, options='', axis=-1):
 
             if shear is not None:
                 p, q = shear
+                p = np.abs(p)
+                q = np.abs(q)
                 ratio = k_ratio(source, p, q)
+
+                I = source.get_spin()
+                n_spin = int(np.ceil(2.0 * I))
+                if p==n_spin:
+                    p = -p
 
                 dra = abs(ratio - float(p))
 
@@ -169,11 +176,14 @@ def ft(source, options='', axis=-1):
                 # create a 2D array of phases and performs the phase correction
                 twopi = 2. * np.pi
                 w2 = source.data.columns # it's transposed
+#                _, yy = np.meshgrid(range(si2), data.shape[-1])
+#                w = np.array([w2[i] for i in yy])*bf12
                 def func(i2, i1):
                     w = np.array([w2[i] for i in i2])*bf12
                     return np.exp((sign * twopi * ratio * (w - O1 +SR)/ sw1 - p0) * i1.astype(float) * 1.0j)
                 phases = np.fromfunction(func,
                                     data.shape, dtype=int)
+
 
                 data = data * phases
 

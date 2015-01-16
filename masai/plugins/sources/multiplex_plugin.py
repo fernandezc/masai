@@ -424,14 +424,14 @@ if __name__ == '__main__':
     Process(source, transform = 'zf 1')  # 1 zero-filling
     Process(source, transform = 'ft')
     Process(source, transform = 'cl -40 40') # clipping
-    Process(source, transform = 'pk 0 0 --auto --fit_phc1')
+    Process(source, transform = 'pk -72.558  0.214')#0 0 --auto --fit_phc1')
 
     # F1 dimension
     #Process(source, axis=0, transform='em .1')
 
     #Process(source, axis=0, transform='lp 128 --tdeff 106') # must be before any zf command
     Process(source, axis=0, transform='zf 1')
-    Process(source, axis=0, transform='ft --shear -3 0 --shift -5')
-    Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols')
+    Process(source, axis=0, transform='ft --shear 3 0 --shift 15')
+    Process(source, axis=0, transform='pk -13.910 10.000') #0 0 --auto --fit_phc1 --select cols')
 
     p_2 = Plot2d(source, figsize=(3, 2.7))#, xlim=(-48, -20), ylim=(-40, -20) )

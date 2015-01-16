@@ -155,8 +155,8 @@ class Plot2d(HasTraits):
                 # the height (width) of the axes to be created in inches.
                 divider = make_axes_locatable(axe)
                 # print divider.append_axes.__doc__
-                axex = divider.append_axes("top", 1.1, pad=0.1, sharex=axe, frameon=0, yticks=[])
-                axey = divider.append_axes("right", 1.1, pad=0.1, sharey=axe, frameon=0, xticks=[])
+                axex = divider.append_axes("top", 1.01, pad=0.01, sharex=axe, frameon=0, yticks=[])
+                axey = divider.append_axes("right", 1.01, pad=0.01, sharey=axe, frameon=0, xticks=[])
                 axex.tick_params(bottom='off', top='off')
                 axey.tick_params(right='off', left='off')
                 pl.setp(axex.get_xticklabels() + axex.get_yticklabels()
@@ -229,6 +229,25 @@ class Plot2d(HasTraits):
         axe.xaxis.set_major_locator(MaxNLocator(5))
         axe.yaxis.set_major_locator(MaxNLocator(5))
 
+        if proj:
+            print('%s projection'%self.proj)
+            if 'sky' in proj:
+                dxp = spec.values.max(axis=0)
+                dyp = spec.values.max(axis=1)
+                xproj, = axex.plot(x,dxp)
+                yproj, = axey.plot(dyp, y)
+
+            elif 'sum' in proj:
+                dxp = spec.values.sum(axis=0)
+                dxp = dxp/(dxp.max()-dxp.min())
+                dyp = spec.values.sum(axis=1)
+                dyp = dyp/(dyp.max()-dyp.min())
+                xproj, = axex.plot(x,dxp)
+                yproj, = axey.plot(dyp, y)
+
+            else:
+                raise Exception('projection type must be sky or sum')
+
         # Layout
         pl.tight_layout()
 
@@ -297,3 +316,33 @@ class Plot2d(HasTraits):
         else:
             clevelc = [ms*exponent**xi for xi in range(xl)]
         return clevelc
+
+
+if __name__ == '__main__':
+
+    """
+    test plugin
+    """
+    # need this to test  directly
+    import sys, os
+    import pylab as pl
+    from masai.plugins.list import Bruker
+    from masai.plugins.list import Plot1d, Plot2d, Process
+
+    Bruker = Bruker()
+    Plot1d = Plot1d()
+    Plot2d = Plot2d()
+    Process = Process()
+
+    DATADIR = os.path.expanduser(os.path.join('..','..','..' ,'exemples'))
+    FIGDIR = 'figures' # this directory should exist in the current directory, however
+
+    user = 'user'
+    name = 'HMQC'
+    expno = 31
+    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
+    source = Bruker(path)
+
+    p_2 = Plot2d(source, figsize=(3, 2.7), proj='sky')
+
+
