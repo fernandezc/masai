@@ -144,26 +144,30 @@ class Plot2d(HasTraits):
 
         # get the proj keyword
         proj = kargs.get('proj')
+        xproj = kargs.get('xproj')
+        yproj = kargs.get('yproj')
 
         if 'axe' not in kargs.keys():
             fig = pl.figure(figsize=figsize, dpi=dpi)
             self.fig = fig
             axe = fig.add_subplot(1,1,1)
-            if proj:
+            if proj or xproj or yproj:
                 # create new axes on the right and on the top of the current axes
                 # The first argument of the new_vertical(new_horizontal) method is
                 # the height (width) of the axes to be created in inches.
                 divider = make_axes_locatable(axe)
                 # print divider.append_axes.__doc__
-                axex = divider.append_axes("top", 1.01, pad=0.01, sharex=axe, frameon=0, yticks=[])
-                axey = divider.append_axes("right", 1.01, pad=0.01, sharey=axe, frameon=0, xticks=[])
-                axex.tick_params(bottom='off', top='off')
-                axey.tick_params(right='off', left='off')
-                pl.setp(axex.get_xticklabels() + axex.get_yticklabels()
-                        + axey.get_xticklabels() + axey.get_yticklabels(),
-                        visible=False)
-                self.axex = axex
-                self.axey = axey
+                if proj or xproj:
+                    axex = divider.append_axes("top", 1.01, pad=0.01, sharex=axe, frameon=0, yticks=[])
+                    axex.tick_params(bottom='off', top='off')
+                    pl.setp(axex.get_xticklabels() + axex.get_yticklabels(), visible=False)
+                    self.axex = axex
+                if proj or yproj:
+                    axey = divider.append_axes("right", 1.01, pad=0.01, sharey=axe, frameon=0, xticks=[])
+                    axey.tick_params(right='off', left='off')
+                    pl.setp(axey.get_xticklabels() + axey.get_yticklabels(), visible=False)
+                    self.axey = axey
+
             xlim = [x[0], x[-1]]
             ylim = (y[0], y[-1])
             cl = self.clevels(spec.values, **kargs)
@@ -229,24 +233,20 @@ class Plot2d(HasTraits):
         axe.xaxis.set_major_locator(MaxNLocator(5))
         axe.yaxis.set_major_locator(MaxNLocator(5))
 
-        if proj:
-            print('%s projection'%self.proj)
-            if 'sky' in proj:
-                dxp = spec.values.max(axis=0)
-                dyp = spec.values.max(axis=1)
-                xproj, = axex.plot(x,dxp)
-                yproj, = axey.plot(dyp, y)
-
-            elif 'sum' in proj:
-                dxp = spec.values.sum(axis=0)
-                dxp = dxp/(dxp.max()-dxp.min())
-                dyp = spec.values.sum(axis=1)
-                dyp = dyp/(dyp.max()-dyp.min())
-                xproj, = axex.plot(x,dxp)
-                yproj, = axey.plot(dyp, y)
-
-            else:
-                raise Exception('projection type must be sky or sum')
+        if proj=='sky' or xproj=='sky':
+            dxp = spec.values.max(axis=0)
+            xproj, = axex.plot(x,dxp)
+        elif proj=='sky' or yproj=='sky':
+            dyp = spec.values.max(axis=1)
+            yproj, = axey.plot(dyp, y)
+        elif proj=='sum' or 'sum'==xproj:
+            dxp = spec.values.sum(axis=0)
+            dxp = dxp/(dxp.max()-dxp.min())
+            xproj, = axex.plot(x,dxp)
+        elif 'sum'==proj or 'sum'==yproj:
+            dyp = spec.values.sum(axis=1)
+            dyp = dyp/(dyp.max()-dyp.min())
+            yproj, = axey.plot(dyp, y)
 
         # Layout
         pl.tight_layout()
@@ -343,6 +343,6 @@ if __name__ == '__main__':
     path = os.path.join(DATADIR, user,'nmr',name, str(expno))
     source = Bruker(path)
 
-    p_2 = Plot2d(source, figsize=(3, 2.7), proj='sky')
+    p_2 = Plot2d(source, figsize=(3, 2.7), xproj='sky')
 
 
