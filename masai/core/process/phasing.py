@@ -31,6 +31,8 @@ from masai.core.fit.optimize import optimize
 from masai.core.process.baseline import basecorr
 from masai.core.analysis.picking import picking
 
+from traitsui.message import message, auto_close_message
+
 __all__ = ["pk", ]
 
 DEBUG = False
@@ -285,12 +287,16 @@ def autophase(data, args):
         callback print function
         """
         global niter, err
+        return
+
         if f is not None:  # hopping
             pass
         if f is None:  # simplex
-            display.clear_output(wait=True)
-            print("Iteration: %d (chi2: %.5f)"%(niter, err), 'Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
-            sys.stdout.flush()
+            #display.clear_output(wait=True)
+
+            msg = ("Iteration: %d (chi2: %.5f)"%(niter, err)+' Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
+            auto_close_message(msg, title='Information',time=.001)
+
             niter += 1
 
     # end callback function ---------------------------------------------------

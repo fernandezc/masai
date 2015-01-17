@@ -95,6 +95,8 @@ class Process(HasTraits):
             type Process.<command_name> to get help on individual command
         """
         #todo: add new commands
+        #todo: solve help problems
+
         # object to apply the transform
         if args:
             # look in args
@@ -243,7 +245,7 @@ if __name__ == '__main__':
     expno = 31
     path2D = os.path.join(DATADIR, user,'nmr',name, str(expno))
 
-    #test_2D_process(path2D)
+    test_2D_process(path2D)
 
     name = 'STMAS'
     expno = 15

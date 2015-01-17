@@ -127,6 +127,7 @@ def ft(source, options='', axis=-1):
 
             p0 = 0.
             p1 = 0.
+
             # phase for shearing and shift in F1
             p = 0
             if shear is not None:

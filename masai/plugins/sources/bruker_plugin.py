@@ -35,9 +35,9 @@ filterwarnings("ignore")
 import pandas as pd
 import numpy as np
 import addict
-import nmrglue as ng
 from traits.api import *
-from masai.core.source import Source
+from masai.core.source import (Source, unit_conversion, read,
+                               read_pdata, bruker_dsp_table)
 from masai.plugins import IPlugin
 from masai.core.database import Isotopes
 
@@ -325,7 +325,7 @@ class Bruker(Source):
             npath, par_files = _get_par_files(path, procno, processed)  # we read all parameters file whatever the datatype
 
             if datatype in ['FID', 'SER']:
-                dic, data = ng.bruker.read(npath, acqus_files=par_files)
+                dic, data = read(npath, acqus_files=par_files)
                 # look the case whn the reshaping was not correct
                 # for example, this happen when the number
                 # of accumulated row was incomplete
@@ -346,7 +346,7 @@ class Bruker(Source):
                 ntd = dic['acqus']['TD']/2
                 data = data[...,:ntd] # necessary for agreement with bruker data and phase
             else:
-                dic, data = ng.bruker.read_pdata(npath, procs_files=par_files)
+                dic, data = read_pdata(npath, procs_files=par_files)
 
             # Clean dict for pdata keys
             for key in dic.keys():
@@ -579,10 +579,10 @@ class Bruker(Source):
         # set the spectral parameters
         if dic.units.lower() in ['ppm', 'hz', 'khz', 'mhz']:
             # if the spectra is transformed we use the SI parameter
-            uc = ng.fileiobase.unit_conversion(si, True, sw_h, bf1, -sr + o1)
+            uc = unit_conversion(si, True, sw_h, bf1, -sr + o1)
         else:
             fact = 2.0 if dic.FnMODE in [3, 4, 5, 6] else 1.0
-            uc = ng.fileiobase.unit_conversion(td, True, sw_h * fact, bf1, -sr + o1)
+            uc = unit_conversion(td, True, sw_h * fact, bf1, -sr + o1)
             # size, cplx, sw, obs, car
 
         scal = getattr(uc, '%s_scale' % dic.units.lower())
@@ -639,11 +639,11 @@ class Bruker(Source):
             if dspfvs >= 14:  # DSPFVS greater than 14 give no phase correction.
                 phase = 0.
             else:  # loop up the phase in the table
-                if dspfvs not in ng.bruker.bruker_dsp_table:
+                if dspfvs not in bruker_dsp_table:
                     raise ValueError("dspfvs not in lookup table")
-                if decim not in ng.bruker.bruker_dsp_table[dspfvs]:
+                if decim not in bruker_dsp_table[dspfvs]:
                     raise ValueError("decim not in lookup table")
-                phase = ng.bruker.bruker_dsp_table[dspfvs][decim]
+                phase = bruker_dsp_table[dspfvs][decim]
 
         # fft
         si = data.shape[-1]

@@ -31,7 +31,7 @@ _COPYRIGHT_ = u"2015, C.Fernandez"
 VERSIONFILE=os.path.join("masai","__init__.py")
 if not os.path.exists(VERSIONFILE):
     VERSIONFILE=os.path.join("__init__.py")
-    
+
 #===============================================================================
 # Standard library imports
 #===============================================================================
