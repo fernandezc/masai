@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 #
-# ===============================================================================
-# masai.core.__init__
-# ===============================================================================
+#===============================================================================
+# masai
+__version__ = "0.2.16"
+#===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.
 #       christian.fernandez@ensicaen.fr
@@ -12,4 +13,5 @@
 # the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
 # at the following URL "http://www.cecill.info".
 # See Licence.txt in the main masai source directory
-# ===============================================================================
+#===============================================================================
+

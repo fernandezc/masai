@@ -19,6 +19,8 @@ revision number.
 """
 from __future__ import print_function, division
 import string
+import re
+import os
 
 #===============================================================================
 # Constants
@@ -26,7 +28,10 @@ import string
 _TOOLKIT_SETUP = False
 _TITLE_ = u"MASAI"
 _COPYRIGHT_ = u"2015, C.Fernandez"
-
+VERSIONFILE=os.path.join("masai","__init__.py")
+if not os.path.exists(VERSIONFILE):
+    VERSIONFILE=os.path.join("__init__.py")
+    
 #===============================================================================
 # Standard library imports
 #===============================================================================
@@ -49,29 +54,60 @@ def get_git_version():
     the 'git describe' shell command.
     """
     status, output = commands.getstatusoutput('git describe')
-    if status == 0:
+    if status == 1:
         return output
+    else:
+        return None
+
+#===============================================================================
+# set_version
+#===============================================================================
+def set_version(version):
+
+    with open(VERSIONFILE, "rt") as f:
+        verstrline = f.read()
+        VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]$"
+        mo = re.search(VSRE, verstrline, re.M)
+        res = re.sub(VSRE, "__version__ = \"%s\""%version, verstrline, flags=re.M )
+        print(res)
+    with open(VERSIONFILE, "wt") as f:
+        f.write(res)
+
+#===============================================================================
+# get_version
+#===============================================================================
+def get_version():
+
+    verstr = get_git_version()
+    if verstr:
+        verstr = verstr.split('-')
+        verstr = "%s.%s"%tuple(verstr[:2])
+
+    if verstr:
+        set_version(verstr) # correct the file if needed
+    else:
+        # if verstr was none, read from file
+        with open(VERSIONFILE, "rt") as f:
+            verstrline = f.read()
+            VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]$"
+            mo = re.search(VSRE, verstrline, flags=re.M)
+            if mo:
+                verstr = mo.group(1)
+            else:
+                raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+
+    return verstr
 
 
 #===============================================================================
 # get_git_version
 #===============================================================================
 def get_fullversion_string():
-
-    x = get_git_version().split('-')
-    if not x:
-        return '0.1'
-
-    if len(x)==3:
-        _VERSION_, _REVISION_, _GITID_ = x
-    else:
-        _VERSION_, _REVISION_ = string.join(x,''), 0
-
-    version = "*"*40 + "\n"
-    version += "%s\nversion : %s.%s\nCopyright (c)%s" % (_TITLE_, _VERSION_,
-                                 _REVISION_, _COPYRIGHT_)
-    version += "\n" + "*"*40 + "\n"
-    return version
+    __version__ = get_version()
+    txt = "*"*40 + "\n"
+    txt += "%s, version : %s\nCopyright (c)%s" % (_TITLE_, __version__, _COPYRIGHT_)
+    txt += "\n" + "*"*40 + "\n"
+    return txt
 
 #===============================================================================
 # Main test

@@ -16,7 +16,7 @@
 
 from __future__ import print_function
 
-from version import get_fullversion_string
+from masai import __version__
 import numpy as np
 import glob      # Imported for handling command line arguments.
 import sys       # Imported for file directory listing capabilities.
@@ -133,8 +133,7 @@ class NMRMagics(Magics):
 
 def load_ipython_extension(ipython):
     ipython.register_magics(NMRMagics)
-    display(HTML("<pre>%s</pre>"%get_fullversion_string()))
-    display(HTML("<p>ipython nmr tools loaded</p>"))
+    display(HTML("<p>ipython_nmr_%s tools loaded</p>"%__version__))
 
 if __name__ == '__main__':
     import IPython
