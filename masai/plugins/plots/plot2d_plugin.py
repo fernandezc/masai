@@ -343,6 +343,6 @@ if __name__ == '__main__':
     path = os.path.join(DATADIR, user,'nmr',name, str(expno))
     source = Bruker(path)
 
-    p_2 = Plot2d(source, figsize=(3, 2.7), xproj='sky')
+    p_2 = Plot2d(source, figsize=(3, 2.7), yproj='sky')
 
 

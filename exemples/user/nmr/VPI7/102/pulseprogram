@@ -1,0 +1,306 @@
+# 1 "/home/nmr/prog/pp/cpSR26_sync.sc"
+; cpSR26_sync.sc (Avance II+, Topspin 2.1)
+
+; TITLE: 	2D DQ/SQ Correlation Experiment using Super-Cycled R Sequence
+; AUTHOR: Darren Brouwer (NRC-SIMS)
+; DATE:		20 Oct 2005
+; fixed for SR26-4-11 and for sampling every rotor period in t1
+;*********************************
+; Updated by Sylvian Cadars 07/01/2008
+;*********************************
+; Rotor Synchronized (in t1) version:
+; Set SWH(F1) to spin rate 
+; Set parmod = 2D, mc2 = STATES
+;*********************************
+
+; DESCRIPTION:
+;-------------------------------------------------
+; Pulse sequence for INADEQUATE-type DQ/SQ correlation experiment
+;   using super-cycled R symmetry sequence (SRN_n^nu)
+;   where SRN_n^nu = (RN_n^nu)_0 (RN_n^-nu)_0 (RN_n^-nu)_pi (RN_n^nu)_pi
+;   and the R element is (90)_0 (270)_180
+;   States acquisition in the indirect dimension
+;   With cross polarization from F2 to F1,
+;   presaturation on F2, shaped pulse on F2 for CP,
+;   composite pulse decoupling during acquisition and evolution
+; For AVANCE AQS spectrometer
+;************ IMPORTANT *************
+; Set parmod = 2D, mc2 = STATES
+;************************************
+# 30 "/home/nmr/prog/pp/cpSR26_sync.sc"
+; PARAMETERS
+;-------------------------------------------------
+;d1  : recycle delay
+;d20 : delay b/w presaturation pulses
+;l20 : number of presaturation pulses
+
+;p3  : 90 deg pulse (F2)
+;pl3  : 90 deg pulse power (F2)
+;p15 : cross-polarization contact time
+;pl1  : cross-polarization power (F1)
+;pl2  : cross-polarization power(F2)
+;spnam0 : variable amplitude CP (F2)
+
+;p1  : 90 deg pulse (F1)
+;pl0  : 90 deg pulse power (F1)
+# 46 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;cpdprg2 : acquisition decoupling sequence (F2)
+;pl12 : acquisition decoupling power (F2)
+;p31 : acquisition decoupling pulse length (F2)
+
+;cnst0 : small phase correction for R element
+;cnst31 : spinning frequency (in Hz)
+;l1 : N symmetry number (= 26)
+;l2 : _n symmetry number (= 4)
+;l3 : nu symmetry number (= 11)
+;p11 : length of R element 90 pulse
+;p12 : length of R element 270 pulse
+;pl11 : R sequence power - F1 (nuR*6.5)
+;pl14 : R sequence decoupling power (F2) (> 3*nu_1(X))
+;l11 : excitation: no. pairs of R elements (see d11)
+;l12 : reconversion: no. pairs of R elements (see d12)
+;d11 : length of excitation period
+;d12 : length of reconversion period
+;d10 : Z-filter delay
+;d31 : rotor period
+
+;d0 : first evolution delay (=1u)
+;cpdprg3 : evolution decoupling sequence (F2)
+;pl13 : evolution decoupling power (F2)
+;p30 : evolution decoupling pulse length (F2)
+# 72 "/home/nmr/prog/pp/cpSR26_sync.sc"
+; CALCULATIONS
+;-------------------------------------------------
+;set l12=l11 for symmetric incrementation of number of R cycles
+;$OWNER=scadars
+"l12=l11"
+
+;calculate length of one rotor period
+"d31 = 1.0s/cnst31"
+
+;calculate length of excitation and reconversion periods
+"d11 = 2*l11*d31*l2"
+"d12 = 2*l12*d31*l2"
+# 85 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;calculate the 90 and 270 pulse lengths for R element
+"p11 = 0.25*d31*l2/l1"
+"p12 = 0.75*d31*l2/l1"
+
+
+"acqt0=1u*cnst11"
+# 92 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;calculate the R element phase (phi=nu/N*pi)
+;"cnst1 = (180.0*l3)/l1 + cnst0"
+
+;calculate loop counters for super-cycle loops
+define loopcounter halfN
+"halfN = l1/2"
+define loopcounter odd1
+"odd1 = l11 % 2"
+define loopcounter odd2
+"odd2 = (l11+l12) % 2"
+define loopcounter half1
+"half1 = (l11-(l11%2))/2"
+define loopcounter half2
+"half2 = (l12-(l12%2))/2"
+
+;define and calculate loop counter for States
+define loopcounter count
+"count = td1/2"
+# 111 "/home/nmr/prog/pp/cpSR26_sync.sc"
+"in0=inf1"	; Statment required with TOPSPIN 2.1
+
+; PULSE SEQUENCE
+;-------------------------------------------------
+# 1 "mc_line 115 file /home/nmr/prog/pp/cpSR26_sync.sc dc-measurement inserted automatically"
+
+    dccorr
+# 115 "/home/nmr/prog/pp/cpSR26_sync.sc"
+1 ze
+  d11
+  d12
+  d31
+
+;PRESATURATION (on F2)
+;2 d20
+;  (p3 ph20 pl3):f2
+;  lo to 2 times l20
+# 125 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;PHASE CALCULATION (for R pulses)
+ ;Calculate phases of excitation pulses
+;  "cnst11 = ph11 + cnst1 +   0"			;R   90 exc
+;  "cnst12 = ph11 + cnst1 + 180"			;R  270 exc
+;  "cnst13 = ph11 - cnst1 +   0"			;R'  90 exc
+;  "cnst14 = ph11 - cnst1 + 180"			;R' 270 exc
+ ;Calculate additional phase shift of reconversion = 2 pi (m/mu) (t1/tr)
+;  "cnst20 = 360*(-1.0/2.0)*(d0/d31)"		
+ ;Calculate phases of reconversion pulses
+;  "cnst21 = ph12 + cnst1 +   0 + cnst20"	;R   90 rec
+;  "cnst22 = ph12 + cnst1 + 180 + cnst20"	;R  270 rec
+;  "cnst23 = ph12 - cnst1 +   0 + cnst20"	;R'  90 rec
+;  "cnst24 = ph12 - cnst1 + 180 + cnst20"	;R' 270 rec
+
+;RECYCLE DELAY
+2 d1 do:f2
+
+;CROSS POLARIZATION (F2 to F1)
+  (p3 ph3 pl3):f2
+  (p15 ph1 pl1):f1 (p15:spf0 ph2 pl2):f2
+# 146 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;FLIP-BACK PULSE (on F1)  
+  (p1 ph0 pl0):f1
+
+;Z-FILTER (no decoupling)
+  d10 do:f2
+
+;START DECOUPLING (on F2)
+  0.1u pl14:f2
+  0.1u cw:f2
+# 156 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;DQ EXCITATION (on F1) - super-cycled R sequence
+3 (p11 pl11 ph11):f1
+  (p12 pl11 ph12):f1
+  (p11 pl11 ph13):f1
+  (p12 pl11 ph14):f1
+  lo to 3 times halfN
+4 (p11 pl11 ph13):f1
+  (p12 pl11 ph14):f1
+  (p11 pl11 ph11):f1
+  (p12 pl11 ph12):f1
+  lo to 4 times halfN
+5 (p11 pl11 ph14):f1
+  (p12 pl11 ph13):f1
+  (p11 pl11 ph12):f1
+  (p12 pl11 ph11):f1
+  lo to 5 times halfN
+6 (p11 pl11 ph12):f1
+  (p12 pl11 ph11):f1
+  (p11 pl11 ph14):f1
+  (p12 pl11 ph13):f1
+  lo to 6 times halfN
+  lo to 3 times half1		;(3-6) complete super-cycle l11/2 times
+7 (p11 pl11 ph11):f1
+  (p12 pl11 ph12):f1
+  (p11 pl11 ph13):f1
+  (p12 pl11 ph14):f1
+  lo to 7 times halfN
+8 (p11 pl11 ph13):f1
+  (p12 pl11 ph14):f1
+  (p11 pl11 ph11):f1
+  (p12 pl11 ph12):f1
+  lo to 8 times halfN
+  lo to 7 times odd1		;(7-8) extra half super-cycle if l11 is odd
+
+;DQ EVOLUTION (with composite pulse decoupling)
+;  d0 cpds3:f2
+  0.1u pl12:f2
+  d0 cpds2:f2
+
+;START DECOUPLING (on F2)
+  0.1u do:f2
+  0.1u pl14:f2
+  0.1u cw:f2
+# 200 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;DQ RECONVERSION (on F1) - super-cycled R sequence
+9  (p11 pl11 ph24):f1
+   (p12 pl11 ph23):f1
+   (p11 pl11 ph22):f1
+   (p12 pl11 ph21):f1
+   lo to 9 times halfN
+10 (p11 pl11 ph22):f1
+   (p12 pl11 ph21):f1
+   (p11 pl11 ph24):f1
+   (p12 pl11 ph23):f1
+   lo to 10 times halfN
+   lo to 9 times odd1		;(9-10) extra half super-cycle if l11 is odd
+11 (p11 pl11 ph21):f1
+   (p12 pl11 ph22):f1
+   (p11 pl11 ph23):f1
+   (p12 pl11 ph24):f1
+   lo to 11 times halfN
+12 (p11 pl11 ph23):f1
+   (p12 pl11 ph24):f1
+   (p11 pl11 ph21):f1
+   (p12 pl11 ph22):f1
+   lo to 12 times halfN
+13 (p11 pl11 ph24):f1
+   (p12 pl11 ph23):f1
+   (p11 pl11 ph22):f1
+   (p12 pl11 ph21):f1
+   lo to 13 times halfN
+14 (p11 pl11 ph22):f1
+   (p12 pl11 ph21):f1
+   (p11 pl11 ph24):f1
+   (p12 pl11 ph23):f1
+   lo to 14 times halfN
+   lo to 11 times half2		;(11-14) complete super-cycle l12/2 times
+15 (p11 pl11 ph21):f1
+   (p12 pl11 ph22):f1
+   (p11 pl11 ph23):f1
+   (p12 pl11 ph24):f1
+   lo to 15 times halfN
+16 (p11 pl11 ph23):f1
+   (p12 pl11 ph24):f1
+   (p11 pl11 ph21):f1
+   (p12 pl11 ph22):f1
+   lo to 16 times halfN
+   lo to 15 times odd2		;(15-16) extra half super-cycle if l11+l12 is odd
+
+;Z-FILTER (no decoupling)
+  d10 do:f2
+  0.1u pl12:f2
+
+;OBSERVE PULSE (on F1)
+  (p1 pl0 ph10):f1
+# 252 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;ACQUISITION (with composite-pulse decoupling)
+  0.1u cpds2:f2
+  go=2 ph31
+  1m do:f2
+
+;INCREMENT ROW & DQ EXCITATION PHASE
+  1m wr #0 if #0 zd 
+  0.1m ip11
+  0.1m ip12
+  0.1m ip13
+  0.1m ip14
+  lo to 2 times 2
+
+;INCREMENT EVOLUTION & RESET EXCITATION PHASE
+  0.1m rp11 ;reset phases
+  0.1m rp12 
+  0.1m rp13 
+  0.1m rp14 
+  0.1m id0  ;increment delay
+# 272 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;***********************************************
+;*** Uncomment the following lines if t1 ******
+;*** sampled with rotor sync						*******
+;***********************************************
+;  0.1m dp21 ;decrement by 90 deg for t1 sampling at half rotor periods
+;  0.1m dp22 ;  replaces calculation for cnst20 above
+;  0.1m dp23 ;  remove if t1 sampled with rotor sync
+;  0.1m dp24
+;***********************************************
+
+  lo to 2 times count
+
+exit
+# 286 "/home/nmr/prog/pp/cpSR26_sync.sc"
+;PHASE LISTS
+ph20 =  0
+ph0  =  3 
+ph1  =  0 
+ph2  =  0
+ph3  =  1 
+ph10 =  0 1 2 3
+ph11 =  (float, 45.0) 76.15 
+ph12 =  (float, 45.0) 256.15
+ph13 =  (float, 45.0) 283.85
+ph14 =  (float, 45.0) 103.85
+ph21 =  (float, 90.0)  76.15 166.15 256.15 346.15
+ph22 =  (float, 90.0) 256.15 346.15  76.15 166.15
+ph23 =  (float, 90.0) 283.85  13.85 103.85 193.85
+ph24 =  (float, 90.0) 103.85 193.85 283.85  13.85 
+ph31 =  0 3 2 1
+
