@@ -236,14 +236,14 @@ class Plot2d(HasTraits):
         if proj=='sky' or xproj=='sky':
             dxp = spec.values.max(axis=0)
             xproj, = axex.plot(x,dxp)
-        elif proj=='sky' or yproj=='sky':
+        if proj=='sky' or yproj=='sky':
             dyp = spec.values.max(axis=1)
             yproj, = axey.plot(dyp, y)
-        elif proj=='sum' or 'sum'==xproj:
+        if proj=='sum' or 'sum'==xproj:
             dxp = spec.values.sum(axis=0)
             dxp = dxp/(dxp.max()-dxp.min())
             xproj, = axex.plot(x,dxp)
-        elif 'sum'==proj or 'sum'==yproj:
+        if 'sum'==proj or 'sum'==yproj:
             dyp = spec.values.sum(axis=1)
             dyp = dyp/(dyp.max()-dyp.min())
             yproj, = axey.plot(dyp, y)
