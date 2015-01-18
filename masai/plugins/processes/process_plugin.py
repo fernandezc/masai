@@ -157,6 +157,12 @@ class Process(HasTraits):
             elif 'ab' in command:
                 ab(source, options=options, axis=axis)
 
+            elif 'pc' in command:
+                pc(source, options=options, axis=axis)
+
+            elif 'mc' in command:
+                mc(source, options=options, axis=axis)
+
             elif 'lp' in command:
                 lp(source, options=options, axis=axis)
 

@@ -25,7 +25,68 @@ from masai.core.process import proc_base
 from masai.core.utils.misc import position2index
 from masai.core.process.mqstmas import k_ratio
 
-__all__ = ["zf", "cs", "ls", "rs", "em" ]
+__all__ = ["zf", "cs", "ls", "rs", "em", 'mc', 'pc' ]
+
+#
+# pc : power calculation
+#
+def pc(source=None, options='', axis=-1):
+    """
+    Power calculation
+
+    Parameters
+    ----------
+    source: source instance
+        The source to be zero filled
+    axis: optional
+
+    """
+
+    # options evaluation
+    parser = argparse.ArgumentParser(description='PC processing.',
+                                     usage="""
+    pc npc [-h]
+    """,)
+    # positional arguments
+    parser.add_argument('npc', default=2,  type=int, help='power (default square)')
+    args  = parser.parse_args(options.split())
+
+    if axis == -1:
+        par = source.par
+    else:
+        par = source.par2
+
+    if not par.isfreq:
+        print('This source is not yet transformed: pc skipped!')
+        return
+
+    # data on which we apply pc
+
+    datv = source.data.values
+    if axis == 0:
+        # transpose temporarily the data for indirect dimension ft
+        datv = datv.T
+
+    npc = args.npc
+    datv = np.abs(datv)**npc
+
+    # un-transpose the data if needed
+    if axis == 0:
+        datv = datv.T
+
+    # change the current data with the transformed data
+    source.data = datv  # scale will be calculated here
+
+    if npc!=1:
+        source.history.append('Power spectrum calculation')
+    else:
+        source.history.append('Magnitude spectrum calculation')
+
+#
+# mc : magniyude calculation
+#
+def mc(source=None, options='', axis=-1):
+    pc(source, options='1', axis=axis)
 
 #
 # zf : zero-filling

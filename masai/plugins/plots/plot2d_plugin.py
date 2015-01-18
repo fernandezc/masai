@@ -270,7 +270,7 @@ class Plot2d(HasTraits):
                 getattr(axe, com)(*args, **kargs)
 
         if not kargs.get('hold', False):
-            pl.show()
+            self.show()
 
         # should be after all plot commands
         savename = kargs.get('savename', None)
@@ -279,6 +279,9 @@ class Plot2d(HasTraits):
             self.fig.savefig(savename)
 
         return self
+
+    def show(self):
+        pl.show()
 
     def savefig(self, savename=None):
         if savename is None:
