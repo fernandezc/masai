@@ -48,7 +48,7 @@ def pc(source=None, options='', axis=-1):
     pc npc [-h]
     """,)
     # positional arguments
-    parser.add_argument('npc', default=2,  type=int, help='power (default square)')
+    parser.add_argument('npc', default=2,  nargs='?', type=int, help='power (default square)')
     args  = parser.parse_args(options.split())
 
     if axis == -1:

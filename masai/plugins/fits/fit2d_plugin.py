@@ -503,9 +503,13 @@ if __name__ == '__main__':
 
         p_2.show()
 
+        row = source.row(-176.6, width=.2)
+        p_1 = Plot1d(row)
+
     spec2Q()
 
     def fitting():
+
         script = """
         #-----------------------------------------------------------
         # syntax for parameters definition:
@@ -566,5 +570,9 @@ if __name__ == '__main__':
             > width: gwidth
 
         """
+
+        connectivity = []
+
+
 
 

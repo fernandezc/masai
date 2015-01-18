@@ -13,47 +13,52 @@
 # See Licence.txt in the main masai source directory
 #===============================================================================
 import pytest
+import os
 
 import pylab as pl
-import os
 import numpy as np
 
 import warnings
-
 warnings.filterwarnings("ignore")
 
 from masai.plugins.list import Bruker
 from masai.plugins.list import Plot1d
 from masai.plugins.list import Plot2d
-from masai.plugins.list import Process1d
+from masai.plugins.list import Process
+from masai.plugins.list import Fit1d
+from masai.plugins.list import Multiplex
+from masai.plugins.list import Stackplot
 
 Bruker = Bruker()
 Plot1d = Plot1d()
 Plot2d = Plot2d()
-Process1d = Process1d()
+Process = Process()
+Fit1d = Fit1d()
+Multiplex = Multiplex()
+Stackplot = Stackplot()
 
-# global
-DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
+# file exemple directory
+print(__file__)
+DATADIR = os.path.expanduser(os.path.join('..' ,'..' ,'exemples'))
 
 FULLTEST = False
 TEST2D = False
 PLOT = True
 
-
 @pytest.fixture(scope='function')
-def fd_fid(request):
+def source_fid(request):
     """
     fixture returning a fid source object
     """
-    user = 'christian'
-    name = 'example1'
+    user = 'user'
+    name = 'SPEC1D'
     expno = 10
-    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd1 = Bruker(path)
-    return fd1
+    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
+    source = Bruker(path)
+    return source
 
 @pytest.fixture(scope='function')
-def fd_ser(request):
+def source_ser(request):
     """
     fixture returning a SER source object
     """
@@ -61,46 +66,47 @@ def fd_ser(request):
     name = 'RbNO3'
     expno = 15
     path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd2= Bruker(path)
-    return fd2
+    source = Bruker(path)
+    return source
+
+#@pytest.mark.skipif(not FULLTEST, reason="bypassed test")
+def test_open_fid(source_fid):
+    source = source_fid
+    assert (source.datatype == "FID")
+    assert (source.par.TD == 3120)
 
 @pytest.mark.skipif(not FULLTEST, reason="bypassed test")
-def test_open_fid(fd_fid):
-    fd = fd_fid
-    assert (fd.datatype == "FID")
-    assert (fd.par.TD == 3120)
-
-@pytest.mark.skipif(not FULLTEST, reason="bypassed test")
-def test_open_ser(fd_ser):
-    fd = fd_ser
+def test_open_ser(source_ser):
+    fd = source_ser
     assert (fd.datatype == "SER")
     assert (fd.par.TD == 872)
     assert (fd.par2.TD == 128)
 
 
-def test_process1d(fd_fid):
-    fd = fd_fid
-    Process1d(fd, transform="em 100; zf 0; ft")
-    Process1d(fd, transform="apk --usephc1 --entropy=2")
+def test_process1d(source_fid):
+    fd = source_fid
+    Process(fd, transform="em 100; zf 0; ft")
+    Process(fd, transform="pk --fit_phc1")
     Plot1d(fd)
 
 ### PLOTS #####
 
 @pytest.mark.skipif(not FULLTEST or not PLOT, reason="bypassed test")
-def test_plot1d(fd_fid):
-    fd = fd_fid
+def test_plot1d(source_fid):
+    fd = source_fid
     # plot a Source
     ax = Plot1d(fd, imag=True, xlim=(0, 4), ylim=(-1, 1), c='orange', hold=True)  # Hold suppress immediate output
 
 @pytest.mark.skipif(not FULLTEST or not PLOT, reason="bypassed test")
-def test_plot1d_dataframe(fd_fid):
-    fd = fd_fid
+def test_plot1d_dataframe(source_fid):
+    fd = source_fid
     # plot a Dataframe
     Plot1d(fd.data, hold=True)
 
 @pytest.mark.skipif(not FULLTEST or not PLOT or not TEST2D, reason="bypassed test")
-def test_plot2d(fd_ser):
-    fd = fd_ser
+def test_plot2d(source_ser):
+    fd = source_ser
     # plot a 2D Source
     ax = Plot2d(fd, hold=True)  # Hold suppress immediate output
+
 
