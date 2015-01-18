@@ -3,7 +3,7 @@
 #===============================================================================
 # masai.core.fit.models
 #===============================================================================
-# Copyright (C) 2012-2013 Christian Fernandez
+# Copyright (C) 2012-2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.  
 #       christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law 
@@ -28,7 +28,7 @@ import numpy as np
 from numba import jit
 
 #from masai.processing.processbase import _ft
-from .pulsar.pypulsar import (parameters, compute, reset)
+from pulsar.pypulsar import (parameters, compute, reset)
 
 
 basic_1D_baselines = [  # baseline models
@@ -44,7 +44,8 @@ basic_1D_models = [  # list of sequence independant models
                     'lorentzianmodel',
                    ]
 
-basic_2D_models = [  # list of sequence independant models
+basic_2D_models = [ # list of sequence independant models
+                    'gaussian2dmodel',
                     'poynomialseriesofvoigtmodel',
                    ]
 
@@ -138,30 +139,6 @@ class polynomialbaseline(object):
         c.extend(c_)
         return ampl * np.polyval(np.array(tuple(c))[::-1], x - x[x.size / 2])
 
-#===============================================================================
-# #===============================================================================
-# # Gaussian2DModel
-# #===============================================================================
-# class gaussian2dmodel(object):
-#    """
-#    Two dimensional Gaussian model (*not* normalized - peak value is 1).
-#
-#    .. math::
-#        A e^{\\frac{-(x-\\iso_x)^2}{2 \\gb_x^2}} e^{\\frac{-(y-\\iso_y)^2}{2 \\gb_y^2}}
-#
-#    """
-#    args = ['amp','gbx','gby','posx','posy']
-#    def f(self, xy, amp, gbx, gby, posx, posy, **kargs):
-#        gbx = float(gbx)
-#        gby = float(gby)
-#        x,y = xy
-#        xo = x-posx
-#        xdenom = 2*gbx*gbx
-#        yo = y-posy
-#        ydenom = 2*gby*gby
-#        return amp*np.exp(-xo*xo/xdenom-yo*yo/ydenom)
-#===============================================================================
-
 
 #===============================================================================
 # GaussianModel
@@ -240,12 +217,12 @@ class voigtmodel(object):
         gb = ratio * width / 2.3548
         lb = (1. - ratio) * width / 2.
         if gb < 1.e-16:
-            return lorentzianmodel().f(x, ampl, lb * 2., pos, **kargs)
+            w = lorentzianmodel().f(x, 1., lb * 2., pos, **kargs)
         else:
             w = wofz(((x - pos) + 1.0j * lb) * 2 ** -0.5 / gb)
             w = w.real * (2.*np.pi) ** -0.5 / gb
             w = w * (x[1] - x[0])
-            return ampl * w
+        return ampl * w
 
 
 #===============================================================================
@@ -645,6 +622,74 @@ class poynomialseriesofvoigtmodel(object):
         ret = (ret.T * vm).T
         return ret
 
+#===============================================================================
+# 2DGaussianModel
+#===============================================================================
+class gaussian2dmodel(object):
+    """
+    Two dimensional Gaussian model (*not* normalized - peak value is 1).
+    """
+    args = ['ampl','width','width1','pos','pos1', 'theta']
+    def f(self, x, y, ampl, width, width1, pos, pos1, theta, **kargs):
+        sigma_x = width / 2.3548
+        sigma_y = width1 / 2.3548
+        #TODO: check the constistancy with the full hm
+        x_, y_ = np.meshgrid(x, y)
+        xo = float(pos)
+        yo = float(pos1)
+        a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
+        b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
+        c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
+        w = np.exp( - (a*((x_-xo)**2) + 2*b*(x_-xo)*(y_-yo) + c*((y_-yo)**2)))
+        w = w * (x[1] - x[0])
+        return ampl * w
+
+#===============================================================================
+# Voigt2DModel
+#===============================================================================
+class voigt2Dmodel(object):
+    #TODO: this is not a correct lineshape.... must be modified before using
+    """
+    A Voigt model constructed as the convolution of a :class:`GaussianModel` and
+    a :class:`LorentzianModel` -- commonly used for spectral line fitting.
+
+    """
+    args = ['ampl', 'width', 'width1', 'ratio', 'pos', 'pos1']
+    script = """MODEL: line%(id)d\nshape: voigt2Qmodel
+    $ ampl: %(ampl).3f, 0.01, None
+    $ width: %(width).3f, 0.01, None
+    $ width1: %(width1).3f, 0.01, None
+    $ pos: %(pos).3f, %(poslb).3f, %(poshb).3f
+    $ pos1: %(pos1).3f, %(pos1lb).3f, %(pos1hb).3f
+    $ ratio: 0.1, 0.0, 1.0
+    """
+
+    def f(self, x, y, ampl, width, width1, ratio, pos, pos1,  **kargs):
+        """
+        ['ampl', 'width', 'width1', 'ratio', 'pos', 'pos1']
+        """
+        from scipy.special import wofz
+        gb = ratio * width / 2.3548
+        lb = (1. - ratio) * width / 2.
+        gb1 = ratio * width1 / 2.3548
+        incx = (x[1] - x[0])
+        incy = (y[1] - y[0])
+        lb1 = (1. - ratio) * width1 / 2.
+        x, y = np.meshgrid(x, y)
+
+        if gb < 1.e-16:
+            w = lorentzianmodel().f(x, 1., lb * 2., pos, **kargs)
+            w1 = lorentzianmodel().f(y, 1., lb1 * 2., pos1, **kargs)
+        else:
+            w = wofz(((x - pos) + 1.0j * lb) * 2 ** -0.5 / gb)
+            w = w.real * (2.*np.pi) ** -0.5 / gb
+            w = w * incx
+            w1 = wofz(((y - pos1) + 1.0j * lb1) * 2 ** -0.5 / gb1)
+            w1 = w1.real * (2.*np.pi) ** -0.5 / gb1
+            w1 = w1 * incy
+        return ampl * w * w1
+
+
 #################
 ###           ###
 ###  GENERAL  ###
@@ -734,4 +779,9 @@ def read_raw_bin(filename):
 
 
 if __name__ == '__main__':
-    pass
+    import pylab as pl
+    x = np.linspace(0, 10., 100.)
+    y = np.linspace(0, 10., 100.)
+    s = gaussian2dmodel().f(x, y, 1., 1., 2., 5.,  5., 45.)
+    pl.contour(s)
+    pl.show()
