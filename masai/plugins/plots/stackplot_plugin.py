@@ -330,10 +330,13 @@ class Stackplot(HasTraits):
             self.savefig(savename)
 
         if not kargs.get('hold', False):
-            pl.show()
+            self.show()
 
         return axe
 
+    def show(self):
+        pl.show()
+        
     def savefig(self, savename=None):
         if savename is None:
             savename = self.savename
