@@ -32,3 +32,4 @@ lcslib/cfpylib
 Cython Magics.ipynb
 *.pyx
 fft.ipynb
+*-test.ipynb
