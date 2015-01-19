@@ -16,7 +16,7 @@ __all__ = ["optimize",]
 #  and described in detail
 #  in the section 1.3.1 of the MINUIT User's Guide.
 
-def optimize(func, fp0, args=(), method="SIMPLEX", maxfun=5000, maxiter=5000,
+def optimize(func, fp0, args=(), method="SIMPLEX", maxfun=5000, maxiter=1000,
              ftol=1e-8, xtol=1e-8, callback=None):
     """
     Optimization procedure

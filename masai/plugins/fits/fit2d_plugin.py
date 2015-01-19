@@ -121,7 +121,7 @@ shape: voigtmodel
     #===========================================================================
     # run
     #===========================================================================
-    def run(self):
+    def run(self, maxiter=2000, maxfun=5000, every=50):
         """
         Main fitting procedure
 
@@ -135,37 +135,25 @@ shape: voigtmodel
         """
         logger.info('Entering fitting procedure')
 
-        global niter, chi2
+        global niter, chi2, everyiter
+        everyiter = every
         niter = 0
 
         # internally defined function chi2
-        def chi2(params):
+        def chi2(params, dat):
             """
             Return sum((y - x)**2)
 
             """
             global chi2
 
-            # data
-            mode = '2D'
-            dat = self.source.values.real
-            if 'X_SKY_PROJ' in self.mode:
-                mode = '1D'
-                dat = dat.values.real.max(axis=0)
-            if 'X_SUM_PROJ' in self.mode:
-                mode = '1D'
-                dat = dat.values.real.sum(axis=0)
-
             # model spectrum
             modeldata = self._get_modeldata()
 
-            # baseline is already summed with modeldata[-1]
-            if mode=='1D':
-                diff = dat - modeldata.T['modelsum'] # .take(fitzone))
-            else:
-                diff = dat - modeldata['modelsum']
+            diff = dat - modeldata
 
-            chi2 = np.sum(diff.iloc[0]**2)
+            chi2 = diff**2
+            chi2 = chi2.values.sum()
             return chi2
 
         # end chi2 function ---------------------------------------------------
@@ -176,15 +164,16 @@ shape: voigtmodel
             """
             callback print function
             """
-            global niter, chi2
+            global niter, chi2, everyiter
+            niter += 1
+            if niter%everyiter != 0:
+                return
             if f is not None:  # hopping
-                pass
+                return
             if f is None:  # simplex
                 display.clear_output(wait=True)
                 print("Iteration: %d (chi2: %.5f)"%(niter, chi2))
                 sys.stdout.flush()
-
-                niter += 1
 
         # end callback function ---------------------------------------------------
 
@@ -194,9 +183,11 @@ shape: voigtmodel
 
         optmode = 'simplex'
         fp, fopt = optimize(chi2, fp,
-                           args=(),
-                           method=optmode,
-                           callback=callback)
+                            args=(self.source.real,),
+                            maxfun=maxfun,
+                            maxiter=maxiter,
+                            method=optmode,
+                            callback=callback)
 
         self.parameterscript.script = str(fp)
         self.source.modeldata = self._get_modeldata()
@@ -246,7 +237,7 @@ shape: voigtmodel
         Process a 1D source
 
         """
-        logger.debug(" Fit1d Debug mode")
+        logger.debug(" Fit2d Debug mode")
 
         if args:
             # look in args
@@ -262,7 +253,7 @@ shape: voigtmodel
         #self.sequence = PulseSequence(type=sequence)
 
         self.mode = kargs.get('mode','xproj')
-        self.kind = kargs.get('kind','DQ')
+        self.kind = kargs.get('kind',None)
 
         self.source.modeldata = self._get_modeldata()
 
@@ -284,84 +275,32 @@ shape: voigtmodel
 
         #calculate automatic baseline and amplitude
         data = self.source.real
-        x =data.columns.values
-        xi = np.arange(x.size)
-        modeldata = np.zeros((nbmodels + 2, x.size)).astype(float)
+
+        x = data.columns.values
+        y = data.index.values
+
+        modeldata = np.zeros((y.size, x.size)).astype(float)
 
         if nbmodels < 1:
-            names = ['baseline', 'modelsum']
-            return pd.DataFrame(modeldata, index=names, columns=x)
+            return pd.DataFrame(modeldata, index=y, columns=x)
 
         # Calculates model data
-        # The first row (i=0) of the modeldata array is the baseline,
-        # so we fill the array starting at row 1
-        row = 0
-        names = ['baseline', ]
-
         for model in models:
-            calc = getmodel(x, modelname=model, par=parameters,
-                            fd=self.source, sequence=self.sequence)
-            if not model.startswith('baseline'):
-                row += 1
-                modeldata[row] = calc
-                names.append(model)
-            else:
-                modeldata[0] += calc
-
+            calc = getmodel(x, y, modelname=model, par=parameters,
+                            fd=self.source, sequence=self.sequence,
+                            kind = self.kind)
+            modeldata += calc
 
         # call the userfunction
         # (in case something is executed in it - nothing by default)
         # if default_userscript:
         #     modeldata = self.userfunction(modeldata, self.fp)
 
-        # make the sum
-        modeldata[row + 1] = modeldata.sum(axis=0)
-        names.append('modelsum')
-
-        #remove unused row
-        modeldata = modeldata[:row + 2]
-
-        # take into account fitzone
-        #fitzone = findregion(x, self.source.zone)
-
-        A, a, b = ampandbas(xi, data.values[-1], modeldata[-1])  #(fitzone-fitzone[0], data.take(fitzone),
-                             #modeldata[-1].take(fitzone))
-
-        modeldata = A*modeldata
-        baseline = a*xi + b   #a*(xi-fitzone[0]) + b
-
-        #update the modeldata
-        modeldata[0] += baseline
-        modeldata[-1] += baseline
-
-        #self._save_modeldata = modeldata
-        #self._save_names = names
-        self.A = A
-
-        # calculate intensities
-        at = 0.
-        for model in models:
-            if model.startswith('baseline'):
-                continue
-            at += parameters["ampl_%s"%model]
-
-        self.intensities = 'Intensities:\n       \tppm   \tRelative (%)     \tAbsolute\n'
-        for model in models:
-            if model.startswith('baseline'):
-                continue
-            self.intensities += \
-                '%(model)7s:\t%(pos).2f\t%(ampl)g \t%(conc)g\n'%{
-                                  'model':model,
-                                  'pos':parameters["pos_%s"%model],
-                                  'ampl':parameters["ampl_%s"%model]*100./at,
-                         'conc':parameters["ampl_%s"%model]*self.A}
-
-        # return dataframes
-        return pd.DataFrame(modeldata, index=names, columns=x)
+        return pd.DataFrame(modeldata, index=y, columns=x)
 
 # global functions
 def parsing(expr, param):
-    keyword = r"\b([a-z]+)\b" #match a whole word
+    keyword = r"\b([a-z,0-9]+)\b" #match a whole word
     pat = re.compile(keyword)
     mo = pat.findall(expr)
     for kw in mo:
@@ -397,6 +336,8 @@ def prepare(param):
             new_param.fixed[key] = True
             new_param.reference[key] = True     #restore it for the next call
 
+    #for k, v in new_param.iteritems():
+    #    print(k, v)
     return new_param
 
 #===============================================================================
@@ -501,78 +442,78 @@ if __name__ == '__main__':
         # plot the diagonal
         p_2.axe.plot(source.data.columns, source.data.columns*2.0, lw=.1, ls='--')
 
+        #row = source.row(-176.6, width=.2)
+        #p_1 = Plot1d(row)
+
+        common = "COMMON:"
+        common +="\n * gwidth: 0.25, 0.21, 0.3"
+        common +="\n * gwidth1: 1.5, 1.0, 2.0"
+
+        spc={
+            'A': -82.,
+            'B': -92.6,
+            'C': -92.7,
+            'D': -93.9,
+            'E': -94.2,
+            'F': -94.9,
+            'G': -95.0,
+            }
+
+        # make a dictionary sorted by key
+        from collections import OrderedDict
+        species = OrderedDict(sorted(spc.items(), key=lambda t: t[0]))
+        print(species)
+        connectivity = np.ones((7,7))  #*source.data.values.max()
+
+        # some correlation are known to be missing
+        connectivity[0,0] = 0.0                     # A-A missing
+        connectivity[0,2] = connectivity[2,0] = 0.0  # A-C
+        connectivity[0,3] = connectivity[3,0] = 0.0  # A-D
+        connectivity[0,4] = connectivity[4,0] = 0.0  # A-E
+        connectivity[0,5] = connectivity[5,0] = 0.0  # A-F
+
+        connectivity = connectivity*source.data.values.max()
+
+        def make_script(common, species, connectivity):
+            script = common
+            for i, key in enumerate(species.keys()):
+                # additional common parameters
+                v = species[key]
+                dv = abs(v)*.01
+                script += "\n $ gpos%s: %.3f, %.3f, %.3f"%(key, v, v-dv, v+dv)
+            for i, key in enumerate(species.keys()):
+                for j, key1 in enumerate(species.keys()):
+                    # as it is normally symmetric we can try to reduce the number of varaible
+                    if j<i:
+                        continue
+                    script += "\n\n MODEL: LINE_"+key+key1
+                    script += "\n shape: gaussian2dmodel"
+                    #if i==0:
+                    #    script += "\n * ampl:  1., 0.0, none"
+                    #else:
+                    fi = '$' if connectivity[i,j]>0.001 else '*'
+                    script += "\n %s ampl:  %.3f, 0.0, none"%(fi, connectivity[i,j])
+                    script += "\n > pos: gpos%s "%key
+                    script += "\n > pos1: (gpos%s) + (gpos%s)"%(key, key1)
+                    script += "\n > width: gwidth"
+                    script += "\n > width1: gwidth1"
+                    script += "\n * theta: 0.0"
+            return script.lower()
+
+
+        script = make_script(common, species, connectivity)
+        print(script)
+        f = Fit2d(source,  script, kind='SQ-DQ')
+
+        f.run(maxiter=20000, maxfun=100000, every=100)
+        x = source.data.columns
+        y = source.data.index
+        p_2.axe.contour(x, y, source.modeldata, 10)
+
         p_2.show()
 
-        row = source.row(-176.6, width=.2)
-        p_1 = Plot1d(row)
+        print(f.script)
 
     spec2Q()
-
-    def fitting():
-
-        script = """
-        #-----------------------------------------------------------
-        # syntax for parameters definition:
-        # name: value, low_bound,  high_bound
-        #  * for fixed parameters
-        #  $ for variable parameters
-        #  > for reference to a parameter in the COMMON block
-        #    (> is forbidden in the COMMON block)
-        # common block parameters should not have a _ in their names
-        #-----------------------------------------------------------
-        #
-
-        COMMON:
-        # common parameters ex.
-          $ gwidth: 0.2, 0.05, 0.4
-          $ gratio: 0.5, 0.0, 1.0
-
-        MODEL: LINE_A
-        shape: voigtmodel
-            * ampl:  1, 0.0, none
-            $ pos:   -82.0, -82.2, -81.8
-            > ratio: gratio
-            > width: gwidth
-
-        MODEL: LINE_B
-        shape: voigtmodel
-            $ ampl:  1, 0.5, none
-            $ pos:   -92.5, -92.7, -92.3
-            > ratio: gratio
-            > width: gwidth
-
-        MODEL: LINE_C
-        shape: voigtmodel
-            $ ampl:  1, 0.5, none
-            $ pos:   -92.7, -92.9, -92.5
-            > ratio: gratio
-            > width: gwidth
-
-        MODEL: LINE_D
-        shape: voigtmodel
-            $ ampl:  1, 0.5, none
-            $ pos:   -93.9, -94.1, -93.7
-            > ratio: gratio
-            > width: gwidth
-
-        MODEL: LINE_E
-        shape: voigtmodel
-            $ ampl:  1, 0.5, none
-            $ pos:   -94.3, -94.5, -94.1
-            > ratio: gratio
-            > width: gwidth
-
-        MODEL: LINE_F
-        shape: voigtmodel
-            $ ampl:  1, 0.5, none
-            $ pos:   -95., -95.2, -94.8
-            > ratio: gratio
-            > width: gwidth
-
-        """
-
-        connectivity = []
-
-
 
 

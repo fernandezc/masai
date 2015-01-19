@@ -630,7 +630,7 @@ class gaussian2dmodel(object):
     Two dimensional Gaussian model (*not* normalized - peak value is 1).
     """
     args = ['ampl','width','width1','pos','pos1', 'theta']
-    def f(self, x, y, ampl, width, width1, pos, pos1, theta, **kargs):
+    def f(self, x, y, ampl, width, width1, pos, pos1, theta=0.0, **kargs):
         sigma_x = width / 2.3548
         sigma_y = width1 / 2.3548
         #TODO: check the constistancy with the full hm
@@ -641,7 +641,10 @@ class gaussian2dmodel(object):
         b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
         c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
         w = np.exp( - (a*((x_-xo)**2) + 2*b*(x_-xo)*(y_-yo) + c*((y_-yo)**2)))
-        w = w * (x[1] - x[0])
+        if 'SQ-DQ' in kargs.get('kind'):
+            xo = yo - xo # find the symmetric
+            w += np.exp( - (a*((x_-xo)**2) + 2*b*(x_-xo)*(y_-yo) + c*((y_-yo)**2)))    # symmetrize pattern
+        #w = w * np.abs(x[1] - x[0])
         return ampl * w
 
 #===============================================================================
@@ -744,11 +747,11 @@ def getmodel(x, y=None, modelname=None, par=None, **kargs):
 
     x = np.array(x, dtype=np.float64)
     if y is None:
-        return a.f(x, *args, **kargs)
+        res = a.f(x, *args, **kargs)
     else:
         y = np.array(y, dtype=np.float64)
-        return a.f(x, y, *args, **kargs)
-
+        res = a.f(x, y, *args, **kargs)
+    return res
 
 #===============================================================================
 # read_raw_bin
