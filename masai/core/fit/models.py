@@ -633,6 +633,8 @@ class gaussian2dmodel(object):
     def f(self, x, y, ampl, width, width1, pos, pos1, theta=0.0, **kargs):
         sigma_x = width / 2.3548
         sigma_y = width1 / 2.3548
+        theta = np.deg2rad(theta)
+        
         #TODO: check the constistancy with the full hm
         x_, y_ = np.meshgrid(x, y)
         xo = float(pos)

@@ -126,5 +126,5 @@ def cl(source=None, options='', axis=-1):
         source.data = S.T
     else:
         source.data = S
-    source.history.append('clipping %d' % axis)
+    source.history.append('clipping along axis %d' % axis)
 

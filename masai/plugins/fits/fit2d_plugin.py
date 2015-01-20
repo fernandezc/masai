@@ -192,10 +192,6 @@ shape: voigtmodel
         self.parameterscript.script = str(fp)
         self.source.modeldata = self._get_modeldata()
 
-        # update the paramscript content
-        #self.paramscript.content = str(self.fp)
-        #self._running = False
-        #self.fd.can_plot = True
         return
 
     #===========================================================================
