@@ -194,25 +194,6 @@ shape: voigtmodel
 
         return
 
-    #===========================================================================
-    # _callforresults
-    #===========================================================================
-    def _callforresults(self, params, keys, funcall, iteration, fopt):
-        """call back function called by minimize
-        """
-        for i in range(len(params)):
-            key = keys[i]
-            # restore external parameters in case of bounding
-            pe = self.external(params[i], self.fp.lob[key], self.fp.upb[key])
-            self.fp[key] = pe, self.fp.lob[key], self.fp.upb[key]
-
-        # update parameter script
-        self.funcalls = funcall
-        self.iterations = iteration
-        self.fopt = np.sqrt(fopt)
-
-        return self.fittingthread.stopped
-
     # property
 
     fp = Property

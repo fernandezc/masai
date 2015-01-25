@@ -121,12 +121,13 @@ shape: voigtmodel
     #===========================================================================
     # run
     #===========================================================================
-    def run(self):
+    def run(self, maxiter=2000, maxfun=5000, every=50):
         """Main fitting procedure
         """
         logger.info('Entering fitting procedure')
 
-        global niter, chi2
+        global niter, chi2, everyiter
+        everyiter = every
         niter = 0
 
         # internally defined function chi2
@@ -151,15 +152,16 @@ shape: voigtmodel
             """
             callback print function
             """
-            global niter, chi2
+            global niter, chi2, everyiter
+            niter += 1
+            if niter%everyiter != 0:
+                return
             if f is not None:  # hopping
                 pass
             if f is None:  # simplex
                 display.clear_output(wait=True)
                 print("Iteration: %d (chi2: %.5f)"%(niter, chi2))
                 sys.stdout.flush()
-
-                niter += 1
 
         # end callback function ---------------------------------------------------
 
@@ -170,36 +172,15 @@ shape: voigtmodel
         optmode = 'simplex'
         fp, fopt = optimize(chi2, fp,
                            args=(self.source.real,),
+                           maxfun=maxfun,
+                           maxiter=maxiter,
                            method=optmode,
                            callback=callback)
 
         self.parameterscript.script = str(fp)
         self.source.modeldata = self._get_modeldata()
 
-        # update the paramscript content
-        #self.paramscript.content = str(self.fp)
-        #self._running = False
-        #self.fd.can_plot = True
         return
-
-    #===========================================================================
-    # _callforresults
-    #===========================================================================
-    def _callforresults(self, params, keys, funcall, iteration, fopt):
-        """call back function called by minimize
-        """
-        for i in range(len(params)):
-            key = keys[i]
-            # restore external parameters in case of bounding
-            pe = self.external(params[i], self.fp.lob[key], self.fp.upb[key])
-            self.fp[key] = pe, self.fp.lob[key], self.fp.upb[key]
-
-        # update parameter script
-        self.funcalls = funcall
-        self.iterations = iteration
-        self.fopt = np.sqrt(fopt)
-
-        return self.fittingthread.stopped
 
     # property
 

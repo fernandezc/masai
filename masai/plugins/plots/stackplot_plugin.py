@@ -351,11 +351,11 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import os
-    from masai.plugins.list import Bruker, Process1d
+    from masai.plugins.list import Bruker, Process
 
     Bruker = Bruker()  # necessary for direct call
     Stackplot = Stackplot()
-    Process1d = Process1d()
+    Process = Process()
 
 
     #DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
@@ -383,7 +383,8 @@ if __name__ == '__main__':
                 varpars = "TE",
                 )
 
-    Process1d(sources, transform='em 50; zf 0; ft; cl -100 300; pk --auto')# --fit_phc1 --byrow')
+    Process(sources, transform='em 50; zf 0; ft; cl -100 300; pk --auto')# --fit_phc1 --byrow')
 
-    Stackplot(sources, offset=5., ylabel='temperature (K)')
+    Stackplot(sources, offset=5., ylabel='temperature (K)', colorbar=False)
+
 

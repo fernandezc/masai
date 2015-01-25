@@ -164,7 +164,7 @@ class gaussianmodel(object):
         gb = width / 2.3548
         tsq = (x - pos) * 2 ** -0.5 / gb
         w = np.exp(-tsq * tsq) * (2 * np.pi) ** -0.5 / gb
-        w = w * (x[1] - x[0])
+        w = w * np.abs(x[1] - x[0])
         return ampl * w
 
 
@@ -191,7 +191,7 @@ class lorentzianmodel(object):
     def f(self, x, ampl, width, pos, **kargs):
         lb = width / 2.
         w = lb / np.pi / (x * x - 2 * x * pos + pos * pos + lb * lb)
-        w = w * (x[1] - x[0])
+        w = w * np.abs(x[1] - x[0])
         return ampl * w
 
 
@@ -221,7 +221,7 @@ class voigtmodel(object):
         else:
             w = wofz(((x - pos) + 1.0j * lb) * 2 ** -0.5 / gb)
             w = w.real * (2.*np.pi) ** -0.5 / gb
-            w = w * (x[1] - x[0])
+            w = w * np.abs(x[1] - x[0])
         return ampl * w
 
 
@@ -634,7 +634,7 @@ class gaussian2dmodel(object):
         sigma_x = width / 2.3548
         sigma_y = width1 / 2.3548
         theta = np.deg2rad(theta)
-        
+
         #TODO: check the constistancy with the full hm
         x_, y_ = np.meshgrid(x, y)
         xo = float(pos)
