@@ -18,11 +18,6 @@
 This module holds the defintions all the various models used by Masaï.
 
 """
-#===============================================================================
-# logger
-#===============================================================================
-import logging
-logger = logging.getLogger()
 import os
 import numpy as np
 from numba import jit
@@ -77,7 +72,7 @@ def list_of_models(nd, spin=0):
     elif nd == 2:
         models = basic_2D_models[:]
     else:
-        raise NotImplementedError('not yet implemented')
+        raise NotImplementedError('not yet implemented: %s'%str(nd))
     return models
 
 
@@ -314,7 +309,7 @@ class quad2model(object):
         broad = voigtmodel().f(x, 1., width, ratio, sr / sfo1)  # centered
                                                 # on the middle of the window!
         data = np.convolve(data, broad, 'same')
-        logging.disable(logging.NOTSET)  # to restore normal logger level
+        #logging.disable(logging.NOTSET)  # to restore normal logger level
 
         return ampl * data  # voir pour la normalisation
 
@@ -728,6 +723,7 @@ def getmodel(x, y=None, modelname=None, par=None, **kargs):
         an array containing the calculated model.
 
     """
+    exp_idx= kargs.get('exp_idx')
     model = par.model[modelname]
     modelcls = globals()[model]
 
@@ -738,7 +734,10 @@ def getmodel(x, y=None, modelname=None, par=None, **kargs):
     args = []
     for p in a.args:
         try:
-            args.append(par['%s_%s' % (p, modelname)])
+            pa = par['%s_%s' % (p, modelname)]
+            if isinstance(pa, list):
+                pa = pa[exp_idx]
+            args.append(pa)
         except KeyError as e:
             if p.startswith('c_'):
                 # probably the end of the list

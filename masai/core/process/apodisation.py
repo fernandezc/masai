@@ -406,7 +406,10 @@ def em(source=None, options='', axis=-1, **kargs):
         p = k_shifted[0] # coherence
         q = k_shifted[1] # satellite order
 
-        ratio = k_ratio(source, p, q)
+        if p==1 and q==0:
+            ratio=1.0
+        else:
+            ratio = k_ratio(source, p, q)
         shifted = np.abs(ratio)
         if args.verbose:
             print('k_ratio: %.3f' % ratio)

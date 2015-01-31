@@ -33,8 +33,6 @@ import pandas as pd
 import numpy as np
 from traits.api import *
 
-from masai.core.database import Isotopes
-import masai.core.fit.models as models
 from masai.core.utils.misc import position2index
 
 class Source(HasTraits):
@@ -98,42 +96,6 @@ class Source(HasTraits):
                [data.columns[0], data.columns[-1]])[axis]
         return lim
 
-    def create_test1Ddata(self):
-        gm = models.gaussianmodel()
-
-        xdata = np.arange(1000.) * .46
-        pos = xdata.mean()
-        width = 50.
-        ampl = 2.
-        data = (gm.f(xdata, ampl, width, pos)
-                        + gm.f(xdata, ampl / 2., width * 3., pos * 1.20)
-                        + gm.f(xdata, ampl / 3., width * .90, pos * 0.75))
-        self.setdata(Series(data, index=xdata))
-
-    def create_test2Ddata(self, shape=(1000, 50), noise=None):
-        gm = models.poynomialseriesofvoigtmodel()
-
-        xdata = np.arange(shape[0]) * .46
-        ydata = np.arange(shape[1]) * .23
-        pos = xdata.mean()
-        width = 50.
-        ratio = .5
-        ampl = 2.
-        c0 = 0
-        c1 = 0.01
-        c2 = 0.0
-        c3 = 0.00
-        data = (gm.f(xdata, ydata, ampl, width, ratio, pos, c0, c1, c2)
-                    + gm.f(xdata, ydata, ampl, width * 3., ratio, pos * 1.20,
-                           c0, c1 * 2, -c2)
-                    + gm.f(xdata, ydata, ampl, width * .90, ratio, pos * 0.75,
-                           c0, c1, c2, c3))
-        if noise is not None:
-            m = np.max(data) * noise
-            data += np.random.rand(shape[0], shape[1]) * m
-
-        self.setdata(DataFrame(data, index=xdata, columns=ydata))
-
     # *******************************************************************************
     # Properties
     # *******************************************************************************
@@ -178,6 +140,16 @@ class Source(HasTraits):
         x = self.data.columns
         y = self.data.index
         return pd.DataFrame(j, y, x)
+
+    # ndims
+    ndims = Property
+    def _get_ndims(self):
+        ndims = 1
+        if self.is_2d:
+            ndims = 2
+        elif self.is_3d:
+            ndims = 3
+        return ndims
 
     # is 2d -----------------------------------------------------------------------
     is_2d = Property

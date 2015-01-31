@@ -121,7 +121,8 @@ shape: voigtmodel
     #===========================================================================
     # run
     #===========================================================================
-    def run(self, maxiter=2000, maxfun=5000, every=50):
+    def run(self, maxiter=2000, maxfun=5000, every=50,
+            method='simplex', constraints=None):
         """
         Main fitting procedure
 
@@ -135,26 +136,44 @@ shape: voigtmodel
         """
         logger.info('Entering fitting procedure')
 
-        global niter, chi2, everyiter
+        global niter, chi2, everyiter, ncalls
         everyiter = every
         niter = 0
-
+        ncalls = 0
         # internally defined function chi2
-        def chi2(params, dat):
+        def chi2(params, dat, *constraints):
             """
             Return sum((y - x)**2)
 
             """
-            global chi2
+            global chi2, ncalls
 
             # model spectrum
             modeldata = self._get_modeldata()
+            merror = 1.
+            if constraints:
+                if self.kind == 'SQ-DQ' and 'max_connections' in constraints[0]:
+                    # check connectivity numbers
+                    nbconnections = {}
+                    for key in params.keys():
+                        if 'pos1' in key:
+                            connect = key[-2:]
+                            key = 'ampl_line_'+connect # get amplitude
+                            ki = connect[0].upper()
+                            if ki not in nbconnections.keys():
+                                nbconnections[ki]=0
+                            if int(params[key])>0:
+                                nbconnections[ki] += 1
+                    for k,v in nbconnections.iteritems():
+                        if v>constraints[0]['max_connections']:
+                            merror *= v*10.
 
             diff = dat - modeldata
 
             chi2 = diff**2
             chi2 = chi2.values.sum()
-            return chi2
+            ncalls += 1
+            return chi2*merror
 
         # end chi2 function ---------------------------------------------------
 
@@ -164,7 +183,7 @@ shape: voigtmodel
             """
             callback print function
             """
-            global niter, chi2, everyiter
+            global niter, chi2, everyiter, ncalls
             niter += 1
             if niter%everyiter != 0:
                 return
@@ -172,7 +191,7 @@ shape: voigtmodel
                 return
             if f is None:  # simplex
                 display.clear_output(wait=True)
-                print("Iteration: %d (chi2: %.5f)"%(niter, chi2))
+                print("Iterations: %d - Calls: %d (chi2: %.5f)"%(niter, ncalls, chi2))
                 sys.stdout.flush()
 
         # end callback function ---------------------------------------------------
@@ -187,6 +206,7 @@ shape: voigtmodel
                             maxfun=maxfun,
                             maxiter=maxiter,
                             method=optmode,
+                            constraints=constraints,
                             callback=callback)
 
         self.parameterscript.script = str(fp)
@@ -209,7 +229,7 @@ shape: voigtmodel
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
-    def __call__(self, *args, **kargs):
+    def __init__(self, *args, **kargs):
         """
         Process a 1D source
 
@@ -233,8 +253,6 @@ shape: voigtmodel
         self.kind = kargs.get('kind',None)
 
         self.source.modeldata = self._get_modeldata()
-
-        return self
 
     def _get_modeldata(self):
 
@@ -482,7 +500,7 @@ if __name__ == '__main__':
         print(script)
         f = Fit2d(source,  script, kind='SQ-DQ')
 
-        f.run(maxiter=20000, maxfun=100000, every=100)
+        f.run(maxiter=20000, maxfun=100000, every=100, constraints={'max_connections':3})
         x = source.data.columns
         y = source.data.index
         p_2.axe.contour(x, y, source.modeldata, 10)

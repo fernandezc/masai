@@ -22,7 +22,7 @@ from __future__ import print_function, division
 #  general imports
 # ===============================================================================
 # noinspection PyUnresolvedReferences
-from traits.api import (HasTraits, Bool, Any, ListStr,
+from traits.api import (HasTraits, Bool, Any, ListStr, List,
                         Array, Str, Instance, provides, Property)
 import traits.has_traits
 import sys
@@ -30,9 +30,6 @@ import re
 import numpy as np
 import pandas as pd
 from IPython import display
-
-import logging
-logger = logging.getLogger('ipython_nmr')
 
 # ===============================================================================
 # local imports
@@ -42,6 +39,7 @@ from masai.core.fit.parameters import ParameterScript
 from masai.core.fit.models import getmodel
 from masai.core.fit.sequence import PulseSequence
 from masai.core.fit.optimize import optimize
+from masai.core.source import Source
 
 traits.has_traits.CHECK_INTERFACES = 2
 
@@ -63,7 +61,7 @@ class Fit1d(HasTraits):
     type = Str("fits")
 
     # specific attributes ----------------------------------------------------------
-
+    sources = List(Instance(Source))
     silent = Bool(True)
 
     _ = Any
@@ -104,6 +102,8 @@ class Fit1d(HasTraits):
 
 COMMON:
 # common parameters ex.
+experiment_variables: ampl
+
 # $ gwidth: 1.0, 0.0, none
   $ gratio: 0.5, 0.0, 1.0
 
@@ -121,29 +121,39 @@ shape: voigtmodel
     #===========================================================================
     # run
     #===========================================================================
-    def run(self, maxiter=2000, maxfun=5000, every=50):
+    def run(self, maxiter=5000, maxfun=None, every=100, method='simplex'):
         """Main fitting procedure
         """
-        logger.info('Entering fitting procedure')
+        print('Entering fitting procedure')
 
-        global niter, chi2, everyiter
+        global niter, chi2, everyiter, ncalls
+        ncalls = 0
         everyiter = every
         niter = 0
 
         # internally defined function chi2
-        def chi2(params, dat):
+        def funchi2(params, sources):
             """
             Return sum((y - x)**2)
-
             """
-            global chi2
+            global chi2, ncalls
             # model spectrum
-            modeldata = self._get_modeldata()
 
-            # baseline is already summed with modeldata[-1]
-            diff = dat - modeldata.T['modelsum'] # .take(fitzone))
-            chi2 = np.sum(diff.iloc[0]**2)
+            chi2 = 0
+            som = 0
+            ncalls +=1
+            for exp_idx, source in enumerate(self.sources):
+                modeldata = self._get_modeldata(source, exp_idx)
+                # baseline is already summed with modeldata[-1]
+                # important to work with the real part of source
+                # not the complex number
+                diff = source.real - modeldata.T['modelsum']
+                chi2 += np.sum(diff.iloc[0]**2)
+                som += np.sum(source.real.iloc[0]**2)
+
+            chi2 = np.sqrt(chi2/som)
             return chi2
+
         # end chi2 function ---------------------------------------------------
 
 
@@ -152,33 +162,35 @@ shape: voigtmodel
             """
             callback print function
             """
-            global niter, chi2, everyiter
+            global niter, chi2, everyiter, ncalls
             niter += 1
+
             if niter%everyiter != 0:
                 return
-            if f is not None:  # hopping
-                pass
-            if f is None:  # simplex
-                display.clear_output(wait=True)
-                print("Iteration: %d (chi2: %.5f)"%(niter, chi2))
-                sys.stdout.flush()
+            #if f is not None:  # hopping
+            #    pass
+            #if f is None:  # simplex
+            display.clear_output(wait=True)
+            print("Iterations: %d, Calls: %d (chi2: %.5f)"%(niter, ncalls, chi2))
+            sys.stdout.flush()
 
         # end callback function ---------------------------------------------------
 
-        fp = self.fp
-        x = self.source.data.index
-        #  fitzone = self.fd.findregion()
+        fp = self.fp # starting parameters
 
-        optmode = 'simplex'
-        fp, fopt = optimize(chi2, fp,
-                           args=(self.source.real,),
+        fp, fopt = optimize(funchi2, fp,
+                           args=(self.sources,),
                            maxfun=maxfun,
                            maxiter=maxiter,
-                           method=optmode,
+                           method=method,
                            callback=callback)
 
+        # replace the previous script
         self.parameterscript.script = str(fp)
-        self.source.modeldata = self._get_modeldata()
+        print(self.parameterscript.script)
+
+        for exp_idx, source in enumerate(self.sources):
+            source.modeldata = self._get_modeldata(source, exp_idx)
 
         return
 
@@ -197,34 +209,40 @@ shape: voigtmodel
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
-    def __call__(self, *args, **kargs):
+    def __init__(self, *args, **kargs):
         """
-        Process a 1D source
+        fit a 1D or 2D sources, or a list of sources
 
         """
-        logger.debug(" Fit1d Debug mode")
 
         if args:
             # look in args
-            self.source = source = args[0]
+            if not isinstance(args[0], list):
+                self.sources = [args[0], ]
+            else:
+                self.sources = args[0]
+                # we create a list of source in all case
             script = args[1]
+
         else:
             raise ValueError("No valid source specified\n%s"%self.help())
 
         # get parameters form script
-        self.parameterscript = ParameterScript(fd=source, script=script)
+        self.parameterscript = ParameterScript(sources=self.sources, script=script)
 
-        sequence = kargs.get('sequence', 'ideal_pulse')
-        self.sequence = PulseSequence(type=sequence)
+        #sequence = kargs.get('sequence', 'ideal_pulse')
+        #self.sequence = PulseSequence(type=sequence)
 
-        self.source.modeldata = self._get_modeldata()
+        self.mode = kargs.get('mode',None)
+        self.kind = kargs.get('kind',None)
 
-        return self
+        for exp_idx, source in enumerate(self.sources):
+            source.modeldata = self._get_modeldata(source, exp_idx)
 
-    def _get_modeldata(self):
+    def _get_modeldata(self, source, exp_idx):
 
         # Prepare parameters
-        parameters = prepare(self.fp)
+        parameters = prepare(self.fp, exp_idx)
 
         # Get the list of models
         models = self.fp.models
@@ -235,10 +253,11 @@ shape: voigtmodel
         # This name must always be 'modeldata'
         # which will be returned to the main program.
 
-        #calculate automatic baseline and amplitude
-        data = self.source.real
+        data = source.real
+
         x =data.columns.values
         xi = np.arange(x.size)
+
         modeldata = np.zeros((nbmodels + 2, x.size)).astype(float)
 
         if nbmodels < 1:
@@ -253,7 +272,7 @@ shape: voigtmodel
 
         for model in models:
             calc = getmodel(x, modelname=model, par=parameters,
-                            fd=self.source, sequence=self.sequence)
+                            fd=source, exp_idx=exp_idx)
             if not model.startswith('baseline'):
                 row += 1
                 modeldata[row] = calc
@@ -292,25 +311,30 @@ shape: voigtmodel
         self.A = A
 
         # calculate intensities
-        at = 0.
-        for model in models:
-            if model.startswith('baseline'):
-                continue
-            at += parameters["ampl_%s"%model]
-
-        self.intensities = 'Intensities:\n       \tppm   \tRelative (%)     \tAbsolute\n'
-        for model in models:
-            if model.startswith('baseline'):
-                continue
-            self.intensities += \
-                '%(model)7s:\t%(pos).2f\t%(ampl)g \t%(conc)g\n'%{
-                                  'model':model,
-                                  'pos':parameters["pos_%s"%model],
-                                  'ampl':parameters["ampl_%s"%model]*100./at,
-                         'conc':parameters["ampl_%s"%model]*self.A}
+        # at = 0.
+        # for model in models:
+        #     if model.startswith('baseline'):
+        #         continue
+        #     if 'ampl' in parameters.expvars:
+        #         expe = "_exp%d"%exp_idx
+        #     at += parameters["ampl_%s%s"%(model,expe)]
+        #
+        # self.intensities = 'Intensities:\n       \tppm   \tRelative (%)     \tAbsolute\n'
+        # for model in models:
+        #     if model.startswith('baseline'):
+        #         continue
+        #     if 'ampl' in parameters.expvars:
+        #         expe = "_exp%d"%exp_idx
+        #     self.intensities += \
+        #         '%(model)7s:\t%(pos).2f\t%(ampl)g \t%(conc)g\n'%{
+        #                           'model':model,
+        #                           'pos':parameters["pos_%s"%model],
+        #                           'ampl':parameters["ampl_%s"%(model,expe)]*100./at,
+        #                  'conc':parameters["ampl_%s"%model]*self.A}
 
         # return dataframes
         return pd.DataFrame(modeldata, index=names, columns=x)
+
 
 # global functions
 def parsing(expr, param):
@@ -324,9 +348,12 @@ def parsing(expr, param):
             expr = expr.replace(kw, "np.%s" % kw)
     return expr
 
-def prepare(param):
+def prepare(param, exp_idx):
     """
     This function is needed for the script related to modelfunction
+
+    exp_idx: int
+        contains the index of the experiment
     """
     new_param = param.copy()
 
@@ -336,6 +363,7 @@ def prepare(param):
                                                 # before other instruction
             # try to interpret the given refpar expression
             refpar = param[key]
+
             while True:
                 par = parsing(refpar, new_param)
                 if par == refpar: break
@@ -397,81 +425,76 @@ def ampandbas(xi, expe, calc):
     return A, a, b
 
 if __name__ == '__main__':
-    import os
-    from masai.plugins.list import Bruker
-    from masai.plugins.list import Process1d
-    from masai.plugins.list import Plot1d
+    import os, commands
+    from masai.api import Bruker, Process, Plot1d, Fit1d
 
-    Bruker = Bruker()
-    Plot1d = Plot1d()
-    Process1d = Process1d()
-    Fit1d = Fit1d()
+    # we try here a multi source fit
+    # print(commands.getoutput('pwd'))
 
-    # global
-    DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    source = Bruker(path)
-    Process1d(source, "em 50")
-    Process1d(source, "zf 0")
-    Process1d(source, "ft")
-    Process1d(source, "pk -25 0 --auto --ediff 2 --fit_phc1 --mode negmin+entropy --gamma 0.0001 --bound_phc1 200 --verbose")
-    #Process1d(source, "ab --mode poly")
-    #Plot1d(source)
+    DATADIR = os.path.expanduser(os.path.join('..', '..', '..', 'exemples'))
+    user = 'user'
+    name = 'RUB-17'
+
+    path1 = os.path.join(DATADIR, user, 'nmr', name, str(1))
+    source1 = Bruker(path1)
+    Process(source1, transform='em 1; zf 0; ft; cl -105 -75; pk --fit_phc1 --auto; ab --mode poly')
+
+    path2 = os.path.join(DATADIR, user, 'nmr', name, str(2))
+    source2 = Bruker(path2)
+    Process(source2, transform='em 1; zf 0; ft; cl -105 -75; pk --fit_phc1 --auto; ab --mode poly')
+
+    #p = Plot1d(source1, hold=True)
+    #p = Plot1d(source2, axe=p.axe)
+
+    # fit
+    # try with variable width
+    pos = [-94.9200018156, -95.0999986491, -94.3173715978, -93.9072128893,
+           -92.8999998621, -92.6363220634, -82.0826836442]
 
     script = """
-#-----------------------------------------------------------
-# syntax for parameters definition:
-# name: value, low_bound,  high_bound
-#  * for fixed parameters
-#  $ for variable parameters
-#  > for reference to a parameter in the COMMON block
-#    (> is forbidden in the COMMON block)
-# common block parameters should not have a _ in their names
-#-----------------------------------------------------------
-#
+    COMMON:
+      experiment_variables: ampl
+      $ gratio: 0.5, 0.0, 1.0
 
-COMMON:
-# common parameters ex.
-# $ gwidth: 1.0, 0.0, none
-  $ gratio: 0.5, 0.0, 1.0
+    """
+    for i, delta in enumerate(pos):
+        fa = '*' if i==0 else '$'
+        script +="""
+            MODEL: LINE_%d
+            shape: voigtmodel
+                %s ampl:  0.6, 0.0, none
+                $ pos: %.3f, %.3f, %.3f
+                > ratio: gratio
+                $ width: %.3f, %.3f, %.3f
 
-MODEL: LINE_1
-shape: voigtmodel
-    * ampl:  1.0, 0.0, none
-    $ pos:   4.5, -100.0, 100.0
-    > ratio: gratio
-    $ width: 4.0, 0, 100
+        """%(i, fa, delta, delta-.2, delta+0.2,
+                    0.57, 0.45, 0.65)
 
-MODEL: LINE_2
-shape: voigtmodel
-    $ ampl:  0.2, 0.0, none
-    $ pos:   1.6, -100.0, 100.0
-    > ratio: gratio
-    $ width: 4.0, 0, 100
+    print(script)
 
-MODEL: LINE_3
-shape: voigtmodel
-    $ ampl:  0.17, 0.0, none
-    $ pos:   7.9, -100.0, 100.0
-    > ratio: gratio
-    $ width: 4.0, 0, 100
+    # prepare fit
+    f = Fit1d( source1, script)
 
-MODEL: LINE_4
-shape: voigtmodel
-    $ ampl:  0.15, 0.0, none
-    $ pos:   14, -100.0, 100.0
-    > ratio: gratio
-    $ width: 6.0, 0, 100
+    # initial model plot
+    #p = Plot1d([source1, source2],
+    #            figsize=(3.4, 2.0), dpi=180,
+    #            row = 2,
+    #            col = 1,
+    #            lw=.5,
+    #            modls = '--',
+    #            plot_model=True,
+    #            offset=15,
+    #            xlim=(-98,-80))
 
-"""
+    f.run(maxiter=1000, method='simplex')
 
-    f = Fit1d(source, script,
-              options='--limits 20')
-    f.run()
-    print(f.script)
-    Plot1d(source, xlim=(-10, 30), plot_model=True)
-
-    print("end")
+    # fitted model plot
+    p = Plot1d(source1,
+                figsize=(3.4, 2.0), dpi=180,
+                #ow = 2,
+                #col = 1,
+                lw=.5,
+                modls = '--',
+                plot_model=True,
+                offset=15,
+                xlim=(-98,-80))

@@ -1,12 +1,12 @@
 from setuptools import setup 
 from masai.version import get_version
 
-
 setup(
     name='masai',
     version=get_version(),
     packages=['masai', 'masai.core', 'masai.plugins'],
-    install_requires=['nmrglue', 'numpy', 'traits', 'matplotlib', 'addict', 'pandas'],
+    install_requires=['nmrglue', 'numpy', 'scipy', 'traits',
+                      'matplotlib', 'addict', 'pandas'],
     url='',
     license='',
     author='Christian Fernandez',

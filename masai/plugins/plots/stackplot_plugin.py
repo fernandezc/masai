@@ -101,7 +101,7 @@ class Stackplot(HasTraits):
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
-    def __call__(self, *args, **kargs):
+    def __init__(self, *args, **kargs):
         """ Plot a 1D source
 
         Parameters
@@ -332,7 +332,7 @@ class Stackplot(HasTraits):
         if not kargs.get('hold', False):
             self.show()
 
-        return axe
+        self.axe = axe
 
     def show(self):
         pl.show()

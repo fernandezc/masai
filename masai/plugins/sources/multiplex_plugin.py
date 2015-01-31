@@ -80,7 +80,7 @@ class Multiplex(Bruker):
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
-    def __call__(self, *args, **kargs):
+    def __init__(self, *args, **kargs):
         """
         return the output of the bruker plugin: a valid nmr source experiment
 
@@ -143,8 +143,6 @@ class Multiplex(Bruker):
             raise Exception('a valid path to an existing file is needed in the arguments')
 
         self._read_multiplex(path, **kargs)
-
-        return self
 
     # ---------------------------------------------------------------------------------
     def _read_multiplex(self, path, **kargs):

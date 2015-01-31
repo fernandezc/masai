@@ -82,7 +82,7 @@ class Plot2d(HasTraits):
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
-    def __call__(self, *args, **kargs):
+    def __init__(self, *args, **kargs):
         """Plot a 2D source
 
         Parameters
@@ -277,8 +277,6 @@ class Plot2d(HasTraits):
         if savename:
             self.savename = savename
             self.fig.savefig(savename)
-
-        return self
 
     def show(self):
         pl.show()

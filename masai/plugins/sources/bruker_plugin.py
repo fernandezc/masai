@@ -155,9 +155,7 @@ class Bruker(Source):
     # *******************************************************************************
     # Private functions
     # *******************************************************************************
-
-    # -------------------------------------------------------------------------------
-    def __call__(self, *args, **kargs):
+    def __init__(self, *args, **kargs):
         """
         return the output of the bruker plugin: a valid nmr source experiment
 
@@ -220,8 +218,6 @@ class Bruker(Source):
             raise Exception('a valid path to an existing file is needed in the arguments')
 
         self._read(path, **kargs)
-
-        return self
 
     # ---------------------------------------------------------------------------------
     def _read(self, path, **kargs):
@@ -680,6 +676,7 @@ class Bruker(Source):
         txt = "***Bruker Source***\n"
         txt += "- path: %s\n" % self.path
         txt += "- datatype: %dD NMR %s\n" % (self.par.PARMODE + 1, self.datatype)
+        txt += "- pulse program: %s\n" % self.par.PULPROG
         if self.is_2d:
             if self.datatype in ['SER']:
                 txt += "- Encoding: %s\n" % self.par2.encoding

@@ -97,17 +97,21 @@ class Plot1d(HasTraits):
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
-    def __call__(self, *args, **kargs):
+    def __init__(self, *args, **kargs):
         """ Plot a 1D source
 
         Parameters
         ----------
         source: source (such as NMR or IR source)
-        figure: Figure instance, optioanl
+        figure: Figure instance, optional
         axe: Axe instance, optional
             the axe where to plot
-        figsize: tuple, optional, default is (6.8,3.4)
+        dpi: int, optional
+            the number of pixel per inches
+        figsize: tuple, optional, default is (3.4, 1.7)
             figure size
+        fontsize: int, optional
+            font size in pixels, default is 10
         imag: bool, optional, default False
             By default real part is shown. Set to True to display the imaginary part
         xlim: tuple, optional
@@ -129,9 +133,13 @@ class Plot1d(HasTraits):
         hold: bool, optional, default is False
             if True, hold it until a new plot is performed
         """
+        multiplots=False
         if args:
             # look in args
             source = args[0]
+            if isinstance(source, list):
+                # we will draw subplots
+                multiplots = True
         else:
             raise ValueError("No a valid input\nUsage: Plot1d(<source>)")
 
@@ -194,9 +202,10 @@ class Plot1d(HasTraits):
             mdata = source.modeldata
             offset = (mdata.values.max())*(float(kargs.get('offset', 1.0))/100.)
             # print('offset',offset)
+            mls = kargs.get('modellinestyle', kargs.get('modls', '-'))
             for model in mdata.index:
                 l, = axe.plot(x, mdata.loc[model],alpha=.75)
-                l.set_linestyle('-')
+                l.set_linestyle(mls)
                 l.set_linewidth(lw*.8)
                 if model=='baseline':
                     l.set_color('k')
@@ -222,6 +231,7 @@ class Plot1d(HasTraits):
             reverse = False
         if kargs.get('reverse', reverse):
             xlim.reverse()
+
         zlim = list(kargs.get('zlim', kargs.get('ylim', axe.get_ylim())))
         zlim.sort()
         axe.set_xlim(xlim)
@@ -281,8 +291,6 @@ class Plot1d(HasTraits):
             self.savename = savename
             self.fig.savefig(savename)
 
-        return self
-
     def show(self):
         pl.show()
 
@@ -311,12 +319,17 @@ if __name__ == '__main__':
     expno = 10
     path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
     fd = Bruker(path)
-
+    expno = 11
+    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
+    fd1 = Bruker(path)
     # plot a Source
-    ax = Plot1d(fd, hold=True)
-    ax = Plot1d(fd, axe=ax, imag=True, xlim=(0, 4), ylim=(-1, 1), c='orange')
+    p = Plot1d(fd, hold=True)
+    p = Plot1d(fd1, axe=p.axe, imag=True,c='orange')
+
+
+
 
     # plot a Dataframe
     #Plot1d(fd.data)
 
-    #pl.show()
+    pl.show()
