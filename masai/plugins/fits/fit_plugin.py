@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# masai.plugins.fits.fit2d_plugin
+# masai.plugins.fits.fit1d_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.
@@ -22,7 +22,7 @@ from __future__ import print_function, division
 #  general imports
 # ===============================================================================
 # noinspection PyUnresolvedReferences
-from traits.api import (HasTraits, Bool, Any, ListStr,
+from traits.api import (HasTraits, Bool, Any, ListStr, List,
                         Array, Str, Instance, provides, Property)
 import traits.has_traits
 import sys
@@ -30,9 +30,6 @@ import re
 import numpy as np
 import pandas as pd
 from IPython import display
-
-import logging
-logger = logging.getLogger('ipython_nmr')
 
 # ===============================================================================
 # local imports
@@ -42,28 +39,29 @@ from masai.core.fit.parameters import ParameterScript
 from masai.core.fit.models import getmodel
 from masai.core.fit.sequence import PulseSequence
 from masai.core.fit.optimize import optimize
+from masai.core.source import Source
 
 traits.has_traits.CHECK_INTERFACES = 2
 
 # ===============================================================================
 # Plugin signature
 # ===============================================================================
-__plugin_main__ = 'Fit2d'
+__plugin_main__ = 'Fit'
 
-all = ['Fit2d', ]
+all = ['Fit', ]
 
 # ===================================================================================
 # Process1d plugin
 # ===================================================================================
 @provides(IPlugin)
-class Fit2d(HasTraits):
+class Fit(HasTraits):
 
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Fit2d (type: fits), fit a 2D source with some models.")
+    description = Str("Fit (type: fits), fit a source or a series of source with some models.")
     type = Str("fits")
 
     # specific attributes ----------------------------------------------------------
-
+    sources = List(Instance(Source))
     silent = Bool(True)
 
     _ = Any
@@ -82,11 +80,11 @@ class Fit2d(HasTraits):
     # -------------------------------------------------------------------------------
     def help(self):
         return """Usage:
-            fit2d(source, script)
+            fit1d(source, script)
                 where source is a valid Bruker source and script must be provided.
 
             a default script can be generated using :
-                Fit1d.default()
+                Fit.default()
             """
 
     def default(self):
@@ -104,6 +102,8 @@ class Fit2d(HasTraits):
 
 COMMON:
 # common parameters ex.
+experiment_variables: ampl
+
 # $ gwidth: 1.0, 0.0, none
   $ gratio: 0.5, 0.0, 1.0
 
@@ -121,96 +121,110 @@ shape: voigtmodel
     #===========================================================================
     # run
     #===========================================================================
-    def run(self, maxiter=2000, maxfun=5000, every=50,
+    def run(self, maxiter=5000, maxfun=None, every=100,
             method='simplex', constraints=None):
         """
         Main fitting procedure
-
-        Parameters
-        ----------
-        mode: Str
-            define which kind of fit is required among 'FULL2D', 'X_SKY_PROJ'
-        kind: Str
-            define which kind of experiment
-
         """
-        logger.info('Entering fitting procedure')
+        print('Entering fitting procedure')
 
         global niter, chi2, everyiter, ncalls
+        ncalls = 0
         everyiter = every
         niter = 0
-        ncalls = 0
+
         # internally defined function chi2
-        def chi2(params, dat, *constraints):
+        def funchi2(params, sources, *constraints):
             """
             Return sum((y - x)**2)
-
             """
             global chi2, ncalls
-
             # model spectrum
-            modeldata = self._get_modeldata()
-            merror = 1.
-            if constraints:
-                if self.kind == 'SQ-DQ' and 'max_connections' in constraints[0]:
-                    # check connectivity numbers
-                    nbconnections = {}
-                    for key in params.keys():
-                        if 'pos1' in key:
-                            connect = key[-2:]
-                            key = 'ampl_line_'+connect # get amplitude
-                            ki = connect[0].upper()
-                            if ki not in nbconnections.keys():
-                                nbconnections[ki]=0
-                            if int(params[key])>0:
-                                nbconnections[ki] += 1
-                    for k,v in nbconnections.iteritems():
-                        if v>constraints[0]['max_connections']:
-                            merror *= v*10.
 
-            diff = dat - modeldata
+            chi2 = 0
+            som = 0
+            ncalls +=1
 
-            chi2 = diff**2
-            chi2 = chi2.values.sum()
-            ncalls += 1
-            return chi2*merror
+            for exp_idx, source in enumerate(sources):
+                modeldata = self._get_modeldata(source, exp_idx)
+                # baseline is already summed with modeldata[-1]
+                # important to work with the real part of source
+                # not the complex number
+                data = source.real.values
+
+                if not source.is_2d:
+                    mdata = modeldata.loc['modelsum'].values
+                else:
+                    mdata = modeldata.values
+
+                merror = 1.
+                if source.is_2d:
+                    if constraints:
+
+                        # Case of SQ-DQ experiments
+                        if self.kind == 'SQ-DQ' and \
+                                    'max_connections' in constraints[0]:
+                            # check connectivity numbers
+                            nbconnections = {}
+                            for key in params.keys():
+                                if 'pos1' in key:
+                                    connect = key[-2:]
+                                    key = 'ampl_line_'+connect # get amplitude
+                                    ki = connect[0].upper()
+                                    if ki not in nbconnections.keys():
+                                        nbconnections[ki]=0
+                                    if int(params[key])>0:
+                                        nbconnections[ki] += 1
+                            for k,v in nbconnections.iteritems():
+                                if v>constraints[0]['max_connections']:
+                                    merror *= v*10.
+
+                diff = data - mdata
+                chi2 += np.sum(diff**2)*merror
+                som += np.sum(data**2)
+
+            chi2 = np.sqrt(chi2/som)
+
+            return chi2
 
         # end chi2 function ---------------------------------------------------
 
 
         # callback function--------------------------------------------------------
-        def callback(x, f=None, accepted=None):
+        def callback(*args, **kargs):
             """
             callback print function
             """
             global niter, chi2, everyiter, ncalls
             niter += 1
+
             if niter%everyiter != 0:
                 return
-            if f is not None:  # hopping
-                return
-            if f is None:  # simplex
-                display.clear_output(wait=True)
-                print("Iterations: %d - Calls: %d (chi2: %.5f)"%(niter, ncalls, chi2))
-                sys.stdout.flush()
+            #if f is not None:  # hopping
+            #    pass
+            #if f is None:  # simplex
+            display.clear_output(wait=True)
+            print("Iterations: %d, Calls: %d (chi2: %.5f)"%(niter, ncalls, chi2))
+            sys.stdout.flush()
 
         # end callback function ---------------------------------------------------
 
-        fp = self.fp
-        x = self.source.data.index
-        #  fitzone = self.fd.findregion()
+        fp = self.fp # starting parameters
 
-        optmode = 'simplex'
-        fp, fopt = optimize(chi2, fp,
-                            args=(self.source.real,),
-                            maxfun=maxfun,
-                            maxiter=maxiter,
-                            method=optmode,
-                            constraints=constraints,
-                            callback=callback)
+        fp, fopt = optimize(funchi2, fp,
+                           args=(self.sources,),
+                           maxfun=maxfun,
+                           maxiter=maxiter,
+                           method=method,
+                           constraints=constraints,
+                           callback=callback)
 
+        # replace the previous script
         self.parameterscript.script = str(fp)
-        self.source.modeldata = self._get_modeldata()
+        print(self.parameterscript.script)
+
+        for exp_idx, source in enumerate(self.sources):
+            source.modeldata = self._get_modeldata(source, exp_idx)
 
         return
 
@@ -231,33 +245,38 @@ shape: voigtmodel
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
         """
-        Process a 1D source
+        fit a 1D or 2D sources, or a list of sources
 
         """
-        logger.debug(" Fit2d Debug mode")
 
         if args:
             # look in args
-            self.source = source = args[0]
+            if not isinstance(args[0], list):
+                self.sources = [args[0], ]
+            else:
+                self.sources = args[0]
+                # we create a list of source in all case
             script = args[1]
+
         else:
             raise ValueError("No valid source specified\n%s"%self.help())
 
         # get parameters form script
-        self.parameterscript = ParameterScript(fd=source, script=script)
+        self.parameterscript = ParameterScript(sources=self.sources, script=script)
 
         #sequence = kargs.get('sequence', 'ideal_pulse')
         #self.sequence = PulseSequence(type=sequence)
 
-        self.mode = kargs.get('mode','xproj')
+        self.mode = kargs.get('mode',None)
         self.kind = kargs.get('kind',None)
 
-        self.source.modeldata = self._get_modeldata()
+        for exp_idx, source in enumerate(self.sources):
+            source.modeldata = self._get_modeldata(source, exp_idx)
 
-    def _get_modeldata(self):
+    def _get_modeldata(self, source, exp_idx):
 
         # Prepare parameters
-        parameters = prepare(self.fp)
+        parameters = prepare(self.fp, exp_idx)
 
         # Get the list of models
         models = self.fp.models
@@ -268,34 +287,78 @@ shape: voigtmodel
         # This name must always be 'modeldata'
         # which will be returned to the main program.
 
-        #calculate automatic baseline and amplitude
-        data = self.source.real
+        data = source.real
 
         x = data.columns.values
-        y = data.index.values
 
-        modeldata = np.zeros((y.size, x.size)).astype(float)
+        if not source.is_2d: #1D
+            modeldata = np.zeros((nbmodels + 2, x.size)).astype(float)
+            if nbmodels < 1:
+                names = ['baseline', 'modelsum']
+                return pd.DataFrame(modeldata, index=names, columns=x)
 
-        if nbmodels < 1:
-            return pd.DataFrame(modeldata, index=y, columns=x)
+            # Calculates model data
+            # The first row (i=0) of the modeldata array is the baseline,
+            # so we fill the array starting at row 1
+            row = 0
+            names = ['baseline', ]
 
-        # Calculates model data
-        for model in models:
-            calc = getmodel(x, y, modelname=model, par=parameters,
-                            fd=self.source, sequence=self.sequence,
-                            kind = self.kind)
-            modeldata += calc
+            for model in models:
+                calc = getmodel(x, modelname=model, par=parameters, fd=source)
+                if not model.startswith('baseline'):
+                    row += 1
+                    modeldata[row] = calc
+                    names.append(model)
+                else:
+                    modeldata[0] += calc
+
+            # make the sum
+            modeldata[row + 1] = modeldata.sum(axis=0)
+            names.append('modelsum')
+
+            #remove unused row
+            modeldata = modeldata[:row + 2]
+
+            xi = np.arange(x.size)
+            A, a, b = ampbas(xi, data.values[-1], modeldata[-1])  #(fitzone-fitzone[0], data.take(fitzone),
+                                 #modeldata[-1].take(fitzone))
+
+            modeldata = A*modeldata
+            baseline = a*xi + b   #a*(xi-fitzone[0]) + b
+
+            #update the modeldata
+            modeldata[0] += baseline
+            modeldata[-1] += baseline
+
+            self.A = A
+
+            # return dataframes
+            return pd.DataFrame(modeldata, index=names, columns=x)
+
+        else: #2D
+            y = data.index.values
+            modeldata = np.zeros((y.size, x.size)).astype(float)
+            if nbmodels < 1:
+                return pd.DataFrame(modeldata, index=y, columns=x)
+
+            # Calculates model data
+            for model in models:
+                calc = getmodel(x, y, modelname=model, par=parameters,
+                               fd=source, kind = self.kind)
+                modeldata +=  calc
 
         # call the userfunction
         # (in case something is executed in it - nothing by default)
         # if default_userscript:
         #     modeldata = self.userfunction(modeldata, self.fp)
 
-        return pd.DataFrame(modeldata, index=y, columns=x)
+            return pd.DataFrame(modeldata, index=y, columns=x)
+
+
 
 # global functions
 def parsing(expr, param):
-    keyword = r"\b([a-z,0-9]+)\b" #match a whole word
+    keyword = r"\b([a-z]+[0-9]*)\b" #match a whole word
     pat = re.compile(keyword)
     mo = pat.findall(expr)
     for kw in mo:
@@ -305,13 +368,17 @@ def parsing(expr, param):
             expr = expr.replace(kw, "np.%s" % kw)
     return expr
 
-def prepare(param):
+def prepare(param, exp_idx):
     """
     This function is needed for the script related to modelfunction
+
+    exp_idx: int
+        contains the index of the experiment
     """
     new_param = param.copy()
 
     for key in param.iterkeys():
+
         if param.reference[key]:
             new_param.reference[key] = False    # important to put it here
                                                 # before other instruction
@@ -319,7 +386,8 @@ def prepare(param):
             refpar = param[key]
             while True:
                 par = parsing(refpar, new_param)
-                if par == refpar: break
+                if par == refpar:
+                    break
                 refpar = par
 
             try:
@@ -328,78 +396,144 @@ def prepare(param):
                 raise ValueError('Cannot evaluate the expression: %s: %s'
                                  % (key, param[refpar]))
                 return
+
             new_param.fixed[key] = True
             new_param.reference[key] = True     #restore it for the next call
 
-    #for k, v in new_param.iteritems():
-    #    print(k, v)
+        if isinstance(new_param[key], list):
+            new_param.data[key] = new_param.data[key][exp_idx]
+
     return new_param
 
 #===============================================================================
 # automatic calculation of amplitude and baseline
 #===============================================================================
-def ampandbas(xi, expe, calc):
+def ampbas(xi, expe, calc):
     """Automatically calculate correct amplitude A and baseline
     (baseline linear model a*i+b) by detemining the zero of the first derivative
      with respect to A, a, and b
     """
+
     n = xi.size
-    sic = sum(xi*calc)
-    sc = sum(calc)
-    sie = sum(xi*expe)
-    se = sum(expe)
-    sce = sum(expe*calc)
-    sc2 = sum(calc*calc)
-    A = (
-         (12*n*sic + (-6*n**2 + 18*n - 12)*sc)*sie
-         + (-6*n**2 + 18*n - 12)*se*sic
-         + (4*n**3 - 6*n**2 + 2*n)*sc*se
-         + (-n**4 - 12*n**3 + 37*n**2 - 36*n + 12)*sce)/(12*n*sic**2
-                                                + (-12*n**2 + 36*n - 24)*sc*sic
-         + (-n**4 - 12*n**3 + 37*n**2 - 36*n + 12)*sc2
-         + (4*n**3 - 6*n**2 + 2*n)*sc**2)
-    a = -(
-          (12*n*sc2 - 12*sc**2)*sie + (12*sc*se - 12*n*sce)*sic
-          + (-6*n**2 + 18*n - 12)*sc2*se
-          + (6*n**2 - 18*n + 12)*sc*sce)/(12*n*sic**2
-                                                + (-12*n**2 + 36*n - 24)*sc*sic
-          + (-n**4 - 12*n**3 + 37*n**2 - 36*n + 12)*sc2
-          + (4*n**3 - 6*n**2 + 2*n)*sc**2)
-    b = -(
-          (12*sc*sic + (-6*n**2 + 18*n - 12)*sc2)*sie
-          - 12*se*sic**2 + (6*n**2 - 18*n + 12)*sce*sic
-          + (4*n**3 - 6*n**2 + 2*n)*sc2*se
-          + (-4*n**3 + 6*n**2 - 2*n)*sc*sce)/(12*n*sic**2
-          + (-12*n**2 + 36*n - 24)*sc*sic
-          + (-n**4 - 12*n**3 + 37*n**2 - 36*n + 12)*sc2
-          + (4*n**3 - 6*n**2 + 2*n)*sc**2)
+    sE = sum(expe)
+    sF = sum(calc)
+    sFI = sum(xi*calc)
+    sFd = sum(calc*calc)
+    sI = sum(xi)
+    sEF = sum(expe*calc)
+    sEI = sum(xi*expe)
+    sId = sum(xi**2)
+
+    a = (-sE*(sF*sFI - sFd*sI) + sEF*(n*sFI - sF*sI) - sEI*(n*sFd - sF**2)
+        )/(n*sFI**2 - n*sFd*sId + sF**2*sId - 2*sF*sFI*sI + sFd*sI**2)
+
+    A= (sE*(sF*sId - sFI*sI) - sEF*(n*sId - sI**2) + sEI*(n*sFI - sF*sI)
+       )/(n*sFI**2 - n*sFd*sId + sF**2*sId - 2*sF*sFI*sI + sFd*sI**2)
+
+    b= (sE*(sFI**2 - sFd*sId) + sEF*(sF*sId - sFI*sI) - sEI*(sF*sFI - sFd*sI)
+       )/(n*sFI**2 - n*sFd*sId + sF**2*sId - 2*sF*sFI*sI + sFd*sI**2)
+
     # in case the modeldata is zero, to avoid further errors
     if np.isnan(A): A=0.0
     if np.isnan(a): a=0.0
     if np.isnan(b): b=0.0
     return A, a, b
 
+
 if __name__ == '__main__':
-    import os
-    from masai.plugins.list import Bruker
-    from masai.plugins.list import Process
-    from masai.plugins.list import Plot1d
-    from masai.plugins.list import Plot2d
+    import os, commands
+    from masai.api import Bruker, Process, Plot1d, Plot2d,  Fit
 
-    Bruker = Bruker()
-    Plot1d = Plot1d()
-    Plot2d = Plot2d()
-    Process = Process()
-    Fit2d = Fit2d()
+    # we try here a multi source fit
+    # print(commands.getoutput('pwd'))
 
-    from masai.core.utils.pyprind import ProgBar
+    def multifit():
+        DATADIR = os.path.expanduser(os.path.join('..', '..', '..', 'exemples'))
+        user = 'user'
+        name = 'RUB-17'
 
+        path1 = os.path.join(DATADIR, user, 'nmr', name, str(1))
+        source1 = Bruker(path1)
+        Process(source1, transform='em 1; zf 0; ft; cl -105 -75; pk --fit_phc1 --auto; ab --mode poly')
+
+        path2 = os.path.join(DATADIR, user, 'nmr', name, str(2))
+        source2 = Bruker(path2)
+        Process(source2, transform='em 1; zf 0; ft; cl -105 -75; pk --fit_phc1 --auto; ab --mode poly') #')#
+
+        #p = Plot1d(source1, hold=True)
+        #p = Plot1d(source2, axe=p.axe)
+
+        # fit
+        # try with variable width
+        pos = [-94.9200018156, -95.0999986491, -94.3173715978, -93.9072128893,
+               -92.8999998621, -92.6363220634, -82.0826836442]
+
+        script = """
+        COMMON:
+          experiment_variables: ampl
+          $ gratio: 0.5, 0.0, 1.0
+          $ gwidth: 0.6, 0.5, 0.7
+
+        """
+        for i, delta in enumerate(pos):
+            fa = '*' if i==0 else '$'
+            script +="""
+                MODEL: LINE_%d
+                shape: voigtmodel
+                    %s ampl:  0.6, 0.5, 2
+                    $ pos: %.3f, %.3f, %.3f
+                    > ratio: gratio
+                    > width: gwidth
+
+            """%(i, fa, delta, delta-.5, delta+0.5)
+
+        print(script)
+
+        # prepare fit
+        f = Fit( [source1, source2], script)
+
+        # initial model plot
+        #p = Plot1d([source1, source2],
+        #            figsize=(3.4, 2.0), dpi=180,
+        #            row = 2,
+        #            col = 1,
+        #            lw=.5,
+        #            modls = '--',
+        #            plot_model=True,
+        #            offset=15,
+        #            xlim=(-98,-80))
+
+        f.run(maxiter=200, every=5, method='simplex')
+
+        # fitted model plot
+        p = Plot1d(source1,
+                    figsize=(3.4, 2.0), dpi=180,
+                    #ow = 2,
+                    #col = 1,
+                    lw=.5,
+                    modls = '--',
+                    plot_model=True,
+                    offset=15,
+                    xlim=(-98,-80))
+
+            # fitted model plot
+        p = Plot1d(source2,
+                    figsize=(3.4, 2.0), dpi=180,
+                    #ow = 2,
+                    #col = 1,
+                    lw=.5,
+                    modls = '--',
+                    plot_model=True,
+                    offset=15,
+                    xlim=(-98,-80))
+
+    #### TEST 2D ######
     def spec2Q():
 
         # reading
         DATADIR = os.path.join( '..', '..', '..', 'exemples')
         user = 'user'
-        name = 'VPI7'
+        name = 'RUB-17'
         expno = 102
         path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
         source = Bruker(path)
@@ -498,9 +632,10 @@ if __name__ == '__main__':
 
         script = make_script(common, species, connectivity)
         print(script)
-        f = Fit2d(source,  script, kind='SQ-DQ')
+        f = Fit(source,  script, kind='SQ-DQ')
 
-        f.run(maxiter=20000, maxfun=100000, every=100, constraints={'max_connections':3})
+        f.run(maxiter=20000, maxfun=100000, every=100,
+              constraints={'max_connections':3})
         x = source.data.columns
         y = source.data.index
         p_2.axe.contour(x, y, source.modeldata, 10)
@@ -509,6 +644,7 @@ if __name__ == '__main__':
 
         print(f.script)
 
-    spec2Q()
+    ###############################
 
-
+    multifit()
+    #spec2Q()

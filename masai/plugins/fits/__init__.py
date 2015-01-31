@@ -14,4 +14,4 @@
 # See Licence.txt in the main masai source directory
 # ===============================================================================
 
-from fit1d_plugin import *
+from fit_plugin import *

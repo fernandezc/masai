@@ -583,6 +583,6 @@ if __name__ == '__main__':
     print('#'*10)
     # prepare fit
     f = Fit1d( [source1, source2], script)
-    f.run(maxiter=200, every=10)
+    #f.run(maxiter=200, every=10)
     print('#'*10)
     print(f.script)
