@@ -282,19 +282,29 @@ class FitParameters(UserDict):
         is_lob = lob is not None and lob > -0.1/sys.float_info.epsilon # lob is not None
         is_upb = lob is not None and upb < +0.1/sys.float_info.epsilon # upb is not None
 
-        if is_lob and is_upb:
-            #  With min and max bounds defined
-            pe = lob + ((upb - lob)/2.)*(np.sin(pi) + 1.)
-        elif is_upb:
-            #With only max defined
-            pe = upb + 1. - np.sqrt(pi**2 + 1.)
-        elif is_lob:
-            #With only min defined
-            pe = lob - 1. + np.sqrt(pi**2 + 1.)
-        else:
-            pe = pi
+        if not isinstance(pi, list):
+            pi = [pi, ]  #make a list
+
+        pe = []
+        for item in pi:
+            if is_lob and is_upb:
+                #  With min and max bounds defined
+                pei = lob + ((upb - lob)/2.)*(np.sin(item) + 1.)
+            elif is_upb:
+                #With only max defined
+                pei = upb + 1. - np.sqrt(item**2 + 1.)
+            elif is_lob:
+                #With only min defined
+                pei = lob - 1. + np.sqrt(item**2 + 1.)
+            else:
+                pei = pi
+            pe.append(pei)
+
+        if len(pe)==1:
+            pe = pe[0]
 
         self.data[key] = pe
+
         return pe
 
 #========================
@@ -573,6 +583,6 @@ if __name__ == '__main__':
     print('#'*10)
     # prepare fit
     f = Fit1d( [source1, source2], script)
-    f.run(maxiter=1)
+    f.run(maxiter=200, every=10)
     print('#'*10)
     print(f.script)

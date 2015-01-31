@@ -37,37 +37,35 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
     """
     global keys
 
-    def internal_func(p, dat, fp, keys, *args):
+    def restore_external(fp, p, keys):
         # restore external parameters
         for key in fp.keys():
             keysp = key.split('_')
             if keysp[0] in fp.expvars:
-                if not "_".join(key[:-1]) in keys:
-                    break
                 ps = []
                 for i in xrange(fp.expnumber):
-                    k = keys.index("%s_exp%d"%(key, i))
+                    ks = "%s_exp%d"%(key, i)
+                    if ks not in keys:
+                        break
+                    k = keys.index(ks)
                     ps.append(p[k])
-                fp.to_external(key, ps)
+                if len(ps)>0:
+                    fp.to_external(key, ps)
             else:
                 if not key in keys:
-                    break
+                    continue
                 k = keys.index(key)
                 fp.to_external(key, p[k])
+        return fp
+
+    def internal_func(p, dat, fp, keys, *args):
+        fp = restore_external(fp, p, keys)
         return func(fp, dat, *args)
 
     def internal_callback(*args):
         if callback is None:
             return
-        global keys
-        p = args[0]
-        fp = fp0.copy()
-        for i in range(len(p)):
-            key = keys[i]
-            # restore external parameters in case of bounding
-            fp.to_external(key, p[i])
-            #print(fp[key], p[i])
-        return callback(fp)
+        return callback(*args)
 
     if not isinstance(fp0, FitParameters):
         raise TypeError('fp0 is not of FitParameter type')
@@ -126,10 +124,11 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
         raise NotImplementedError("method: %s"%method)
 
     #restore the external parameter
-    for i, key in enumerate(keys):
-        fp0.to_external(key, res[i])
+    fpe = restore_external(fp0, res, keys)
+    #for i, key in enumerate(keys):
+    #    fp0.to_external(key, res[i])
 
-    return fp0, fopt
+    return fpe, fopt
 
 if __name__=="__main__":
 

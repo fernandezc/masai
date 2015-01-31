@@ -723,7 +723,6 @@ def getmodel(x, y=None, modelname=None, par=None, **kargs):
         an array containing the calculated model.
 
     """
-    exp_idx= kargs.get('exp_idx')
     model = par.model[modelname]
     modelcls = globals()[model]
 
@@ -735,8 +734,6 @@ def getmodel(x, y=None, modelname=None, par=None, **kargs):
     for p in a.args:
         try:
             pa = par['%s_%s' % (p, modelname)]
-            if isinstance(pa, list):
-                pa = pa[exp_idx]
             args.append(pa)
         except KeyError as e:
             if p.startswith('c_'):

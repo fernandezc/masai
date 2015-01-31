@@ -142,23 +142,27 @@ shape: voigtmodel
             chi2 = 0
             som = 0
             ncalls +=1
+
             for exp_idx, source in enumerate(self.sources):
                 modeldata = self._get_modeldata(source, exp_idx)
                 # baseline is already summed with modeldata[-1]
                 # important to work with the real part of source
                 # not the complex number
-                diff = source.real - modeldata.T['modelsum']
-                chi2 += np.sum(diff.iloc[0]**2)
-                som += np.sum(source.real.iloc[0]**2)
+                data = source.real.values
+                mdata = modeldata.loc['modelsum'].values
+                diff = data - mdata
+                chi2 += np.sum(diff**2)
+                som += np.sum(data**2)
 
             chi2 = np.sqrt(chi2/som)
+
             return chi2
 
         # end chi2 function ---------------------------------------------------
 
 
         # callback function--------------------------------------------------------
-        def callback(x, f=None, accepted=None):
+        def callback(*args, **kargs):
             """
             callback print function
             """
@@ -255,7 +259,7 @@ shape: voigtmodel
 
         data = source.real
 
-        x =data.columns.values
+        x = data.columns.values
         xi = np.arange(x.size)
 
         modeldata = np.zeros((nbmodels + 2, x.size)).astype(float)
@@ -271,8 +275,7 @@ shape: voigtmodel
         names = ['baseline', ]
 
         for model in models:
-            calc = getmodel(x, modelname=model, par=parameters,
-                            fd=source, exp_idx=exp_idx)
+            calc = getmodel(x, modelname=model, par=parameters, fd=source)
             if not model.startswith('baseline'):
                 row += 1
                 modeldata[row] = calc
@@ -358,6 +361,7 @@ def prepare(param, exp_idx):
     new_param = param.copy()
 
     for key in param.iterkeys():
+
         if param.reference[key]:
             new_param.reference[key] = False    # important to put it here
                                                 # before other instruction
@@ -375,8 +379,12 @@ def prepare(param, exp_idx):
                 raise ValueError('Cannot evaluate the expression: %s: %s'
                                  % (key, param[refpar]))
                 return
+
             new_param.fixed[key] = True
             new_param.reference[key] = True     #restore it for the next call
+
+        if isinstance(new_param[key], list):
+            new_param.data[key] = new_param.data[key][exp_idx]
 
     return new_param
 
@@ -441,7 +449,7 @@ if __name__ == '__main__':
 
     path2 = os.path.join(DATADIR, user, 'nmr', name, str(2))
     source2 = Bruker(path2)
-    Process(source2, transform='em 1; zf 0; ft; cl -105 -75; pk --fit_phc1 --auto; ab --mode poly')
+    Process(source2, transform='em 1; zf 0; ft; cl -105 -75; pk --fit_phc1 --auto; ab --mode poly') #')#
 
     #p = Plot1d(source1, hold=True)
     #p = Plot1d(source2, axe=p.axe)
@@ -462,7 +470,7 @@ if __name__ == '__main__':
         script +="""
             MODEL: LINE_%d
             shape: voigtmodel
-                %s ampl:  0.6, 0.0, none
+                %s ampl:  0.6, 0.5, 2
                 $ pos: %.3f, %.3f, %.3f
                 > ratio: gratio
                 $ width: %.3f, %.3f, %.3f
@@ -473,7 +481,7 @@ if __name__ == '__main__':
     print(script)
 
     # prepare fit
-    f = Fit1d( source1, script)
+    f = Fit1d( [source1, source2], script)
 
     # initial model plot
     #p = Plot1d([source1, source2],
@@ -486,10 +494,21 @@ if __name__ == '__main__':
     #            offset=15,
     #            xlim=(-98,-80))
 
-    f.run(maxiter=1000, method='simplex')
+    f.run(maxiter=20000, every=100, method='simplex')
 
     # fitted model plot
     p = Plot1d(source1,
+                figsize=(3.4, 2.0), dpi=180,
+                #ow = 2,
+                #col = 1,
+                lw=.5,
+                modls = '--',
+                plot_model=True,
+                offset=15,
+                xlim=(-98,-80))
+
+        # fitted model plot
+    p = Plot1d(source2,
                 figsize=(3.4, 2.0), dpi=180,
                 #ow = 2,
                 #col = 1,
