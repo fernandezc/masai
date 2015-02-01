@@ -53,7 +53,9 @@ def ft(source, options='', axis=-1):
         parser.add_argument('--shift', default=0, type=float, help = "shift in ppm unit")
 
     args  = parser.parse_args(options.split())
-
+    if source is None:
+        return
+    
     if axis == -1:
         par = source.par
     else:

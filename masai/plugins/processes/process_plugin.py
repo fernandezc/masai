@@ -39,7 +39,7 @@ traits.has_traits.CHECK_INTERFACES = 2
 # ===============================================================================
 __plugin_main__ = 'Process'
 
-all = ['Process', ]
+all = ['Process' ]
 
 # ===================================================================================
 # Process plugin
@@ -52,7 +52,7 @@ class Process(HasTraits):
     type = Str("processes")
 
     # specific attributes ----------------------------------------------------------
-
+    nooutput = Bool
     silent = Bool(True)
 
     _ = Any
@@ -61,27 +61,34 @@ class Process(HasTraits):
     # public functions
     # *******************************************************************************
 
-    # -------------------------------------------------------------------------------
-    def print_doc(self):
-        return self.description
-
-    # -------------------------------------------------------------------------------
-    def help(self, command=None):
-        from IPython.display import HTML
-        if not command:
-            return HTML(self._repr_html_())
-        else:
-            try:
-                command(options="--help")
-            except TypeError:
-                try:
-                    exec("%s(options='--help')" % command)
-                except SystemExit:
-                    pass
-
     # *******************************************************************************
     # Private functions
     # *******************************************************************************
+    def _repr_html_(self):
+        if self.nooutput:
+            return ""
+
+        import re
+        import string
+        p = re.compile("(.*:)?(.*)", re.MULTILINE)
+        m = p.findall(self.__init__.__doc__)
+        html = ""
+        start = False
+        for mg in m:
+            if mg[0].strip() != "":
+                html += "<b>%s</b>:%s<br/>" % mg
+            else:
+                s = string.join(mg," ")
+                if s.strip() and start:
+                    html += "&nbsp;"*4+"%s<br/>" % s
+                if "----" in s:
+                    start = True
+                    html = "<h6><u>Parameters</u></h6>"
+        html = '<h3>Process</h3><br><b>Usage:</b>Process(&lt;source&gt;, transform="""&lt;commands&gt;""")'+html
+        return html
+
+    def __repr__(self):
+        return self._repr_html_()
 
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
@@ -98,11 +105,27 @@ class Process(HasTraits):
         #todo: solve help problems
 
         # object to apply the transform
+
         if args:
             # look in args
             source = args[0]
+
+            if not isinstance(source, IPlugin):
+                command = source
+                try:
+                    command(options="--help")
+                except TypeError:
+                    try:
+                        exec("%s(None, options='-h')" % command)
+                    except SystemExit:
+                        pass
+                self.nooutput=True
+                return
+
         else:
-            raise ValueError("no valid source specified\nUsage: Process(fd)")
+            return
+
+        self.nooutput=True
 
         # type of transform, by default em+zf ft+apk
         if len(args)>1:
@@ -166,36 +189,17 @@ class Process(HasTraits):
             elif 'lp' in command:
                 lp(source, options=options, axis=axis)
 
-    def _repr_html_(self):
-        import re
-        import string
-        p = re.compile("(.*:)?(.*)", re.MULTILINE)
-        m = p.findall(self.__call__.__doc__)
-        html = ""
-        start = False
-        for mg in m:
-            if mg[0].strip() != "":
-                html += "<b>%s</b>:%s<br/>" % mg
-            else:
-                s = string.join(mg," ")
-                if s.strip() and start:
-                    html += "&nbsp;"*4+"%s<br/>" % s
-                if "----" in s:
-                    start = True
-                    html = "<h3>Parameters</h3>"
-        return html
-
-
 if __name__ == '__main__':
     import sys, os
     import pylab as pl
-    from masai.plugins.list import Bruker
-    from masai.plugins.list import Plot1d, Plot2d
+    from masai.api import Bruker
+    from masai.api import Plot1d, Plot2d
 
-    Bruker = Bruker()
-    Plot1d = Plot1d()
-    Plot2d = Plot2d()
-    Process = Process()
+    Process("ft")
+
+
+    sys.exit()
+
 
     def test_2D_process(path):
 

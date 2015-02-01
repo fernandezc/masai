@@ -716,8 +716,8 @@ class Bruker(Source):
             """
             return txt
 
-        txt = self.__repr__().replace('***\n', '</H6>')
-        txt = txt.replace('***', '<H6>')
+        txt = self.__repr__().replace('***\n', '</em>')
+        txt = txt.replace('***', '<em>')
         txt = txt.replace('\n', '')
         txt = txt.replace('- ', '<li>')
         return txt

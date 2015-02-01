@@ -21,6 +21,7 @@ from __future__ import print_function, division
 #
 # Python imports
 #
+import sys
 from IPython.display import display, display_pretty
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
@@ -42,7 +43,7 @@ DEBUG = False
 # ===============================================================================
 __plugin_main__ = 'Plot1d'
 
-all = ['Plot1d', ]
+all = ['Plot1d']
 # ===================================================================================
 # Plot1d plugin
 # ===================================================================================
@@ -64,20 +65,11 @@ class Plot1d(HasTraits):
     # public functions
     # *******************************************************************************
 
-    # -------------------------------------------------------------------------------
-    def print_doc(self):
-        return display(self.description)
-
-    # -------------------------------------------------------------------------------
-    def help(self):
-        from IPython.display import HTML
-        return HTML(self._repr_html_())
-
     def _repr_html_(self):
         import re
         import string
         p = re.compile("(.*:)?(.*)", re.MULTILINE)
-        m = p.findall(self.__call__.__doc__)
+        m = p.findall(self.__init__.__doc__)
         html = ""
         start = False
         for mg in m:
@@ -89,7 +81,8 @@ class Plot1d(HasTraits):
                     html += "&nbsp;"*4+"%s<br/>" % s
                 if "----" in s:
                     start = True
-                    html = "<h3>Parameters</h3>"
+                    html = "<h4><u>Parameters</u></h4>"
+        html = "<h3>Plot1d</h3><br/><b>Usage</b>: Plot1d([ [ ]&lt;source&gt;[ ,] ], **kargs)<br/>"+html
         return html
 
     # *******************************************************************************
@@ -102,10 +95,12 @@ class Plot1d(HasTraits):
 
         Parameters
         ----------
-        source: source (such as NMR or IR source)
-        figure: Figure instance, optional
+        source: source(s)
+            A source or a list of source (such as NMR or IR source)
         axe: Axe instance, optional
             the axe where to plot
+        subplot: str
+            a subplot position e.g., 121
         dpi: int, optional
             the number of pixel per inches
         figsize: tuple, optional, default is (3.4, 1.7)
@@ -132,8 +127,18 @@ class Plot1d(HasTraits):
             should we show the vertical axis
         hold: bool, optional, default is False
             if True, hold it until a new plot is performed
+        plot_model:Bool,
+            plot model data if available
+        commands: str,
+            matplotlib commands to be executed
+        savename: str,
+            name of the file to save the figure
+        savefig: Bool,
+            save the fig if savename is defined, should be executed after all other commands
         """
+
         multiplots=False
+
         if args:
             # look in args
             source = args[0]
@@ -141,7 +146,8 @@ class Plot1d(HasTraits):
                 # we will draw subplots
                 multiplots = True
         else:
-            raise ValueError("No a valid input\nUsage: Plot1d(<source>)")
+            # we will display the help
+            return
 
         imag = kargs.get('imag', False)
         if isinstance(source, DataFrame):
@@ -282,6 +288,7 @@ class Plot1d(HasTraits):
             self.savefig(savename)
 
         if not kargs.get('hold', False):
+            print("hold")
             self.show()
 
         self.axe = axe
@@ -297,7 +304,12 @@ class Plot1d(HasTraits):
     def savefig(self, savename=None):
         if savename is None:
             savename = self.savename
-        self.fig.savefig(savename)
+        try:
+            self.fig.savefig(savename)
+        except AttributeError:
+            # may be the fig is not known
+            self.fig = self.axe.get_figure()
+            self.fig.savefig(savename)
         self.savename = savename
 
 
@@ -308,10 +320,7 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import os
-    from masai.plugins.sources.bruker_plugin import Bruker
-
-    Bruker = Bruker()  # necessary for direct call
-    Plot1d = Plot1d()
+    from masai.api import Bruker
 
     DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
     user = 'christian'
