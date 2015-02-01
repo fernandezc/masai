@@ -319,7 +319,7 @@ shape: voigtmodel
             #remove unused row
             modeldata = modeldata[:row + 2]
 
-            xi = np.arange(x.size)
+            xi = np.arange(float(x.size))
             A, a, b = ampbas(xi, data.values[-1], modeldata[-1])  #(fitzone-fitzone[0], data.take(fitzone),
                                  #modeldata[-1].take(fitzone))
 
@@ -338,6 +338,7 @@ shape: voigtmodel
         else: #2D
             y = data.index.values
             modeldata = np.zeros((y.size, x.size)).astype(float)
+
             if nbmodels < 1:
                 return pd.DataFrame(modeldata, index=y, columns=x)
 
@@ -346,6 +347,20 @@ shape: voigtmodel
                 calc = getmodel(x, y, modelname=model, par=parameters,
                                fd=source, kind = self.kind)
                 modeldata +=  calc
+
+            xi = np.arange(float(x.size))
+            yj = np.arange(float(y.size))
+            A, a, b, c = ampbas2D(xi, yj, data.values, modeldata)  #(fitzone-fitzone[0], data.take(fitzone),
+                                 #modeldata[-1].take(fitzone))
+
+            modeldata = A*modeldata
+            base = np.ones_like(modeldata)
+            baseline = a*xi*base + (b*yj*base.T).T +  c
+
+            #update the modeldata
+            modeldata += baseline
+
+            self.A = A
 
         # call the userfunction
         # (in case something is executed in it - nothing by default)
@@ -439,6 +454,62 @@ def ampbas(xi, expe, calc):
     if np.isnan(b): b=0.0
     return A, a, b
 
+def ampbas2D(xi, yj, expe, calc):
+
+    n = float(xi.size)
+    m = float(yj.size)
+    sE = expe.sum()
+    sF = calc.sum()
+    sFI = (xi*calc).sum()
+    sFJ = ((yj*calc.T)).sum()
+    sFd = (calc*calc).sum()
+    sI = sum(xi)
+    sJ = sum(yj)
+    sIJ = ((np.ones_like(calc)*xi).T*yj).sum()
+    sEF = (expe*calc).sum()
+    sEI = (xi*expe).sum()
+    sEJ = (yj*expe.T).sum()
+    sId = sum(xi**2)
+    sJd = sum(yj**2)
+
+    c= (sE*(-m*n*sFd*sId*sJd + m*sFJ**2*sId + n*sFI**2*sJd - 2*sFI*sFJ*sIJ + sFd*sIJ**2) + sEF*(m*n*sF*sId*sJd
+        - m*n*sFI*sI*sJd - m*n*sFJ*sId*sJ + m*sFJ*sI*sIJ + n*sFI*sIJ*sJ - sF*sIJ**2) + sEI*(m*n*sFd*sI*sJd
+        - m*sFJ**2*sI - n*sF*sFI*sJd + n*sFI*sFJ*sJ - n*sFd*sIJ*sJ + sF*sFJ*sIJ) + sEJ*(m*n*sFd*sId*sJ - m*sF*sFJ*sId
+        + m*sFI*sFJ*sI - m*sFd*sI*sIJ - n*sFI**2*sJ + sF*sFI*sIJ))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId
+        + m**2*n*sFd*sI**2*sJd - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd
+        - 2*m*n*sF*sFI*sI*sJd - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ
+        + m*n*sFd*sIJ**2 + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+
+    a= (n*sEF*(m*n*sFI*sJd - m*sF*sI*sJd + m*sFJ*sI*sJ - m*sFJ*sIJ - n*sFI*sJ**2 + sF*sIJ*sJ) + n*sEI*(-m*n*sFd*sJd
+        + m*sFJ**2 + n*sFd*sJ**2 + sF**2*sJd - 2*sF*sFJ*sJ) + sE*(m*n*sFd*sI*sJd - m*sFJ**2*sI - n*sF*sFI*sJd
+        + n*sFI*sFJ*sJ - n*sFd*sIJ*sJ + sF*sFJ*sIJ) - sEJ*(m*n*sFI*sFJ + m*n*sFd*sI*sJ - m*n*sFd*sIJ - m*sF*sFJ*sI
+        - n*sF*sFI*sJ + sF**2*sIJ))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId + m**2*n*sFd*sI**2*sJd
+        - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd - 2*m*n*sF*sFI*sI*sJd
+        - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ + m*n*sFd*sIJ**2
+        + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+
+    A= (m*n*sEF*(-m*n*sId*sJd + m*sI**2*sJd + n*sId*sJ**2 - 2*sI*sIJ*sJ + sIJ**2) + m*sEJ*(m*n*sFJ*sId - m*sFJ*sI**2
+        - n*sF*sId*sJ + n*sFI*sI*sJ - n*sFI*sIJ + sF*sI*sIJ) + n*sEI*(m*n*sFI*sJd - m*sF*sI*sJd + m*sFJ*sI*sJ
+        - m*sFJ*sIJ - n*sFI*sJ**2 + sF*sIJ*sJ) + sE*(m*n*sF*sId*sJd - m*n*sFI*sI*sJd - m*n*sFJ*sId*sJ + m*sFJ*sI*sIJ
+        + n*sFI*sIJ*sJ - sF*sIJ**2))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId + m**2*n*sFd*sI**2*sJd
+        - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd - 2*m*n*sF*sFI*sI*sJd
+        - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ + m*n*sFd*sIJ**2
+        + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+
+    b= (m*sEF*(m*n*sFJ*sId - m*sFJ*sI**2 - n*sF*sId*sJ + n*sFI*sI*sJ - n*sFI*sIJ + sF*sI*sIJ) + m*sEJ*(-m*n*sFd*sId
+        + m*sFd*sI**2 + n*sFI**2 + sF**2*sId - 2*sF*sFI*sI) + sE*(m*n*sFd*sId*sJ - m*sF*sFJ*sId + m*sFI*sFJ*sI
+        - m*sFd*sI*sIJ - n*sFI**2*sJ + sF*sFI*sIJ) - sEI*(m*n*sFI*sFJ + m*n*sFd*sI*sJ - m*n*sFd*sIJ - m*sF*sFJ*sI
+        - n*sF*sFI*sJ + sF**2*sIJ))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId + m**2*n*sFd*sI**2*sJd
+        - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd - 2*m*n*sF*sFI*sI*sJd
+        - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ + m*n*sFd*sIJ**2
+        + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+
+    # in case the modeldata is zero, to avoid further errors
+    if np.isnan(A): A=0.0
+    if np.isnan(a): a=0.0
+    if np.isnan(b): b=0.0
+    if np.isnan(c): c=0.0
+    return A, a, b, c
 
 if __name__ == '__main__':
     import os, commands
@@ -610,6 +681,7 @@ if __name__ == '__main__':
                 v = species[key]
                 dv = abs(v)*.01
                 script += "\n $ gpos%s: %.3f, %.3f, %.3f"%(key, v, v-dv, v+dv)
+            fixdone = False
             for i, key in enumerate(species.keys()):
                 for j, key1 in enumerate(species.keys()):
                     # as it is normally symmetric we can try to reduce the number of varaible
@@ -621,6 +693,9 @@ if __name__ == '__main__':
                     #    script += "\n * ampl:  1., 0.0, none"
                     #else:
                     fi = '$' if connectivity[i,j]>0.001 else '*'
+                    if fi=='$' and not fixdone:
+                        fi = '*'
+                        fixdone=True
                     script += "\n %s ampl:  %.3f, 0.0, none"%(fi, connectivity[i,j])
                     script += "\n > pos: gpos%s "%key
                     script += "\n > pos1: (gpos%s) + (gpos%s)"%(key, key1)
@@ -646,5 +721,5 @@ if __name__ == '__main__':
 
     ###############################
 
-    multifit()
-    #spec2Q()
+    #multifit()
+    spec2Q()
