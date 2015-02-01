@@ -519,6 +519,7 @@ if __name__ == '__main__':
     # print(commands.getoutput('pwd'))
 
     def multifit():
+
         DATADIR = os.path.expanduser(os.path.join('..', '..', '..', 'exemples'))
         user = 'user'
         name = 'RUB-17'

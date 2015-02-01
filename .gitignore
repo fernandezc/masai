@@ -1,35 +1,56 @@
-.idea
+# ipython, python and pycharm, eclipse
+
+org.eclipse.core.resources.prefs
 .ipynb_checkpoints
-*.png
-*.
-.DS_Store
-*.pyc
-masai.egg-info
-
-# image
-*.png
-*.jpg
-*.eps
-*.eps
-
-# ipython
 .ipynb_checkpoints/
-
-# setup
+*-test.ipynb
+.idea
+*.pyx
+*.pyc
 *.egg-info/
 
-# test dir
+# masai
+
+masai.egg-info
 data/
 sandbox/
 
-#OS junk files
+# images
+
+*.png
+*.jpg
+*.eps
+
+# OS junk files
+
 [Tt]humbs.db
 *.DS_Store
-*.pyc
-org.eclipse.core.resources.prefs
-lcslib/cfpylib
-.idea
-Cython Magics.ipynb
-*.pyx
-fft.ipynb
-*-test.ipynb
+.DS_Store
+
+#Bruker files
+
+1i
+1r
+2rr
+2ri
+2ir
+2ii
+3rrr
+3rri
+3rir
+3rii
+3irr
+3iri
+3iir
+3iii
+assocs
+outd
+format.ased
+uxnmr.par
+uxnmr.info
+format.temp
+fq1list
+scon2
+shimvalues
+spnam0
+specpar

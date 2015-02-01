@@ -1,0 +1,215 @@
+# 1 "/home/nmr/prog/pp/cp.lcs"
+;cp.lcs
+;===============================================================================
+; based on the library cp pulse program
+; optional HETCOR with PMLG during t1
+;-------------------------------------------------------------------------------
+; modifications: 
+;   CF 2013 05 16 - three-level EXCITATION/CONTACT/DECOUPLING
+;   CF 2013 05 17 - Hetcor w/o FSLG
+; ------------------------------------------------------------------------------
+;Avance III version
+;$CLASS=Solids
+;$DIM=1D or 2D
+;$TYPE=cross polarisation
+;$SUBTYPE= simple 1D or heteronuclear correlation w/o lee-golburd
+;$COMMENT= cp experiment, arbitrary contact and decoupling schemes
+; ------------------------------------------------------------------------------
+
+; ------------------------------------------------------------------ parameters: 
+
+; >> X channel
+;p15 : contact time at PLW1(f1) and SPW0(f2)
+;pl1 : X power level during contact
+# 24 "/home/nmr/prog/pp/cp.lcs"
+; >> Y or H channel
+;p3 : 90deg at power level PLW12
+;pl2 : not used
+;pl12 : excitation and decoupling power level
+;pl13 : lg power level during t1
+;pl14 : lg power during cp
+;sp0 : power level during contact
+;cnst21 : on resonance, usually = 0
+;cpdprg2 : e.g. cw, spinal64 (at PLW12)
+;pcpd2 : pulse length in decoupling sequence (e.g. close to 180deg )
+;spnam0 : use e.g. ramp.100 or ramp90100.100 for variable amplitude CP
+
+; >> PMLG
+;d3 : delay between PMLG blocks (i.e., 2.1u  in microseconds)
+;p5 : FSLG 2pi pulse set by lgcalc.incl
+;cnst20: LG-RF field as adjusted, in Hz used to calculate cnst22 and cnst23 +and - LG frequency
+;cnst22: +LG frequency offset 
+;cnst23: -LG frequency offset
+;cnst24: offset for proton evolution under LG, usually 0 - -2000
+;cnst30: desired RF field in Hz for LG during CP
+
+;l3 : for dwell in t1 = 4*p5*l3*0.578
+# 47 "/home/nmr/prog/pp/cp.lcs"
+;in0 : t1 increment
+;ns : n*8 or n*16 if pulsepi is defined
+
+;FnMode: undefined
+;mc2	: STATES-TPPI
+;nd0  : 1
+;WDW  : QSINE 
+;SSB  : 3 
+;d1 : recycle delay
+;zgoptns : -Ddecouple, -Dhetcor, -Dpmlg, -Dlgcp, -Dpulsepi, -Dlacq, -Dlcp15 or blank
+
+prosol relations=<solids_cp>
+# 1 "/home/nmr/prog/pp/Avancesolids.incl" 1
+;Avancesolids.incl
+;   for TCU3
+;
+;version 1 28.2.2001, written by HF
+;	   4.4.2006, complemented by Ste
+
+;$CLASS=Solids INCL
+;$COMMENT=definitions for setrtp and setnmr
+
+;switch between 1H or 19F output (H amplifier) 
+# 14 "/home/nmr/prog/pp/Avancesolids.incl"
+;gating pulse for RX, ADC and HPPR auto mode
+
+
+# 18 "/home/nmr/prog/pp/Avancesolids.incl"
+;explicit blanking of preamp, receiver, adc, not implemented yet
+
+
+# 26 "/home/nmr/prog/pp/Avancesolids.incl"
+;generate dwell clock
+
+
+;turn dwell clock on/off
+# 32 "/home/nmr/prog/pp/Avancesolids.incl"
+;
+
+
+# 36 "/home/nmr/prog/pp/Avancesolids.incl"
+;define data sampling for WAHUHA type experiments, samples analogue or digitally for d9, closes receiver
+
+
+# 40 "/home/nmr/prog/pp/Avancesolids.incl"
+;explicit transmitter blanking, not supported yet
+
+;NCO switching, to be implemented
+
+;$id: $
+# 60 "/home/nmr/prog/pp/cp.lcs" 2
+# 87 "/home/nmr/prog/pp/cp.lcs"
+# 88 "/home/nmr/prog/pp/cp.lcs"
+
+
+# 96 "/home/nmr/prog/pp/cp.lcs"
+;cnst11 : to adjust t=0 for acquisition, if digmod = baseopt
+"acqt0=1u*cnst11"
+
+
+# 1 "mc_line 100 file /home/nmr/prog/pp/cp.lcs exp. def. part of mc cmd. before ze"
+define delay MCWRK
+define delay MCREST
+"MCREST = d1 - 0.500000*1m"
+"MCWRK = 0.500000*1m"
+
+    dccorr
+# 100 "/home/nmr/prog/pp/cp.lcs"
+1 ze
+# 1 "mc_line 100 file /home/nmr/prog/pp/cp.lcs exp. def. of mc cmd. after ze"
+# 101 "/home/nmr/prog/pp/cp.lcs"
+# 1 "mc_line 101 file /home/nmr/prog/pp/cp.lcs exp. start label for mc cmd."
+2 MCWRK do:f2
+  MCREST
+# 102 "/home/nmr/prog/pp/cp.lcs"
+# 1 "/home/nmr/prog/pp/p15_prot.incl" 1
+;p15_prot.incl
+;
+; Test the rf on-time and duty cycle
+;protect against too long contact time
+;Test the rf on-time and duty cycle 
+;
+;$CLASS=Solids INCL
+;$COMMENT=protect against too long contact time
+
+
+1m
+if "p15<10.1m" goto Passp15
+print "contact time exceeds 10msec limit!"
+goto HaltAcqu
+Passp15, 1m
+# 17 "/home/nmr/prog/pp/p15_prot.incl"
+;$id: $
+# 104 "/home/nmr/prog/pp/cp.lcs" 2
+
+			;make sure p15 does not exceed 10 msec 
+			;let supervisor change this pulseprogram if 
+			;more is needed
+
+# 110 "/home/nmr/prog/pp/cp.lcs"
+			;disable protection file for long acquisition change decoupling power !!! or you risk probe damage
+			;if you set the label lacq (ZGOPTNS -Dlacq), the protection is disabled
+
+# 1 "/home/nmr/prog/pp/aq_prot.incl" 1
+;aq_prot.incl
+; Test the rf on-time and duty cycle
+;protect against too long acquisition time
+
+;$CLASS=Solids INCL
+;$COMMENT=protect against too long acquisition time
+# 8 "/home/nmr/prog/pp/aq_prot.incl"
+1m
+if "aq<50.1m" goto Passaq
+print "acquisition time exceeds 50m limit"
+goto HaltAcqu
+Passaq, 1m
+
+;$id: $
+# 113 "/home/nmr/prog/pp/cp.lcs" 2
+
+			;allows max. 50 msec acquisition time, supervisor
+			;may change  to max. 1s at less than 5 % duty cycle
+			;and reduced decoupling field
+# 119 "/home/nmr/prog/pp/cp.lcs"
+; --------------------------------------------------------------------excitation
+  (p3 pl12 ph0):f2
+
+# 158 "/home/nmr/prog/pp/cp.lcs"
+
+# 160 "/home/nmr/prog/pp/cp.lcs"
+;-------------------------------------------------------------------------contact
+
+
+# 167 "/home/nmr/prog/pp/cp.lcs"
+  ; ramp with sp0 used on H channel
+  (p15 pl1 ph2):f1 (p15:sp0 ph10):f2
+
+
+;---------------------------------------------------------------------acquisition
+# 177 "/home/nmr/prog/pp/cp.lcs"
+  go=2 ph31
+# 1 "mc_line 178 file /home/nmr/prog/pp/cp.lcs exp. mc cmd. in line"
+  MCWRK  do:f2 wr #0
+  MCWRK
+# 179 "/home/nmr/prog/pp/cp.lcs"
+
+HaltAcqu, 1m		;jump address for protection files
+exit
+
+;-------------------------------------------------------------------------------
+# 185 "/home/nmr/prog/pp/cp.lcs"
+; inital pulse
+ph0= 1 3
+
+;cp
+ph2= 0 0 2 2 1 1 3 3
+ph10= 0
+
+;pmlg
+ph11= 1 3
+# 195 "/home/nmr/prog/pp/cp.lcs"
+;rec
+ph31= 0 2 2 0 1 3 3 1
+
+# 209 "/home/nmr/prog/pp/cp.lcs"
+
+# 211 "/home/nmr/prog/pp/cp.lcs"
+;$id: $
