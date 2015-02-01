@@ -1,7 +1,8 @@
 #===============================================================================
 # imports
 #===============================================================================
-import numpy as np
+from __future__ import print_function
+import sys
 import scipy.optimize
 from masai.core.fit.parameters import FitParameters
 
@@ -102,7 +103,6 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
                                      full_output=True, disp=False,
                                      callback=internal_callback)
         res, fopt, iterations, funcalls, warnmess = result
-        # print(iterations, funcalls, warnmess)
 
     elif method.upper() == "HOPPING":
         result = scipy.optimize.basinhopping(internal_func, par,
@@ -127,6 +127,12 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
     fpe = restore_external(fp0, res, keys)
     #for i, key in enumerate(keys):
     #    fp0.to_external(key, res[i])
+
+
+    if warnmess==1 :
+        print("Maximum number of function evaluations made.", file=sys.stderr)
+    if warnmess == 2:
+        print ("Maximum number of iterations reached.", file=sys.stderr)
 
     return fpe, fopt
 

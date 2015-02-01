@@ -419,7 +419,7 @@ class ParameterScript(HasTraits):
 
         # set the number of experiments
         fp.expnumber = len(self.sources)
-        print("The number of experiment is set to %d"%fp.expnumber)
+        print("The number of experiment(s) is set to %d"%fp.expnumber)
 
         # start interpreting ------------------------------------------------------
         lines = script.split('\n')
@@ -528,8 +528,6 @@ class ParameterScript(HasTraits):
                     fp[ks] = val, mini.strip(), maxi.strip(), fixed
                 else:
                     fp[ks] = value.strip()
-
-
         return fp 
 
 ###########################

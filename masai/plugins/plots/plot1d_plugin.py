@@ -129,6 +129,10 @@ class Plot1d(HasTraits):
             if True, hold it until a new plot is performed
         plot_model:Bool,
             plot model data if available
+        modellinestyle or modls: str,
+            line style of the model
+        offset: float,
+            offset of the model individual lines
         commands: str,
             matplotlib commands to be executed
         savename: str,
@@ -203,6 +207,7 @@ class Plot1d(HasTraits):
             line.set_linestyle(ls)
 
         # plot the models
+        offset = 0.
         if kargs.get('plot_model', False) and source.modeldata is not None:
             # we now plot the model if it exists
             mdata = source.modeldata
@@ -240,6 +245,8 @@ class Plot1d(HasTraits):
 
         zlim = list(kargs.get('zlim', kargs.get('ylim', axe.get_ylim())))
         zlim.sort()
+        if offset>0:
+            zlim[0] = zlim[0]-offset
         axe.set_xlim(xlim)
         axe.set_ylim(zlim)
         axe.xaxis.set_major_locator(MaxNLocator(5))
@@ -288,7 +295,6 @@ class Plot1d(HasTraits):
             self.savefig(savename)
 
         if not kargs.get('hold', False):
-            print("hold")
             self.show()
 
         self.axe = axe
