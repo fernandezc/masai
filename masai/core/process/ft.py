@@ -157,9 +157,9 @@ def ft(source, options='', axis=-1):
                 sr2 = (sf2 - bf12) * 1.e6
                 sr1 = sr2 * dra
 
-                p0 = -2. * np.pi * float(shift) * bf11 / sw1
+                p0 = 2. * np.pi * float(shift) * bf11 / sw1
 
-                bf11 += sr1 * 1.e-6 - float(shift) * bf11 * 1.e-6
+                bf11 += sr1 * 1.e-6 + float(shift) * bf11 * 1.e-6
                 sf1 = bf11
 
                 print("dra:", dra)
