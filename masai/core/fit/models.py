@@ -20,7 +20,6 @@ This module holds the defintions all the various models used by Masaï.
 """
 import os
 import numpy as np
-from numba import jit
 
 #from masai.processing.processbase import _ft
 from pulsar.pypulsar import (parameters, compute, reset)
