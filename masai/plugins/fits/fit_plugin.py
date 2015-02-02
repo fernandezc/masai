@@ -50,6 +50,7 @@ __plugin_main__ = 'Fit'
 
 all = ['Fit', ]
 
+
 # ===================================================================================
 # Process1d plugin
 # ===================================================================================
@@ -72,20 +73,6 @@ class Fit(HasTraits):
     # *******************************************************************************
     # public functions
     # *******************************************************************************
-
-    # -------------------------------------------------------------------------------
-    def print_doc(self):
-        return self.description
-
-    # -------------------------------------------------------------------------------
-    def help(self):
-        return """Usage:
-            fit1d(source, script)
-                where source is a valid Bruker source and script must be provided.
-
-            a default script can be generated using :
-                Fit.default()
-            """
 
     def default(self):
         s = """
@@ -116,7 +103,6 @@ shape: voigtmodel
 
 """
         print(s)
-
 
     #===========================================================================
     # run
@@ -244,10 +230,48 @@ shape: voigtmodel
     # Private functions
     # *******************************************************************************
 
+    def _repr_html_(self):
+        import re
+        import string
+        p = re.compile("^(?P<name>.*:)(.*)", re.MULTILINE)  #To get the keywords
+        html = p.sub(r'<b>\1</b>\2', self.__init__.__doc__)
+        html = html.replace('-','')
+        html = html.replace('\n','<br/>')
+        html = html.replace('Parameters','<h3>Parameters</h3>')
+        html = html.replace('Properties','<h3>Properties</h3>')
+        html = html.replace('Methods','<h3>Methods</h3>')
+        html = html.replace('</h3><br/>','</h3>')
+        html = html.replace('<br/><br/>','<br/>')
+        return html
+
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
         """
-        fit a 1D or 2D sources, or a list of sources
+        Fit a 1D or 2D sources, or a list of sources
+
+        usage: Fit([[]source[, ]], **kargs)
+
+        Parameters
+        ----------
+        source: Source instance
+            The data to fit (may be a list of sources)
+        mode: Str
+            reserved - not used for now
+        kind: Str
+            Contain information about the specific kind of experiment
+            for now, only 'DQ-SQ' is implemented
+
+        Properties
+        ----------
+        fp: Dict,
+            Fit parameters dictionary (read-only, but individual elements of the dict can be changed)
+        script: Str
+            A string representation of the fp dict- Can be used as input for other a fit
+
+        Methods
+        -------
+        run: Run a fit
+            use run() without arguments to get help on this method
 
         """
 
@@ -261,7 +285,7 @@ shape: voigtmodel
             script = args[1]
 
         else:
-            raise ValueError("No valid source specified\n%s"%self.help())
+           return
 
         # get parameters form script
         self.parameterscript = ParameterScript(sources=self.sources, script=script)
@@ -511,3 +535,6 @@ def ampbas2D(xi, yj, expe, calc):
     if np.isnan(b): b=0.0
     if np.isnan(c): c=0.0
     return A, a, b, c
+
+if __name__ == '__main__':
+    print (Fit()._repr_html_())
