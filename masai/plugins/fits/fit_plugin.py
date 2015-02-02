@@ -236,6 +236,10 @@ shape: voigtmodel
         p = re.compile("^(?P<name>.*:)(.*)", re.MULTILINE)  #To get the keywords
         html = p.sub(r'<b>\1</b>\2', self.__init__.__doc__)
         html = html.replace('-','')
+        html = html.split('\n')
+        html[0] = "<h3>FIT</h3>"
+        html[1] = "<h4>%s</h4>"%html[1]
+        html = "<br/>".join(html)
         html = html.replace('\n','<br/>')
         html = html.replace('Parameters','<h3>Parameters</h3>')
         html = html.replace('Properties','<h3>Properties</h3>')
@@ -249,29 +253,29 @@ shape: voigtmodel
         """
         Fit a 1D or 2D sources, or a list of sources
 
-        usage: Fit([[]source[, ]], **kargs)
+        Usage: Fit([[]source[, ]], **kargs)
 
         Parameters
         ----------
         source: Source instance
             The data to fit (may be a list of sources)
-        mode: Str
-            reserved - not used for now
-        kind: Str
+        mode: Str, optional
+            Reserved - not used for now
+        kind: Str, optional
             Contain information about the specific kind of experiment
             for now, only 'DQ-SQ' is implemented
 
         Properties
         ----------
-        fp: Dict,
+        fp: Dict
             Fit parameters dictionary (read-only, but individual elements of the dict can be changed)
         script: Str
-            A string representation of the fp dict- Can be used as input for other a fit
+            A string representation of the fp dict, which can be used as input for other a fit
 
         Methods
         -------
-        run: Run a fit
-            use run() without arguments to get help on this method
+        run: Method
+            Run a fit, use run() without arguments to get help on this method
 
         """
 
