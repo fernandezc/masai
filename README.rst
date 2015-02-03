@@ -35,16 +35,8 @@ Be sure that you have a Fortran compiler on your machine or get it from `gfortra
 	 
 2. Then in a terminal, issue this command::
 
-	$ pip install masai
-
-assuming that you have pip installed, or::
-
-	$ easy_install pip
-	$ pip install masai
-	
-To update a previous installed version::
-
-	$ pip install -U masai
+	$ cd masai
+        $ python setup.py develop
 	
 3. To run the program, open a terminal, cd to the directory where masai/Doc is installed,
 and then issue the following command::
