@@ -56,22 +56,7 @@ def pk(source=None, options= '', axis=-1):
     axis: optional, default=-1
 
     """
-    if not source:
-        return None
-
-    if axis == -1:
-        par = source.par
-    else:
-        par = source.par2
-
-    if not par.isfreq:
-        print('This source is not already transformed: are you sure this is what you want?')
-
-    # get the initial phase setting
-    phc0 = par.PHC0
-    phc1 = par.PHC1
-
-    # options evaluation
+   # options evaluation
     parser = argparse.ArgumentParser(description='PK processing.', usage="""
     pk [-h] [--auto] [--fit_phc1] [--ediff EDIFF]
                            [--gamma GAMMA] [--select {standard,max,cols}]
@@ -81,6 +66,22 @@ def pk(source=None, options= '', axis=-1):
                            [--verbose]
                            [phases [phases ...]]
     """)
+    phc0 = 0
+    phc1 = 0
+    if source:
+
+        if axis == -1:
+            par = source.par
+        else:
+            par = source.par2
+
+        if not par.isfreq:
+            print('This source is not already transformed: are you sure this is what you want?')
+
+        # get the initial phase setting
+        phc0 = par.PHC0
+        phc1 = par.PHC1
+
     # positional arguments
     parser.add_argument('phases', default=(phc0,phc1), nargs='*', type=float, help='zero and first order phase')
     parser.add_argument('--pivot', '-pv', default=None, type=float, help='pivot position in spectral units')
@@ -100,6 +101,8 @@ def pk(source=None, options= '', axis=-1):
     parser.add_argument('--verbose', action='store_true', help='verbose flag' )
 
     args  = parser.parse_args(options.split())
+    if not source:
+        return
 
     # set data depending on the axis
     data = source.data
