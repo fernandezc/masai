@@ -18,25 +18,27 @@
 Define basic source functionalities
 """
 
-from __future__ import print_function
-
-# ===============================================================================
 # Imports
-# ===============================================================================
-import os
-import glob
-from warnings import warn, filterwarnings
 
-filterwarnings("ignore")
+# python modules imports
+from __future__ import print_function
+import sys
 
+# third-party libraries imports
 import pandas as pd
-import numpy as np
 from traits.api import *
 
+# local import
 from masai.core.utils.misc import position2index
 
+
+# =======================
 class Source(HasTraits):
-    # minimal plugin attribute -----------------------------------------------------
+    """
+    Source class
+
+    """
+
     description = Str
     type = Str
 
@@ -44,52 +46,71 @@ class Source(HasTraits):
 
     history = List
 
-    # *******************************************************************************
-    # public functions
-    # *******************************************************************************
+    # deprecated function
+    def row(self, *args, **kargs):
+        print("'row' is deprecated, use 'get_row' instead.", file=sys.stderr)
+        return self.get_row(*args, **kargs)
 
-    # -------------------------------------------------------------------------------
-    def row(self, index, **kargs):
+    # -------------------------------------------
+    def get_row(self, value, byindex=False, width=0):
         """
         Extract a row from a two dimensional spectra
+
         Parameters
         ----------
-        index:
-        width:
+        value: int or float
+            index or position in the axis unit of the row to extract
+            depends on byindex keyword
+        byindex: boolean, optional, default=False
+            if False, value is a position in axis unit,
+            if True it is the index of the row
+        width: float, optional, default=0
+            if 0, only one row is taken
+            else the specified width is taken into account, the returned data
+            correspond to the integration either of a number of row
+            or of a range of position depending on the byindex keyword
 
         Returns
         -------
         data: DataFrame
             return a pandas Dataframe with the row
 
-        Examples
-        --------
-
         """
-        return self._getsection(index, axis=-1, **kargs)
+        return self._getsection(value, axis=-1, byindex=byindex, width=width)
 
-    # -------------------------------------------------------------------------------
-    def col(self, index, **kargs):
+    # deprecated function
+    def col(self, *args, **kargs):
+        print("'col' is deprecated, use 'get_col' instead.", file=sys.stderr)
+        return self.get_col(*args, **kargs)
+
+    # -------------------------------------------
+    def get_col(self, value, byindex=False, width=0):
         """
-        Extract a row from a two dimensional spectra
+        Extract a column from a two dimensional spectra
+
         Parameters
         ----------
-        index:
-        width:
+        value: int or float
+            index or position in the axis unit of the row to extract
+            depends on byindex keyword
+        byindex: boolean, optional, default=False
+            if False, value is a position in axis unit,
+            if True it is the index of the column
+        width: float, optional, default=0
+            if 0, only one row is taken
+            else the specified width is taken into account, the returned data
+            correspond to the integration either of a number of row
+            or of a range of position depending on the byindex keyword
 
         Returns
         -------
         data: DataFrame
-            return a pandas Dataframe with the row
-
-        Examples
-        --------
-
+            return a pandas Dataframe with the col selected
         """
 
-        return self._getsection(index, axis=0, **kargs)
+        return self._getsection(value, axis=0, byindex=byindex, width=width)
 
-    # ------------------------------------------------------------------------------
+    # ----------------------------
     def get_limits(self, axis=-1):
         data = self.data
         lim = ([data.index[0], data.index[-1]],
@@ -127,6 +148,9 @@ class Source(HasTraits):
     real = Property
 
     def _get_real(self):
+        return self.get_real()
+
+    def get_real(self):
         r = self.data.values.real
         x = self.data.columns
         y = self.data.index
@@ -136,6 +160,9 @@ class Source(HasTraits):
     imag = Property
 
     def _get_imag(self):
+        return self.get_imag()
+
+    def get_imag(self):
         j = self.data.values.imag
         x = self.data.columns
         y = self.data.index
@@ -143,6 +170,7 @@ class Source(HasTraits):
 
     # ndims
     ndims = Property
+
     def _get_ndims(self):
         ndims = 1
         if self.is_2d:
@@ -177,6 +205,7 @@ class Source(HasTraits):
             print('No data')
             return False
 
+    # -------------------------------------
     def position2index(self, pos, axis=-1):
         if axis == 0:
             a = self.data.index
@@ -200,7 +229,7 @@ class Source(HasTraits):
 
         """
         if not self.is_2d :
-            print("1D spectrum, so we return the input data itself!")
+            print("1D data, so we return the input data itself!")
             return self.data
 
         data = self.data.copy()
@@ -255,36 +284,4 @@ class Source(HasTraits):
         return pd.DataFrame(section, index=y).T
 
 if __name__ == '__main__':
-    """
-    test plugin
-    """
-    # need this to test  directly
-    import pylab as pl
-
-    import warnings
-    warnings.filterwarnings("ignore")
-
-    Bruker = Bruker()
-
-    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
-
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-    fd = Bruker(path, dgfilter=True)
-    fd.data.T.plot(legend=False)
-
-    user = 'aurelie'
-    name = 'RbNO3'
-    expno = 15
-    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-    fd = Bruker(path, dgfilter=True)
-
-    row = fd.row(0, byindex=False)
-    row.T.plot(legend=False)
-
-    col = fd.col(0, width=.1, byindex=False)
-    col.T.plot(legend=False)
-
-    pl.show()
+    pass
