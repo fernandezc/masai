@@ -8,12 +8,14 @@ org.eclipse.core.resources.prefs
 *.pyx
 *.pyc
 *.egg-info/
+Untitled0.ipynb
 
 # masai
 
 masai.egg-info
 data/
 sandbox/
+biblio
 
 # images
 
@@ -54,3 +56,4 @@ scon2
 shimvalues
 spnam0
 specpar
+
