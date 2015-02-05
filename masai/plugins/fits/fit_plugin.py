@@ -40,6 +40,7 @@ from masai.core.fit.models import getmodel
 from masai.core.fit.sequence import PulseSequence
 from masai.core.fit.optimize import optimize
 from masai.core.source import Source
+from masai.core.utils import htmldoc
 
 traits.has_traits.CHECK_INTERFACES = 2
 
@@ -231,22 +232,11 @@ shape: voigtmodel
     # *******************************************************************************
 
     def _repr_html_(self):
-        import re
-        import string
-        p = re.compile("^(?P<name>.*:)(.*)", re.MULTILINE)  #To get the keywords
-        html = p.sub(r'<b>\1</b>\2', self.__init__.__doc__)
-        html = html.replace('-','')
-        html = html.split('\n')
-        html[0] = "<h3>FIT</h3>"
-        html[1] = "<h4>%s</h4>"%html[1]
-        html = "<br/>".join(html)
-        html = html.replace('\n','<br/>')
-        html = html.replace('Parameters','<h3>Parameters</h3>')
-        html = html.replace('Properties','<h3>Properties</h3>')
-        html = html.replace('Methods','<h3>Methods</h3>')
-        html = html.replace('</h3><br/>','</h3>')
-        html = html.replace('<br/><br/>','<br/>')
-        return html
+        if not self.sources:
+            return htmldoc(self.__init__.__doc__)
+        else:
+            return self.message
+
 
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
@@ -541,4 +531,4 @@ def ampbas2D(xi, yj, expe, calc):
     return A, a, b, c
 
 if __name__ == '__main__':
-    print (Fit()._repr_html_())
+    print (Fit())

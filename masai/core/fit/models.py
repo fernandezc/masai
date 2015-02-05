@@ -15,7 +15,7 @@
 #===============================================================================
 
 """
-This module holds the defintions all the various models used by Masaï.
+This module holds the definitions all the various models used by Masaï.
 
 """
 import os

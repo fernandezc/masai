@@ -45,6 +45,7 @@ from masai.core.database import Isotopes
 import traits.has_traits
 from masai.plugins import IPlugin
 traits.has_traits.CHECK_INTERFACES = 2
+from masai.core.utils import htmldoc
 
 # ===============================================================================
 # Plugin signature
@@ -82,28 +83,30 @@ class Multiplex(Bruker):
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
         """
-        return the output of the bruker plugin: a valid nmr source experiment
+        Multiplex
+
+        Return a Bruker NMR multiplex source
 
         Parameters
         ----------
         path: str,
             path of the Bruker directory
         data_dir: str,
-            main strorage directory, optional
+            main storage directory, optional
         user: str, optional
             user name of the dataset
         name: str, optional
             name of the dataset
         expno: int, optional
             experiment number
-        processed: bool, optioanl, default is False
+        processed: bool, optional, default is False
             should we load already bruker processed files
         procno: int
             processing number
 
         """
 
-        # As this routine is subject to several call we need to retore the initial state
+        # As this routine is subject to several call we need to restore the initial state
         if hasattr(self, 'par'):
             del self.par
             del self._data_orig
@@ -140,7 +143,8 @@ class Multiplex(Bruker):
 
         if not os.path.exists(path):
             # nothing else to try
-            raise Exception('a valid path to an existing file is needed in the arguments')
+            # display help in the notebook
+            return
 
         self._read_multiplex(path, **kargs)
 
@@ -383,6 +387,12 @@ class Multiplex(Bruker):
         # store it as data_orig
         # we use the hidden properties because the associated properties is read_only
         self._data_orig = data
+
+    def _repr_html_(self):
+        if not self.par:
+            return htmldoc(self.__init__.__doc__)
+        else:
+            return self.message
 
 if __name__ == '__main__':
     """

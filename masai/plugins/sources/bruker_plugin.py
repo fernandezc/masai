@@ -43,6 +43,7 @@ from masai.core.database import Isotopes
 
 import traits.has_traits
 traits.has_traits.CHECK_INTERFACES = 2
+from masai.core.utils import htmldoc
 
 # ===============================================================================
 # Plugin signature
@@ -80,11 +81,6 @@ class Bruker(Source):
     # *******************************************************************************
     # public functions
     # *******************************************************************************
-
-    # -------------------------------------------------------------------------------
-    def help(self):
-        return self.__call__.__doc__
-
 
     #------------------------------------
     def get_multiplicator(self, axis=-1):
@@ -157,7 +153,9 @@ class Bruker(Source):
     # *******************************************************************************
     def __init__(self, *args, **kargs):
         """
-        return the output of the bruker plugin: a valid nmr source experiment
+        Bruker
+
+        Usage: source = Bruker(path, [processed=False], [lowmem=False])
 
         Parameters
         ----------
@@ -215,7 +213,8 @@ class Bruker(Source):
 
         if not os.path.exists(path):
             # nothing else to try
-            raise Exception('a valid path to an existing file is needed in the arguments')
+            return
+            #raise Exception('a valid path to an existing file is needed in the arguments')
 
         self._read(path, **kargs)
 
@@ -454,8 +453,12 @@ class Bruker(Source):
             #store also the varpars of the series
             varpars = kargs.get('varpars')
             if isinstance(varpars, str):
-                # this should be one of the dic parameters
-                lvarpars.append(adic.par[varpars]) # store the variable
+                varpars = varpars.split()
+                if len(varpars)==1:
+                    # this should be one of the dic parameters
+                    lvarpars.append(adic.par[varpars[0]]) # store the variable
+                elif len(varpars)==2:
+                    lvarpars.append(adic.par[varpars[0]][int(varpars[1])]) # store the variable
                 ldates.append(adic.par.DATE) # and the date
             elif isinstance(varpars, list):
                 # this should be a list of parameters
@@ -667,11 +670,7 @@ class Bruker(Source):
 
         """
         if not self.par:
-            txt = """Usage:
-            fd = Bruker(path, [processed=False], [lowmem=False])
-              where 'path' is a valid path to a directory
-            """
-            return txt
+            return self.__init__.__doc__
 
         txt = "***Bruker Source***\n"
         txt += "- path: %s\n" % self.path
@@ -710,17 +709,14 @@ class Bruker(Source):
 
         """
         if not self.par:
-            txt = """Usage:<br/>
-            fd = <strong>Bruker</strong>(path, <em>[processed=False]</em>, <em>[lowmem=False</em>])<br/>
-              where <em>'path'</em> is a valid path to a bruker dataset directory
-            """
-            return txt
+             return htmldoc(self.__init__.__doc__)
 
         txt = self.__repr__().replace('***\n', '</em>')
         txt = txt.replace('***', '<em>')
         txt = txt.replace('\n', '')
         txt = txt.replace('- ', '<li>')
         return txt
+
 
     # *******************************************************************************
     # Events
@@ -757,6 +753,17 @@ if __name__ == '__main__':
     """
     test plugin
     """
+    DATADIR = '../../../doc/tutorial/exemples'
+    sources = Bruker(data_dir=DATADIR,
+            user = 'user',
+            name = 'CP',
+            expnos = range(80,95,1),
+            varpars = "P 15")
+
+    #print(sources)
+    import sys
+    sys.exit()
+
     # need this to test  directly
     import pylab as pl
     from masai.plugins.list import Process, Plot2d
@@ -818,7 +825,7 @@ if __name__ == '__main__':
                  )
 
     sources.data.T.plot(legend=False)
-    print(sources)
+    #print(sources)
     pl.show()
 
 

@@ -1,0 +1,21 @@
+##TITLE= Audit trail, XWIN-NMR		Version 3.5
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= nmr
+$$ E:/data/siblani/nmr/alginate/91/pdata/1/auditp.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, WHAT)
+(   1,<2013-02-05 15:41:05.13 +0100>,<nmr>,<LCS176N>,
+      <created by zg, POWCHK disabled, PULCHK disabled
+       configuration hash MD5:
+       6A 7B D0 BD B4 83 14 84 DD C4 9E 5B D8 C2 D7 93
+       data hash MD5: 4026
+       EF 5A 8A EF AC 98 21 BF 80 01 3E C8 91 76 36 16>)
+(   2,<2013-02-05 18:43:52.80 +0100>,<nmr>,<LCS176N>,
+      <Start of raw data processing
+       efp BC_mod = 2 LB = 50 FT_mod = 6 PKNL = 1 PHC0 = 42.5404 PHC1 = -250.3998 SI = 8K 
+       data hash MD5: 8K
+       CF 45 E6 FC 4D 94 F5 05 64 6C 73 A3 48 71 3F B7>)
+##END=
+
+$$ hash MD5
+$$ 19 C6 4B F0 A4 B8 9A C7 01 0F B4 1C B1 5B 5F 70

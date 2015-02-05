@@ -16,3 +16,4 @@
 
 #from .mqanalysis import *
 from .picking import *
+from .pca import PCA

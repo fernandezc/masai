@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.linalg import svd
 
-from traits.api import HasTraits, Array, Float, Int, Bool
+from traits.api import HasTraits, Array, Float, Int, Bool, Str, Property, cached_property
 
 #===============================================================================
 # PCA
@@ -12,24 +12,25 @@ class PCA(HasTraits):
     U = Array
     D = Array
     V = Array
-    treshold = Float
+    threshold = Float
     npc_min = Int
     npc_max = Int
-    _npc = Int
-    center = Bool
-    wr = Array  # horizontal axisscale
-    t = Array
+    npc = Property
+    centered = Bool
+    message = Str
 
-    def __init__(self, specs, treshold=99.9999, npc_min=2, npc_max=200,
-                 center=False):
+
+    def __init__(self, specs,
+                 threshold=99.9999, npc_min=2, npc_max=200,
+                 centered=False):
         """
         initialisation
         """
 
-        self.treshold = treshold / 100.
+        self.threshold = threshold / 100.
         self.npc_min = npc_min
         self.npc_max = npc_max
-        self.center = center
+        self.centered = centered
         if specs is not None:
             self.fit(specs)
 
@@ -42,7 +43,7 @@ class PCA(HasTraits):
         self.X = specs.copy()
 
         # centering
-        if self.center:
+        if self.centered:
             self.mean_ = np.mean(self.X, axis=0)
             self.X -= self.mean_
         else:
@@ -54,29 +55,34 @@ class PCA(HasTraits):
         self.evr = evr = ev / ev.sum()
         self.evrc = evr.cumsum()
 
-    def reset_npc(self):
-        npc = min(abs(self.evrc - self.treshold).argmin() + 1, self.npc_max)
+    @cached_property
+    def _get_npc(self):
+        npc = min(abs(self.evrc - self.threshold).argmin() + 1, self.npc_max)
         npc = max(self.npc_min, npc)
         return npc
 
-    def pcamodel(self, npc=None):
+    def model(self, npc=None):
         if npc is None:
-            npc = self.reset_npc()
+            npc = self.npc
         scores = self.U[:, :npc] * self.D[:npc]
         loadings = self.V[:npc, :]
         return (scores, loadings)
 
-    def quality(self):
-        npc = self.reset_npc()
-        print "with %d PC components - fit = %.6f %%" % (npc, self.evrc[npc - 1] * 100.)
-        return npc
+    def quality(self, npc=None):
+        if npc is None:
+            npc = self.npc
+        return self.evrc[npc - 1] * 100.
 
     def transform(self, scores=None, loadings=None, npc=None):
         """
         Returned inverse transform data using the given PC's
         """
+        if npc is None:
+            npc = self.npc
+
         if scores is None or loadings is None:
-            scores, loadings = self.pcamodel(npc)
+            scores, loadings = self.model(npc)
+
         return (np.dot(scores, loadings) + self.mean_)
 
 

@@ -22,16 +22,17 @@ from __future__ import print_function, division
 # Python imports
 #
 import sys
-from IPython.display import display, display_pretty
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
 from pandas import DataFrame, Series
 from matplotlib.ticker import MaxNLocator
 
-# ===============================================================================
+#
 # other imports
-# ===============================================================================
+#
 from masai.plugins import IPlugin
+from masai.core.utils import htmldoc
+
 import traits.has_traits
 
 traits.has_traits.CHECK_INTERFACES = 2
@@ -66,24 +67,10 @@ class Plot1d(HasTraits):
     # *******************************************************************************
 
     def _repr_html_(self):
-        import re
-        import string
-        p = re.compile("(.*:)?(.*)", re.MULTILINE)
-        m = p.findall(self.__init__.__doc__)
-        html = ""
-        start = False
-        for mg in m:
-            if mg[0].strip() != "":
-                html += "<b>%s</b>:%s<br/>" % mg
-            else:
-                s = string.join(mg," ")
-                if s.strip() and start:
-                    html += "&nbsp;"*4+"%s<br/>" % s
-                if "----" in s:
-                    start = True
-                    html = "<h4><u>Parameters</u></h4>"
-        html = "<h3>Plot1d</h3><br/><b>Usage</b>: Plot1d([ [ ]&lt;source&gt;[ ,] ], **kargs)<br/>"+html
-        return html
+        if not self.axe:
+            return htmldoc(self.__init__.__doc__)
+        else:
+            return
 
     # *******************************************************************************
     # Private functions
@@ -91,7 +78,10 @@ class Plot1d(HasTraits):
 
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
-        """ Plot a 1D source
+        """
+        Plot1d
+        Plot a 1D source
+        Usage: Plot1d(source, **kargs)
 
         Parameters
         ----------
@@ -324,27 +314,14 @@ if __name__ == '__main__':
     test plot1d plugin
 
     """
-    # need this to test  directly
-    import os
     from masai.api import Bruker
+    import os
+    print(Plot1d())
+    path = os.path.join('..','..','..','doc','tutorial','exemples','user','nmr','SPEC1D','10')
+    print(os.listdir(path))
+    source = Bruker(path)
 
-    DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd = Bruker(path)
-    expno = 11
-    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
-    fd1 = Bruker(path)
-    # plot a Source
-    p = Plot1d(fd, hold=True)
-    p = Plot1d(fd1, axe=p.axe, imag=True,c='orange')
+    p = Plot1d(source)
+    print(p)
 
 
-
-
-    # plot a Dataframe
-    #Plot1d(fd.data)
-
-    pl.show()

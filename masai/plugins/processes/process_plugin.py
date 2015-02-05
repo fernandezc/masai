@@ -31,7 +31,7 @@ import re
 # ===============================================================================
 from masai.plugins import IPlugin
 from masai.core.api import *
-
+from masai.core.utils import htmldoc
 traits.has_traits.CHECK_INTERFACES = 2
 
 # ===============================================================================
@@ -68,38 +68,26 @@ class Process(HasTraits):
         if self.nooutput:
             return ""
 
-        import re
-        import string
-        p = re.compile("(.*:)?(.*)", re.MULTILINE)
-        m = p.findall(self.__init__.__doc__)
-        html = ""
-        start = False
-        for mg in m:
-            if mg[0].strip() != "":
-                html += "<b>%s</b>:%s<br/>" % mg
-            else:
-                s = string.join(mg," ")
-                if s.strip() and start:
-                    html += "&nbsp;"*4+"%s<br/>" % s
-                if "----" in s:
-                    start = True
-                    html = "<h6><u>Parameters</u></h6>"
-        html = '<h3>Process</h3><br><b>Usage:</b>Process(&lt;source&gt;, transform="""&lt;commands&gt;""")'+html
-        return html
+        if not self.source:
+            return htmldoc(self.__init__.__doc__)
+        else:
+            return self.message
 
     def __repr__(self):
-        return self._repr_html_()
+        return self.__init__.__doc__
 
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
-        """Process a 1D source
+        """
+        Process
+        Process a source
 
         Parameters
         ----------
         fd: source (such as NMR or IR source)
         transforms: str
             line(s) of commands among: em, zf, ft, pk, ab
-            type Process.<command_name> to get help on individual command
+            type Process(<command_name>) to get help on individual command
         """
         #todo: add new commands
         #todo: solve help problems
@@ -108,7 +96,7 @@ class Process(HasTraits):
 
         if args:
             # look in args
-            source = args[0]
+            self.source = source = args[0]
 
             if not isinstance(source, IPlugin):
                 command = source

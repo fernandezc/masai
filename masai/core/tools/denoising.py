@@ -1,7 +1,7 @@
 import numpy as np
 from pandas import Series, DataFrame
 
-from masai.core.tools.pca import PCA
+from core.analysis.pca import PCA
 
 
 def PCAdenoise(data, quality=99.999999, npc_min=2, verbose=True,

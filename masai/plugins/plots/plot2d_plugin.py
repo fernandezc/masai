@@ -41,6 +41,7 @@ from matplotlib.ticker import MaxNLocator
 from masai.plugins import IPlugin
 import traits.has_traits
 traits.has_traits.CHECK_INTERFACES = 2
+from masai.core.utils import htmldoc
 
 # ===============================================================================
 # Plugin signature
@@ -69,25 +70,19 @@ class Plot2d(HasTraits):
     # public functions
     # *******************************************************************************
 
-    # -------------------------------------------------------------------------------
-    def print_doc(self):
-        return self.description
-
-    # -------------------------------------------------------------------------------
-    def help(self):
-        return self.__call__.__doc__
-
     # *******************************************************************************
     # Private functions
     # *******************************************************************************
 
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
-        """Plot a 2D source
+        """
+        Plot2d
+        Plot a 2D source
 
         Parameters
         ----------
-        fd: 2D source (such as NMR or IR source)
+        source: 2D source (such as NMR or IR source)
         ax: Axe instance, optional
             the axe where to plot
         figsize: tuple, optional, default is (6.8,6.8)
@@ -114,18 +109,18 @@ class Plot2d(HasTraits):
 
         if args:
             # look in args
-            fd = args[0]
+            self.source = source = args[0]
         else:
-            raise ValueError("No valid source specified\nUsage: Plot2d(fd)")
+            return
 
-        if not fd.is_2d:
-            print("This is not a 2D source.\nCannot Plot!")
+        if not source.is_2d:
+            print("This is not a 2D source.\nCannot Plot! Use Plot1d instead", file=sys.stderr )
             return
 
         # data
-        x = fd.data.columns.values
-        y = fd.data.index.values
-        spec = fd.real
+        x = source.data.columns.values
+        y = source.data.index.values
+        spec = source.real
 
         # setup figure and axes
         figsize = kargs.get('figsize', (3.4, 3.4))
@@ -182,16 +177,16 @@ class Plot2d(HasTraits):
         # limits of the spectra
         xlim = list(kargs.get('xlim', xlim))
         xlim.sort()
-        if hasattr(fd, 'par'):
-            reverse = fd.par.isfreq
+        if hasattr(source, 'par'):
+            reverse = source.par.isfreq
         else:
             reverse = False
         if kargs.get('xreverse', reverse):
             xlim.reverse()
         ylim = list(kargs.get('ylim', ylim))
         ylim.sort()
-        if hasattr(fd, 'par2'):
-            reverse = fd.par2.isfreq
+        if hasattr(source, 'par2'):
+            reverse = source.par2.isfreq
         else:
             reverse = False
         if kargs.get('yreverse', reverse):
@@ -209,22 +204,22 @@ class Plot2d(HasTraits):
 
         # label
         xlabel = kargs.get('xlabel', axe.get_xlabel())
-        if hasattr(fd, 'par'):
-            ppm = fd.par.isfreq
+        if hasattr(source, 'par'):
+            ppm = source.par.isfreq
         if not xlabel:
-            xlabel = r'$\mathrm{time\, (%s)}$' % fd.par.units \
-                if fd.datatype in ['FID', 'SER'] and not ppm \
-                else r'$\mathrm{\delta\, (%s)}$' % fd.par.units
+            xlabel = r'$\mathrm{time\, (%s)}$' % source.par.units \
+                if source.datatype in ['FID', 'SER'] and not ppm \
+                else r'$\mathrm{\delta\, (%s)}$' % source.par.units
         axe.set_xlabel(xlabel)
 
         #
         zlabel = kargs.get('zlabel', axe.get_ylabel())
-        if hasattr(fd, 'par2'):
-            ppm = fd.par2.isfreq
-        if not zlabel and hasattr(fd, 'par2'):
-            zlabel = r'$\mathrm{time\, (%s)}$' % fd.par2.units \
-                if fd.datatype in ['SER'] and not ppm \
-                else r'$\mathrm{\delta\, (%s)}$' % fd.par2.units
+        if hasattr(source, 'par2'):
+            ppm = source.par2.isfreq
+        if not zlabel and hasattr(source, 'par2'):
+            zlabel = r'$\mathrm{time\, (%s)}$' % source.par2.units \
+                if source.datatype in ['SER'] and not ppm \
+                else r'$\mathrm{\delta\, (%s)}$' % source.par2.units
         if kargs.get('showz', True):
             axe.set_ylabel(zlabel)
         else:
@@ -318,32 +313,20 @@ class Plot2d(HasTraits):
             clevelc = [ms*exponent**xi for xi in range(xl)]
         return clevelc
 
+    def _repr_html_(self):
+        if not self.source:
+            return htmldoc(self.__init__.__doc__)
+        else:
+            return self.message
+
+    def __repr__(self):
+        return self.__init__.__doc__
 
 if __name__ == '__main__':
 
     """
     test plugin
     """
-    # need this to test  directly
-    import sys, os
-    import pylab as pl
-    from masai.plugins.list import Bruker
-    from masai.plugins.list import Plot1d, Plot2d, Process
-
-    Bruker = Bruker()
-    Plot1d = Plot1d()
-    Plot2d = Plot2d()
-    Process = Process()
-
-    DATADIR = os.path.expanduser(os.path.join('..','..','..' ,'exemples'))
-    FIGDIR = 'figures' # this directory should exist in the current directory, however
-
-    user = 'user'
-    name = 'HMQC'
-    expno = 31
-    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
-    source = Bruker(path)
-
-    p_2 = Plot2d(source, figsize=(3, 2.7), yproj='sky')
+    pass
 
 

@@ -36,7 +36,7 @@ from masai.core.source import Source
 # ===============================================================================
 from masai.plugins import IPlugin
 import traits.has_traits
-
+from masai.core.utils import htmldoc
 traits.has_traits.CHECK_INTERFACES = 2
 
 DEBUG = False
@@ -69,32 +69,14 @@ class Stackplot(HasTraits):
     # public functions
     # *******************************************************************************
 
-    # -------------------------------------------------------------------------------
-    def print_doc(self):
-        return display(self.description)
-
-    # -------------------------------------------------------------------------------
-    def help(self):
-        return self.__call__.__doc__
-
     def _repr_html_(self):
-        import re
-        import string
-        p = re.compile("(.*:)?(.*)", re.MULTILINE)
-        m = p.findall(self.__call__.__doc__)
-        html = ""
-        start = False
-        for mg in m:
-            if mg[0].strip() != "":
-                html += "<b>%s</b>:%s<br/>" % mg
-            else:
-                s = string.join(mg," ")
-                if s.strip() and start:
-                    html += "&nbsp;"*4+"%s<br/>" % s
-                if "----" in s:
-                    start = True
-                    html = "<h3>Parameters</h3>"
-        return html
+        if not self.source:
+            return htmldoc(self.__init__.__doc__)
+        else:
+            return self.message
+
+    def __repr__(self):
+        return self.__init__.__doc__
 
     # *******************************************************************************
     # Private functions
@@ -102,25 +84,39 @@ class Stackplot(HasTraits):
 
     # -------------------------------------------------------------------------------
     def __init__(self, *args, **kargs):
-        """ Plot a 1D source
+        """ Stackplot
+
+        Stack plot of 1D sources
 
         Parameters
         ----------
-        fd: list of 1D sources (such as NMR or IR source), DataFrame, Series or a 2D source
+        sources: list of 1D sources (such as NMR or IR source), DataFrame, Series or a 2D source
 
         figure: Figure instance, optioanl
         axe: Axe instance, optional
             the axe where to plot
         figsize: tuple, optional, default is (6.8,3.4)
             figure size
+        dpi: int, optional, default=150
+            dot per inch
+        fontsize: int, optional, default=10
+            font size
         imag: bool, optional, default False
             By default real part is shown. Set to True to display the imaginary part
         xlim: tuple, optional
             limit on the horizontal axis
         zlim or ylim: tuple, optional
             limit on the vertical axis
-        color or c: matplotlib valid color, optional
-            color of the line
+        color or c: matplotlib valid color or str, optional
+            color of the line or 'map'
+        colormap: colormap
+            if color==map, choice of the color map to use
+        normalize: bool, optional, default None
+            normalize
+        colorbar: boolean, optional, default=True
+            whether or not to display the colorbar
+        alpha: float, optional, default 0.5
+            opacity between 0 and 1
         linewidth or lw: float, optional
             line width
         linestyle or ls: str, optional
@@ -131,14 +127,19 @@ class Stackplot(HasTraits):
             label on the vertical axis
         showz: bool, optional, default=True
             should we show the vertical axis
+                colorbar = kargs.get('colorbar', True)
+        fill: bool, optional, default=True
+            fill below curves
+        offset: float, optional, default=0
+            separation between curves
         hold: bool, optional, default is False
             if True, hold it until a new plot is performed
         """
         if args:
             # look in args
-            sources = args[0]
+            self.sources = sources = args[0]
         else:
-            raise ValueError("not a valid input\nUsage: Stackplot(<list of sources> or <2D sources>)")
+            return
 
         # in principle, if we want a stack plot we must provide a list of source or a 2D spectrum
         if isinstance(sources, list):
@@ -202,7 +203,7 @@ class Stackplot(HasTraits):
         colormap = kargs.get('colormap', kargs.get('cm', 'jet'))
         normalize = kargs.get('normalize', None)
         colorbar = kargs.get('colorbar', True)
-        poly = kargs.get('poly', True)
+        fill = kargs.get('fill', True)
         offset = kargs.get('offset', 0.0)
 
         # labels
@@ -243,7 +244,7 @@ class Stackplot(HasTraits):
                 norm.vmax = normalize[-1]
                 norm.vmin = normalize[0]
 
-            if poly:
+            if fill:
                 fun = PolyCollection
                 lw /= 5.
             else:

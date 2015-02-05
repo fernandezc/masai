@@ -42,9 +42,8 @@ def ft(source, options='', axis=-1):
         size of the transformed spectrum
     """
     # options evaluation
-    parser = argparse.ArgumentParser(description='FT processing.', usage = """
-    ft [-h] [--si [SI]] [--tdeff [TDEFF]]
-    """)
+    parser = argparse.ArgumentParser(description='FT processing',
+             usage = """ft [--si [SI]] [--tdeff [TDEFF]]""")
     # positional arguments
     parser.add_argument('--si',  nargs='?', help='size of fourier transform')
     parser.add_argument('--tdeff', default=0,  nargs='?', type=int, help='size of fourier transform')
