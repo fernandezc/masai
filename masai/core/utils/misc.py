@@ -19,6 +19,8 @@ Various methods used in other part of the program
 
 """
 import pandas as pd
+import re
+# import string
 
 def position2index(data, pos):
     """
@@ -56,3 +58,67 @@ def position2index(data, pos):
             idx=id
             dpos0 = dpos
     return idx
+
+##### Formating #####
+
+def htmldoc(text):
+
+    p = re.compile("^(?P<name>.*:)(.*)", re.MULTILINE)  #To get the keywords
+    html = p.sub(r'<b>\1</b>\2', text)
+    html = html.replace('-','')
+    html = html.split('\n')
+    while html[0].strip()=='':
+        html = html[1:]   # suppress initial blank lines
+
+    for i in range(len(html)):
+        html[i] = html[i].strip()
+        if i==0:
+            html[i] = "<h3>%s</h3>"%html[i]
+        html[i] = html[i].replace('Parameters','<h4>Parameters</h4>')
+        html[i] = html[i].replace('Properties','<h4>Properties</h4>')
+        html[i] = html[i].replace('Methods','<h4>Methods</h4>')
+        if html[i]!='':
+            if "</h" not in html[i] :
+                html[i]=html[i]+'<br/>'
+            if not html[i].strip().startswith('<'):
+                html[i]="&nbsp;&nbsp;&nbsp;&nbsp;"+html[i]
+    html = "".join(html)
+
+    return html
+
+
+if __name__ == '__main__':
+
+    from masai.api import *
+    text="""
+    Fit a 1D, 2D or a list of sources
+
+        Usage: Fit([[]source[, ]], **kargs)
+
+        Parameters
+        ----------
+        source: Source instance
+            The data to fit (may be a list of sources)
+        mode: Str, optional
+            Reserved - not used for now
+        kind: Str, optional
+            Contain information about the specific kind of experiment
+            for now, only 'DQ-SQ' is implemented
+
+        Properties
+        ----------
+        fp: Dict
+            Fit parameters dictionary (read-only, but individual elements of the dict can be changed)
+        script: Str
+            A string representation of the fp dict, which can be used as input for other a fit
+
+        Methods
+        -------
+        run: Method
+            Run a fit, use run() without arguments to get help on this method
+
+        """
+
+    html = htmldoc(text)
+    print(html)
+
