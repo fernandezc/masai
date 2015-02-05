@@ -1,1 +1,1 @@
-from .plugins.list import *
+from plugins.catalog import *

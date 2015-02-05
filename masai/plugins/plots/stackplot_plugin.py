@@ -46,8 +46,6 @@ DEBUG = False
 # ===============================================================================
 __plugin_main__ = 'Stackplot'
 
-all = ['Stackplot', ]
-
 # ===================================================================================
 # Stackplot plugin
 # ===================================================================================
@@ -352,7 +350,7 @@ if __name__ == '__main__':
     """
     # need this to test  directly
     import os
-    from masai.plugins.list import Bruker, Process
+    from masai.plugins.catalog import Bruker, Process
 
     Bruker = Bruker()  # necessary for direct call
     Stackplot = Stackplot()

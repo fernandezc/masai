@@ -52,8 +52,6 @@ from masai.core.utils import htmldoc
 # ===============================================================================
 __plugin_main__ = 'Multiplex'
 
-all = ['Multiplex', ]
-
 # ===============================================================================
 # Constant
 # ===============================================================================
@@ -401,8 +399,8 @@ if __name__ == '__main__':
     # need this to test  directly
     import sys, os
     import pylab as pl
-    from masai.plugins.list import Bruker
-    from masai.plugins.list import Plot1d, Plot2d, Process
+    from masai.plugins.catalog import Bruker
+    from masai.plugins.catalog import Plot1d, Plot2d, Process
 
     Bruker = Bruker()
     Plot1d = Plot1d()

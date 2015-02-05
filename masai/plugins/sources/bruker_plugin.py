@@ -50,8 +50,6 @@ from masai.core.utils import htmldoc
 # ===============================================================================
 __plugin_main__ = 'Bruker'
 
-all = ['Bruker', ]
-
 # ===============================================================================
 # Constant
 # ===============================================================================
@@ -766,7 +764,7 @@ if __name__ == '__main__':
 
     # need this to test  directly
     import pylab as pl
-    from masai.plugins.list import Process, Plot2d
+    from masai.plugins.catalog import Process, Plot2d
 
     Bruker = Bruker()
     Process = Process()
