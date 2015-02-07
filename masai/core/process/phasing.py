@@ -153,7 +153,8 @@ def pk(source=None, options= '', axis=-1):
 
         atxt = '(not optimized)' if not args.fit_phc1 else ''
 
-        source.history.append('Auto-phasing:  phc0 = %.3f, phc1%s = %.3f' % (phc0, atxt, phc1))
+        sbyrow = 'byrow' if args.byrow else ''
+        source.history.append('Auto-phasing %s:  phc0 = %.3f, phc1%s = %.3f' % (sbyrow, phc0, atxt, phc1))
 
     data = data - basecorr(data)
 
