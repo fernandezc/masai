@@ -80,21 +80,6 @@
 					<key>requireInput</key>
 					<true/>
 				</dict>
-				<key>ActionRuntimeParameters</key>
-				<dict>
-					<key>buttonAffirmative</key>
-					<string>OK</string>
-					<key>buttonNegative</key>
-					<string>Annuler</string>
-					<key>defaultAnswer</key>
-					<string>update</string>
-					<key>defaultMessage</key>
-					<string>commit message:</string>
-					<key>requireInput</key>
-					<true/>
-					<key>temporary items path</key>
-					<string>/var/folders/y5/y_d_h1v97bnby86sc3wfjcm40000gn/T/774787C2-E851-400B-A784-308C2437299D/1/com.apple.Automator.TextInputDialog</string>
-				</dict>
 				<key>BundleIdentifier</key>
 				<string>com.apple.Automator.TextInputDialog</string>
 				<key>CFBundleVersion</key>
@@ -268,6 +253,7 @@ cd ..
 git add .
 git commit -a -m "$@"
 git push origin master
+
 </string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
@@ -277,36 +263,6 @@ git push origin master
 					<string>/bin/bash</string>
 					<key>source</key>
 					<string></string>
-				</dict>
-				<key>ActionRuntimeParameters</key>
-				<dict>
-					<key>COMMAND_STRING</key>
-					<string># get the correct python environment
-source /Users/christian/Library/Enthought/Canopy_64bit/User/bin/activate
-
-# go to masai directory
-cd /Users/christian/Dropbox/PycharmProjects/masai
-
-# make test
-cd tests
-python -m unittest discover 
-cd ..
-
-# commit and push
-git add .
-git commit -a -m "$@"
-git push origin master
-</string>
-					<key>CheckedForUserDefaultShell</key>
-					<true/>
-					<key>inputMethod</key>
-					<integer>1</integer>
-					<key>shell</key>
-					<string>/bin/bash</string>
-					<key>source</key>
-					<string></string>
-					<key>temporary items path</key>
-					<string>/var/folders/y5/y_d_h1v97bnby86sc3wfjcm40000gn/T/774787C2-E851-400B-A784-308C2437299D/1/com.apple.RunShellScript</string>
 				</dict>
 				<key>BundleIdentifier</key>
 				<string>com.apple.RunShellScript</string>
@@ -411,7 +367,7 @@ git push origin master
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>461.000000:367.000000</string>
+				<string>461.000000:547.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/French.lproj/main.nib</string>
 			</dict>
@@ -546,7 +502,7 @@ git push origin master
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>461.000000:557.000000</string>
+				<string>461.000000:737.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Display Notification.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
