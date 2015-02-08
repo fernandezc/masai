@@ -268,7 +268,8 @@ pwd
 # commit and push
 git add .
 git commit -a -m "$@"
-git push origin master
+git push origin develop
+
 
 </string>
 					<key>CheckedForUserDefaultShell</key>
@@ -298,7 +299,8 @@ pwd
 # commit and push
 git add .
 git commit -a -m "$@"
-git push origin master
+git push origin develop
+
 
 </string>
 					<key>CheckedForUserDefaultShell</key>
