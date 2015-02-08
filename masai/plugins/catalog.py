@@ -18,14 +18,6 @@ import glob
 from addict import Dict as aDict
 import sys
 
-#from sources import *
-#from plots import *
-#from processes import *
-#from fits import *
-#from analyses import *
-#from simulations import *
-
-x= 10
 #===============================================================================
 # Load all plugins
 #===============================================================================
