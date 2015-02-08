@@ -54,7 +54,7 @@ def get_git_version():
     the 'git describe' shell command.
     """
     status, output = commands.getstatusoutput('git describe')
-    if status == 1:
+    if status == 0:
         return output
     else:
         return None
@@ -104,9 +104,10 @@ def get_version():
 #===============================================================================
 def get_fullversion_string():
     __version__ = get_version()
-    txt = "*"*40 + "\n"
+    txt=''
+    #txt = "*"*40 + "\n"
     txt += "%s, version : %s\nCopyright (c)%s" % (_TITLE_, __version__, _COPYRIGHT_)
-    txt += "\n" + "*"*40 + "\n"
+    #txt += "\n" + "*"*40 + "\n"
     return txt
 
 #===============================================================================
