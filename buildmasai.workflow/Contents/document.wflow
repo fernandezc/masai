@@ -268,7 +268,7 @@ pwd
 # commit and push
 git add .
 git commit -a -m "$@"
-git push origin develop
+
 
 
 </string>
@@ -299,7 +299,7 @@ pwd
 # commit and push
 git add .
 git commit -a -m "$@"
-git push origin develop
+
 
 
 </string>
