@@ -34,10 +34,6 @@ print("version %s" % version)
 # load the catalog of plugins as modules that can be imported
 from masai.plugins.catalog import *
 
-#from masai import api
-#print(api.__pluginlist__)
-
-
 
 # ===============================================================================
 # Main test

@@ -4,7 +4,7 @@
 # masai
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
 #       christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
@@ -18,7 +18,10 @@ from __future__ import print_function
 import unittest
 import os
 
-from masai.api import *
+import masai
+
+from masai.api import Bruker, Process
+
 
 def read_fid(DATADIR, name, expno):
     path = os.path.join(DATADIR, 'user', 'nmr', name, str(expno))
@@ -26,13 +29,26 @@ def read_fid(DATADIR, name, expno):
     return source
 
 
+def read_series(DATADIR, name, expnos, varpars):
+    return Bruker(data_dir=DATADIR,
+                  user='user', name=name, expnos=expnos, varpars=varpars)
+
+
 class BasicTests(unittest.TestCase):
     def setUp(self):
-        self.DATADIR = os.path.expanduser(os.path.join('..', 'doc', 'tutorial', 'exemples'))
+        # we need to find where this file is located
+        here = (__file__.split(os.path.sep))[:-2]
+        here = "/" + os.path.join(*here)
+        self.DATADIR = os.path.expanduser(os.path.join(here, 'doc', 'tutorial', 'exemples'))
 
     def test_bruker_plugin(self):
         f1d = read_fid(self.DATADIR, 'SPEC1D', 10)
         f2d = read_fid(self.DATADIR, 'HMQC', 31)
+        f3d = read_series(self.DATADIR, 'CP', range(80, 95), "P 15")
+        row = f2d.get_row(0, byindex=False)
+        col = f2d.get_col(0, width=.1, byindex=False)
+        row = f2d.get_row(1, byindex=True)
+        col = f2d.get_col(1, byindex=True)
 
     def test_process_plugin(self):
         f1d = read_fid(self.DATADIR, 'SPEC1D', 10)
@@ -59,118 +75,16 @@ class BasicTests(unittest.TestCase):
         Process(source, transform='ft')
         Process(source, transform='cl -200 0')
         Process(source, transform='pk -256.364 0 --fit_phc1  --auto')
+        Process(source, "ab --mode poly")
 
-        # Process(source, axis=0, transform='lp 128 --tdeff 108') # must be before zf in any case
+        Process(source, axis=0, transform='lp 128 --tdeff 108')  # must be before zf in any case
         Process(source, axis=0, transform='em 1')
         Process(source, axis=0, transform='zf 3')
         Process(source, axis=0, transform='ft --shear 1 2 --shift 0')
         Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --verbose')
 
-        # """
-        # test plugin
-        # """
-        # DATADIR = '../../../doc/tutorial/exemples'
-        # sources = Bruker(data_dir=DATADIR,
-        #         user = 'user',
-        #         name = 'CP',
-        #         expnos = range(80,95,1),
-        #         varpars = "P 15")
-        #
-        # #print(sources)
-        # import sys
-        # sys.exit()
-        #
-        # # need this to test  directly
-        # import pylab as pl
-        # from masai.plugins.catalog import Process, Plot2d
-        #
-        # Bruker = Bruker()
-        # Process = Process()
-        # Plot2d = Plot2d()
-        #
-        # path = '/Users/christian/Dropbox/PycharmProjects/masai/exemples/user/nmr/HMQC/31'
-        # fd = Bruker(path)
-        # print(fd)
-        # d6 = fd.par.D[6]*1e3
-        # Process(fd, transform='em 5000 --shifted %.2f'%d6)
-        # #Process(fd, transform='zf 0; ft; pk -78 -10')
-        # Plot2d(fd)
-        #
-        #
-        # import sys
-        # sys.exit()
-        #
-        # DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
-        #
-        # user = 'christian'
-        # name = 'example1'
-        # expno = 10
-        # path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-        # fd = Bruker(path, dgfilter=True)
-        #
-        # user = 'aurelie'
-        # name = 'RbNO3'
-        # expno = 15
-        # path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-        # fd = Bruker(path, dgfilter=True)
-        #
-        #
-        #
-        # #_----------------------------------
-        # import warnings
-        # warnings.filterwarnings("ignore")
-        #
-        # Bruker = Bruker()
-        #
-        #
-        #
-        # sources = Bruker(
-        #             data_dir=DATADIR,
-        #             user = 'siblanixenon',
-        #             name = 'NaY1-QIN',
-        #             expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
-        #             varpars = "TE",
-        #             )
-        #
-        # sources = Bruker(
-        #              data_dir=DATADIR,
-        #              user = 'siblanixenon',
-        #              name = 'NaY1-QIN',
-        #              expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
-        #              varpars = "TE",
-        #              )
-        #
-        # sources.data.T.plot(legend=False)
-        # #print(sources)
-        # pl.show()
-        #
-        #
-        # import sys
-        # sys.exit()
-        #
-        # user = 'christian'
-        # name = 'example1'
-        # expno = 10
-        # path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-        # fd = Bruker(path, dgfilter=True)
-        # fd.data.T.plot(legend=False)
-        #
-        # user = 'aurelie'
-        # name = 'RbNO3'
-        # expno = 15
-        # path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-        # fd = Bruker(path, dgfilter=True)
-        #
-        # row = fd.row(0, byindex=False)
-        # row.T.plot(legend=False)
-        #
-        # col = fd.col(0, width=.1, byindex=False)
-        # col.T.plot(legend=False)
-        #
-        # pl.show()
-        #
-        # #TODO make tests also for plotting
+        #TODO make tests also for plotting
 
 
 if __name__ == '__main__':
-    unittest.main()
+    pass

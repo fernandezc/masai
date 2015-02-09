@@ -364,8 +364,9 @@ class ParameterScript(HasTraits):
     This class allow some manipulation of the parameter list for modelling
     
     """
+    from masai.plugins import IPlugin
 
-    sources = List(Instance("masai.plugins.sources.bruker_plugin.Bruker"))
+    sources = List(Instance(IPlugin))
     fp = Instance(FitParameters)
 
     script = Str('')
