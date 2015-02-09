@@ -64,4 +64,3 @@ def _loadPlugins():
                 __pluginlist__[name.capitalize()] = cls
 
 _loadPlugins()
-print("list", __pluginlist__)

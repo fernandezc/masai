@@ -30,6 +30,7 @@ import re
 # local imports
 # ===============================================================================
 from masai.plugins import IPlugin
+from masai.core.api import *
 from masai.core.utils import htmldoc
 
 traits.has_traits.CHECK_INTERFACES = 2

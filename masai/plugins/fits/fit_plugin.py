@@ -551,4 +551,66 @@ def ampbas2D(xi, yj, expe, calc):
 
 
 if __name__ == '__main__':
-    print(Fit())
+    from masai.api import *
+
+            # we need to find where this file is located
+    here = (__file__.split(os.path.sep))[:-4]
+    here = "/" + os.path.join(*here)
+    DATADIR = os.path.expanduser(os.path.join(here, 'doc', 'tutorial', 'exemples'))
+
+    def read_fid(DATADIR, name, expno):
+        path = os.path.join(DATADIR, 'user', 'nmr', name, str(expno))
+        print(path)
+        source = Bruker(path)
+        return source
+
+    def test_fitting():
+        source = read_fid(DATADIR, 'SPEC1D', 10)
+        print(source)
+        Process(source, transform="em 50; zf 1; ft --tdeff 512")
+        Process(source, transform="pk --auto --fit_phc1 --bound_phc1=100; ab --mode linear")
+
+        script = """
+        COMMON:
+        # common parameters ex.
+        # $ gwidth: 1.0, 0.0, none
+          $ gratio: 0.5, 0.0, 1.0
+
+        MODEL: LINE_1
+        shape: voigtmodel
+            * ampl:  1.0, 0.0, none
+            $ pos:   4.5, -100.0, 100.0
+            > ratio: gratio
+            $ width: 4.0, 0, 20
+
+        MODEL: LINE_2
+        shape: voigtmodel
+            $ ampl:  0.2, 0.0, none
+            $ pos:   1.6, 0, 2.0
+            > ratio: gratio
+            $ width: 4.0, 0, 20
+
+        MODEL: LINE_3
+        shape: voigtmodel
+            $ ampl:  0.18, 0.0, none
+            $ pos:   7.9, 5.0, 10.0
+            > ratio: gratio
+            $ width: 4.0, 0, 20
+
+        MODEL: LINE_4
+        shape: voigtmodel
+            $ ampl:  0.1, 0.0, none
+            $ pos:   14, 10.0, 20.0
+            > ratio: gratio
+            $ width: 6.0, 0, 20
+
+        MODEL: LINE_5
+        shape: voigtmodel
+            $ ampl:  0.1, 0.0, none
+            $ pos:   -5, -8.0, -1.0
+            > ratio: gratio
+            $ width: 6.0, 0, 10
+        """
+        f = Fit(source, script)
+
+    test_fitting()
