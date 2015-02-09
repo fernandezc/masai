@@ -18,9 +18,10 @@ This module contains version information. It use git to get the last version and
 revision number.
 """
 from __future__ import print_function, division
-import string
-import re
+
+from enthought.preferences.api import Preferences
 import os
+import commands #TODO: may be we could use Fabric
 
 #===============================================================================
 # Constants
@@ -28,18 +29,22 @@ import os
 _TOOLKIT_SETUP = False
 _TITLE_ = u"MASAI"
 _COPYRIGHT_ = u"2015, C.Fernandez"
-VERSIONFILE=os.path.join("masai","__init__.py")
-if not os.path.exists(VERSIONFILE):
-    VERSIONFILE=os.path.join("__init__.py")
+
+# set or read the preference file
+_path = os.path.join(os.path.expanduser('~'),'.masai')
+if not os.path.exists(_path):
+    os.makedirs(_path)
+_filename = os.path.join(_path, "masai.ini")
+preferences = Preferences(filename=_filename)
 
 #===============================================================================
 # Standard library imports
 #===============================================================================
-import commands
 
 #===============================================================================
 # toolkit setup
 #===============================================================================
+#TODO: not sure it is useful without  GUI interface but we'll see
 if _TOOLKIT_SETUP:
     from traits.etsconfig.api import ETSConfig
     ETSConfig.toolkit = "qt4"
@@ -50,8 +55,14 @@ if _TOOLKIT_SETUP:
 # get_git_version
 #===============================================================================
 def get_git_version():
-    """Get the current version  of the local git repository using
+    """
+    Get the current version  of the local git repository using
     the 'git describe' shell command.
+
+    Returns
+    =======
+    gitversion: str
+        The Git version string
     """
     status, output = commands.getstatusoutput('git describe')
     if status == 0:
@@ -60,42 +71,27 @@ def get_git_version():
         return None
 
 #===============================================================================
-# set_version
-#===============================================================================
-def set_version(version):
-
-    with open(VERSIONFILE, "rt") as f:
-        verstrline = f.read()
-        VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]$"
-        mo = re.search(VSRE, verstrline, re.M)
-        res = re.sub(VSRE, "__version__ = \"%s\""%version, verstrline, flags=re.M )
-        print(res)
-    with open(VERSIONFILE, "wt") as f:
-        f.write(res)
-
-#===============================================================================
 # get_version
 #===============================================================================
 def get_version():
+    """
+    Prepare the version string and write it in the preference file
 
+    Returns
+    =======
+    version: str
+        The version string
+    """
     verstr = get_git_version()
     if verstr:
         verstr = verstr.split('-')
         verstr = "%s.%s"%tuple(verstr[:2])
 
     if verstr:
-        set_version(verstr) # correct the file if needed
+        preferences.set("api.version",verstr)
+        preferences.flush()
     else:
-        # if verstr was none, read from file
-        with open(VERSIONFILE, "rt") as f:
-            verstrline = f.read()
-            VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]$"
-            mo = re.search(VSRE, verstrline, flags=re.M)
-            if mo:
-                verstr = mo.group(1)
-            else:
-                raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
-
+        verstr = preferences.get("api.version","unknown")
     return verstr
 
 
@@ -103,11 +99,17 @@ def get_version():
 # get_git_version
 #===============================================================================
 def get_fullversion_string():
+    """
+    Returns
+    =======
+    fullversion: str
+        A complete version string
+    """
     __version__ = get_version()
-    txt=''
-    #txt = "*"*40 + "\n"
-    txt += "%s, version : %s\nCopyright (c)%s" % (_TITLE_, __version__, _COPYRIGHT_)
-    #txt += "\n" + "*"*40 + "\n"
+    txt = "*"*40 + "\n"
+    txt += "%s, version : %s\nCopyright (c)%s" % (
+                                               _TITLE_, __version__, _COPYRIGHT_)
+    txt += "\n" + "*"*40 + "\n"
     return txt
 
 #===============================================================================
