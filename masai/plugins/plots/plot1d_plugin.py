@@ -21,7 +21,6 @@ from __future__ import print_function, division
 #
 # Python imports
 #
-import sys
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
 from pandas import DataFrame, Series
@@ -130,7 +129,7 @@ class Plot1d(HasTraits):
             save the fig if savename is defined, should be executed after all other commands
         """
 
-        multiplots=False
+        multiplots = False
 
         if args:
             # look in args
@@ -164,13 +163,13 @@ class Plot1d(HasTraits):
 
         # when using matplotlib inline
         # dpi is the savefig.dpi so we should set it here
-        pl.rcParams['figure.figsize']=figsize
-        pl.rcParams['figure.dpi']=dpi
-        pl.rcParams['savefig.dpi']=dpi
-        pl.rcParams['font.size']=fontsize
-        pl.rcParams['legend.fontsize'] = int(fontsize*.8)
-        pl.rcParams['xtick.labelsize']=fontsize
-        pl.rcParams['ytick.labelsize']=fontsize
+        pl.rcParams['figure.figsize'] = figsize
+        pl.rcParams['figure.dpi'] = dpi
+        pl.rcParams['savefig.dpi'] = dpi
+        pl.rcParams['font.size'] = fontsize
+        pl.rcParams['legend.fontsize'] = int(fontsize * .8)
+        pl.rcParams['xtick.labelsize'] = fontsize
+        pl.rcParams['ytick.labelsize'] = fontsize
 
         if 'axe' not in kargs.keys():
             fig = self.fig = pl.figure(figsize=figsize, dpi=dpi)
@@ -200,22 +199,22 @@ class Plot1d(HasTraits):
         if kargs.get('plot_model', False) and source.modeldata is not None:
             # we now plot the model if it exists
             mdata = source.modeldata
-            offset = (mdata.values.max())*(float(kargs.get('offset', 1.0))/100.)
+            offset = (mdata.values.max()) * (float(kargs.get('offset', 1.0)) / 100.)
             # print('offset',offset)
             mls = kargs.get('modellinestyle', kargs.get('modls', '-'))
             for model in mdata.index:
-                l, = axe.plot(x, mdata.loc[model],alpha=.75)
+                l, = axe.plot(x, mdata.loc[model], alpha=.75)
                 l.set_linestyle(mls)
-                l.set_linewidth(lw*.8)
-                if model=='baseline':
+                l.set_linewidth(lw * .8)
+                if model == 'baseline':
                     l.set_color('k')
                     l.set_linestyle(':')
-                    l.set_linewidth(lw*.4)
-                    l.set_ydata(l.get_ydata()-offset)
+                    l.set_linewidth(lw * .4)
+                    l.set_ydata(l.get_ydata() - offset)
                 elif model != 'modelsum':
                     l.set_linestyle('-')
-                    l.set_linewidth(lw*.4)
-                    l.set_ydata(l.get_ydata()-offset)
+                    l.set_linewidth(lw * .4)
+                    l.set_ydata(l.get_ydata() - offset)
 
 
         # limits of the spectra
@@ -234,8 +233,8 @@ class Plot1d(HasTraits):
 
         zlim = list(kargs.get('zlim', kargs.get('ylim', axe.get_ylim())))
         zlim.sort()
-        if offset>0:
-            zlim[0] = zlim[0]-offset
+        if offset > 0:
+            zlim[0] = zlim[0] - offset
         axe.set_xlim(xlim)
         axe.set_ylim(zlim)
         axe.xaxis.set_major_locator(MaxNLocator(5))
@@ -315,8 +314,9 @@ if __name__ == '__main__':
     """
     from masai.api import Bruker
     import os
+
     print(Plot1d())
-    path = os.path.join('..','..','..','doc','tutorial','exemples','user','nmr','SPEC1D','10')
+    path = os.path.join('..', '..', '..', 'doc', 'tutorial', 'exemples', 'user', 'nmr', 'SPEC1D', '10')
     print(os.listdir(path))
     source = Bruker(path)
 

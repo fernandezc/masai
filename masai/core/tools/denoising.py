@@ -5,8 +5,7 @@ from core.analysis.pca import PCA
 
 
 def PCAdenoise(data, quality=99.999999, npc_min=2, verbose=True,
-                                                ft=False, axis=None, real=True):
-
+               ft=False, axis=None, real=True):
     is_dataframe = False
     if isinstance(data, DataFrame):
         rows = data.index
@@ -24,7 +23,7 @@ def PCAdenoise(data, quality=99.999999, npc_min=2, verbose=True,
             S = np.fft.ifft2(S)
         # Perform PCA
         _pca = PCA(S, treshold=quality, npc_min=npc_min)
-        S =_pca.transform()
+        S = _pca.transform()
         if ft:
             # get back the untransformed data (but denoised)
             S = np.fft.fft2(S)
@@ -42,7 +41,7 @@ def PCAdenoise(data, quality=99.999999, npc_min=2, verbose=True,
     if axis == 1 or axis is None:
         if ft:
             # apply a fft first
-            S = np.fft.ifft2(S) 
+            S = np.fft.ifft2(S)
         _pca = PCA(S, treshold=quality, npc_min=npc_min)
         S = _pca.transform()
         if ft:
@@ -65,6 +64,7 @@ def PCAdenoise(data, quality=99.999999, npc_min=2, verbose=True,
         S = DataFrame(S, index=rows, columns=cols)
     return S
 
+
 def svd_denoising(f, orda, rank=0, threshold=1., remove=1, verbose=False):
     """Following the Pascal Man method"""
 
@@ -74,8 +74,8 @@ def svd_denoising(f, orda, rank=0, threshold=1., remove=1, verbose=False):
     n1 = si - orda + 1
     if n1 < orda:
         print "orda is too large for this data, orda max : %d" % (si / 2)
-        print "corrected to %d"%(si/2-2)
-        orda = si/2 -2
+        print "corrected to %d" % (si / 2 - 2)
+        orda = si / 2 - 2
         n1 = si - orda + 1
 
     H = np.zeros((n1, orda), dtype=np.complex128)
@@ -102,11 +102,11 @@ def svd_denoising(f, orda, rank=0, threshold=1., remove=1, verbose=False):
     if remove == 1:
         power = np.sum((s - sk) ** 2)  # total power removed
         n = len(s) - len(np.nonzero(sk)[0])  # number of entry removed
-        if n > 0 :
+        if n > 0:
             sk = np.sqrt((sk ** 2 - power / n).clip(0.0, s[0] ** 2))  # do not forget
 
     if verbose:
-        print "keep rank %d - quality = %.6f %%" % (rank, evrc[ rank - 1] * 100.)
+        print "keep rank %d - quality = %.6f %%" % (rank, evrc[rank - 1] * 100.)
 
         # sk = np.where(sk < threshold, 0.0, sk)
 
@@ -142,8 +142,9 @@ def svd_denoising(f, orda, rank=0, threshold=1., remove=1, verbose=False):
 
     return f
 
+
 def SVDdenoise(_data, orda, rank=0, threshold=100., remove=1, n_iter=1,
-                                             axis= -1, real=True, verbose=True):
+               axis=-1, real=True, verbose=True):
     is_series = False
     is_dataframe = False
     if isinstance(_data, Series):
@@ -167,8 +168,8 @@ def SVDdenoise(_data, orda, rank=0, threshold=100., remove=1, n_iter=1,
     if verbose:
         print "Denoising using SVD of Hankel matrix: %s" % ('*' * 42)
         print "\tAxis: %d Hankel matrix:[%d,%d] rank=%d or threshold=%.5f" % (
-                                  axis, NPT - orda + 1 , orda, rank, threshold)
-        print "*"*80
+            axis, NPT - orda + 1, orda, rank, threshold)
+        print "*" * 80
 
     fullverb = False
     if verbose == 'Full':
@@ -179,8 +180,8 @@ def SVDdenoise(_data, orda, rank=0, threshold=100., remove=1, n_iter=1,
     if len(data.shape) == 1:
         fid = np.fft.ifft(data, NPT)
         for _ in xrange(n_iter):
-            fid = svd_denoising(fid, orda, rank, threshold, remove, 
-                                                               verbose=fullverb)
+            fid = svd_denoising(fid, orda, rank, threshold, remove,
+                                verbose=fullverb)
         s = np.fft.fft(fid, NPT)
         if real:
             s = s.real
@@ -198,8 +199,8 @@ def SVDdenoise(_data, orda, rank=0, threshold=100., remove=1, n_iter=1,
             s = data[:, col]
             fid = np.fft.ifft(s, NPT)
             for _ in xrange(n_iter):
-                fid = svd_denoising(fid, orda, rank, threshold, remove, 
-                                                               verbose=fullverb)
+                fid = svd_denoising(fid, orda, rank, threshold, remove,
+                                    verbose=fullverb)
             s = np.fft.fft(fid)
             if real:
                 s = s.real
@@ -209,8 +210,8 @@ def SVDdenoise(_data, orda, rank=0, threshold=100., remove=1, n_iter=1,
             s = data[row]
             fid = np.fft.ifft(s, NPT)
             for _ in xrange(n_iter):
-                fid = svd_denoising(fid, orda, rank, threshold, remove, 
-                                                               verbose=fullverb)
+                fid = svd_denoising(fid, orda, rank, threshold, remove,
+                                    verbose=fullverb)
             s = np.fft.fft(fid, NPT)
             if real:
                 s = s.real

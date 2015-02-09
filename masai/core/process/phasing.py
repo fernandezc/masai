@@ -4,8 +4,8 @@
 # masai.core.process.phasing
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -19,10 +19,8 @@ from __future__ import print_function, division
 #
 # imports
 #
-import sys
 import numpy as np
 import argparse
-from IPython import display
 
 from masai.core.process.proc_base import ps
 from masai.core.utils.misc import position2index
@@ -31,7 +29,7 @@ from masai.core.fit.optimize import optimize
 from masai.core.process.baseline import basecorr
 from masai.core.analysis.picking import picking
 
-from traitsui.message import message, auto_close_message
+from traitsui.message import auto_close_message
 
 __all__ = ["pk", ]
 
@@ -39,7 +37,7 @@ DEBUG = False
 #
 # pk
 #
-def pk(source=None, options= '', axis=-1):
+def pk(source=None, options='', axis=-1):
     """
     Automatic or manual phasing
 
@@ -56,7 +54,7 @@ def pk(source=None, options= '', axis=-1):
     axis: optional, default=-1
 
     """
-   # options evaluation
+    # options evaluation
     parser = argparse.ArgumentParser(description='PK processing.', usage="""
     pk [-h] [--auto] [--fit_phc1] [--ediff EDIFF]
                            [--gamma GAMMA] [--select {standard,max,cols}]
@@ -83,24 +81,26 @@ def pk(source=None, options= '', axis=-1):
         phc1 = par.PHC1
 
     # positional arguments
-    parser.add_argument('phases', default=(phc0,phc1), nargs='*', type=float, help='zero and first order phase')
+    parser.add_argument('phases', default=(phc0, phc1), nargs='*', type=float, help='zero and first order phase')
     parser.add_argument('--pivot', '-pv', default=None, type=float, help='pivot position in spectral units')
-    parser.add_argument('--shifted', default=0.0, type=float, help = "position of the top in units of time")
+    parser.add_argument('--shifted', default=0.0, type=float, help="position of the top in units of time")
     parser.add_argument('--exp', '-ex', action='store_true', help='perform an exponential phase correction')
-    parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode' )
+    parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode')
     parser.add_argument('--fit_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
     parser.add_argument('--ediff', '-ef', default=1, type=int, help='order of the derivative for entropy calculation', )
     parser.add_argument('--gamma', '-ga', default=1.0, type=float, help='weight', )
-    parser.add_argument('--select', '-st', default='standard', choices=['standard','max','cols'], help='selection mode in automatic phasing', )
+    parser.add_argument('--select', '-st', default='standard', choices=['standard', 'max', 'cols'],
+                        help='selection mode in automatic phasing', )
     parser.add_argument('--threshold', '-th', default=50.0, type=int, help='default threshold for columns selection', )
-    parser.add_argument('--mode', '-m', default='negmin+entropy', help = "position of the top in units of time")
-    parser.add_argument('--optmode', '-om', default='simplex', choices=['simplex','hopping'], help = "method of optimisation")
-    parser.add_argument('--bound_phc0', '-bp0', default=360., type=float, help = "phc0 boundary")
-    parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help = "phc1 boundary")
+    parser.add_argument('--mode', '-m', default='negmin+entropy', help="position of the top in units of time")
+    parser.add_argument('--optmode', '-om', default='simplex', choices=['simplex', 'hopping'],
+                        help="method of optimisation")
+    parser.add_argument('--bound_phc0', '-bp0', default=360., type=float, help="phc0 boundary")
+    parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help="phc1 boundary")
     parser.add_argument('--byrow', '-br', action='store_true', help='to phase each row separately for series or 2D')
-    parser.add_argument('--verbose', action='store_true', help='verbose flag' )
+    parser.add_argument('--verbose', action='store_true', help='verbose flag')
 
-    args  = parser.parse_args(options.split())
+    args = parser.parse_args(options.split())
     if not source:
         return
 
@@ -130,26 +130,27 @@ def pk(source=None, options= '', axis=-1):
 
     if not args.auto:
         # not automatic leaves here...
-        data = ps(data.values, phc0, phc1+p_shifted, pivot=pivot, is_exp=args.exp) # this return an array not a dataframe
+        data = ps(data.values, phc0, phc1 + p_shifted, pivot=pivot,
+                  is_exp=args.exp)  # this return an array not a dataframe
         source.history.append('Phasing phc0:%.2f, phc1:%.2f' % (phc0, phc1))
 
     else:
         # APK...
-        if args.select=='cols' and source.is_2d and axis==0:
+        if args.select == 'cols' and source.is_2d and axis == 0:
             ar = picking(source, args.threshold, index=True)
             args.cols = zip(*ar)[1]
 
         if args.byrow and source.is_2d:
             rows = []
             for index in range(data.index.size):
-                row = data.iloc[index:index+1].values
+                row = data.iloc[index:index + 1].values
                 row, phc0, phc1 = autophase(row, args)
                 row = row - basecorr(row)
                 rows.append(row)
             #merge all rows to recreate data
             data = np.vstack(rows)
         else:
-            data, phc0, phc1 = autophase(data.values, args) # return an array not a dataframe
+            data, phc0, phc1 = autophase(data.values, args)  # return an array not a dataframe
 
         atxt = '(not optimized)' if not args.fit_phc1 else ''
 
@@ -173,11 +174,12 @@ def pk(source=None, options= '', axis=-1):
 # autophase
 #
 def _checkin(ph, bp):
-    if ph<-bp:
+    if ph < -bp:
         ph = -bp
-    if ph>bp:
+    if ph > bp:
         ph = bp
     return ph
+
 
 def autophase(data, args):
     """
@@ -253,8 +255,8 @@ def autophase(data, args):
         p0 = p['phc0']
         p1 = p['phc1']
         sc = s.copy()
-        sc = ps(sc, p0, p1+p_shifted, pivot=pivot, is_exp=is_exp)
-        
+        sc = ps(sc, p0, p1 + p_shifted, pivot=pivot, is_exp=is_exp)
+
         # baseline correction
         scp = sc - basecorr(sc)
 
@@ -298,8 +300,9 @@ def autophase(data, args):
         if f is None:  # simplex
             #display.clear_output(wait=True)
 
-            msg = ("Iteration: %d (chi2: %.5f)"%(niter, err)+' Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
-            auto_close_message(msg, title='Information',time=.001)
+            msg = ("Iteration: %d (chi2: %.5f)" % (niter, err) + ' Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (
+                nas, spe * gamma))
+            auto_close_message(msg, title='Information', time=.001)
 
             niter += 1
 
@@ -307,18 +310,18 @@ def autophase(data, args):
 
     # convergence is not insured depending on the starting values
     fp, err1 = optimize(_phase_error, fp,
-                           args=[dat,], method=optmode,
-                           callback=None)
+                        args=[dat, ], method=optmode,
+                        callback=None)
     nas_save = nas
     spe_save = spe
     fp_save = fp.copy()
 
     if optmode.upper() != 'HOPPING':
-        fp['phc0'] = (fp['phc0']-180.0) % 360.0, -bp0, bp0, False
+        fp['phc0'] = (fp['phc0'] - 180.0) % 360.0, -bp0, bp0, False
         ni = 0
         fp, err2 = optimize(_phase_error, fp,
-                                args=(dat,), method=optmode,
-                                callback=callback)
+                            args=(dat,), method=optmode,
+                            callback=callback)
 
         # select the best
         if err2 > err1:
@@ -335,18 +338,18 @@ def autophase(data, args):
 
     if fit_phc1:
         if verbose:
-            print('phc0: %.3f'%phc0)
-            print('phc1: %.3f'%phc1)
+            print('phc0: %.3f' % phc0)
+            print('phc1: %.3f' % phc1)
     else:
         if verbose:
-            print('phc0: %.3f'%phc0)
-            print('phc1: %.3f (not optimized)'%phc1)
+            print('phc0: %.3f' % phc0)
+            print('phc1: %.3f (not optimized)' % phc1)
 
     if verbose:
         print('Negative area (NA):%.3g Entropy (S) * gamma:%.3g' % (nas, spe * gamma))
 
     # apply to the original data and return
-    data = ps(data, phc0, phc1+p_shifted, pivot=pivot, is_exp=is_exp)
+    data = ps(data, phc0, phc1 + p_shifted, pivot=pivot, is_exp=is_exp)
     return data, phc0, phc1
 
 

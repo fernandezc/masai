@@ -23,14 +23,14 @@ from __future__ import print_function
 # ===============================================================================
 # Imports
 # ===============================================================================
-import os
 import glob
 
-
 import logging
+
 logging.getLogger()
 
-from warnings import warn, filterwarnings
+from warnings import filterwarnings
+
 filterwarnings("ignore")
 
 import pandas as pd
@@ -40,10 +40,10 @@ import addict
 from traits.api import *
 from masai.core.source import read_multiplex
 from masai.plugins.sources import Bruker
-from masai.core.database import Isotopes
 
 import traits.has_traits
 from masai.plugins import IPlugin
+
 traits.has_traits.CHECK_INTERFACES = 2
 from masai.core.utils import htmldoc
 
@@ -109,7 +109,7 @@ class Multiplex(Bruker):
             del self.par
             del self._data_orig
             del self._data
-        if hasattr(self,'par2'):
+        if hasattr(self, 'par2'):
             del self.par2
 
         path = ''
@@ -174,7 +174,8 @@ class Multiplex(Bruker):
                 parfiles.append(os.path.join('pdata', _procno, _item))
 
             return parfiles
-        #------------------------
+
+        # ------------------------
 
         if os.path.isdir(path) is not True:
             raise IOError("directory %s does not exist" % path)
@@ -191,7 +192,7 @@ class Multiplex(Bruker):
         expnos = kargs.get('expnos', False)
         paths = None
         if expnos:
-            paths = [os.path.join(path,str(expno)) for expno in expnos]
+            paths = [os.path.join(path, str(expno)) for expno in expnos]
         else:
             paths = [path, ]
 
@@ -200,7 +201,7 @@ class Multiplex(Bruker):
 
         n = 0
         ldata = []
-        lvarpars =[]
+        lvarpars = []
         ldates = []
 
         for path in paths:
@@ -220,7 +221,7 @@ class Multiplex(Bruker):
             # of accumulated row was incomplete
 
             # if datatype in ['SER'] and data.ndim == 1:
-            #     # we must reshape using the acqu parameters
+            # # we must reshape using the acqu parameters
             #     td1 = dic['acqu2']['TD']
             #     try:
             #         data = data.reshape(td1,-1)
@@ -233,8 +234,8 @@ class Multiplex(Bruker):
             #             raise ValueError
 
             #reduce to td
-            ntd = dic['acqus']['TD']/2
-            data = data[...,:ntd] # necessary for agreement with bruker data and phase
+            ntd = dic['acqus']['TD'] / 2
+            data = data[..., :ntd]  # necessary for agreement with bruker data and phase
 
             # Clean dict for pdata keys
             for key in dic.keys():
@@ -246,7 +247,7 @@ class Multiplex(Bruker):
             if kargs.get('dgfilter', True):
                 data = self._remove_digital_filter(dic, data)
 
-            if n>0 and datatype != adic.datatype:
+            if n > 0 and datatype != adic.datatype:
                 raise ValueError("Experiments not compatibles. End")
 
             dic['datatype'] = datatype
@@ -257,7 +258,7 @@ class Multiplex(Bruker):
             # compatibles
 
             # but we keep the original dictionary for further reference if necessary
-            adic.fulldic['exp_%d'%n] = dic
+            adic.fulldic['exp_%d' % n] = dic
 
             for key, val in dic.iteritems():
                 if isinstance(val, dict):
@@ -307,7 +308,7 @@ class Multiplex(Bruker):
             dat /= fac
             return dat
 
-        data = np.conj(data * 1.0j) # this transformation is to make data coherent with bruker processsing
+        data = np.conj(data * 1.0j)  # this transformation is to make data coherent with bruker processsing
         data = _norm(data)
 
         # make attributes from dict
@@ -320,23 +321,23 @@ class Multiplex(Bruker):
         # store temporarily
         ldata.append(data)
 
-        #store also the varpars of the series
+        # store also the varpars of the series
         varpars = kargs.get('varpars')
         if isinstance(varpars, str):
             # this should be one of the dic parameters
-            lvarpars.append(adic.par[varpars]) # store the variable
-            ldates.append(adic.par.DATE) # and the date
+            lvarpars.append(adic.par[varpars])  # store the variable
+            ldates.append(adic.par.DATE)  # and the date
         elif isinstance(varpars, list):
             # this should be a list of parameters
             p = []
             for var in varpars:
                 p.append(adic.par[var])
-            lvarpars.append(p) # store the variable
-            ldates.append(adic.par.DATE) # and the date
+            lvarpars.append(p)  # store the variable
+            ldates.append(adic.par.DATE)  # and the date
         n += 1
         # ---------------------------------------
 
-        if n>1:
+        if n > 1:
             # we need to concat the various arrays into a 2D array
             # but first check if they are all compatibles
             shapes = []
@@ -357,7 +358,7 @@ class Multiplex(Bruker):
             else:
                 data.index = ldates
 
-            data.fillna(0, inplace=True) # replace NaN with zeros
+            data.fillna(0, inplace=True)  # replace NaN with zeros
             self.datatype = 'FIDSER'
 
             # correct some values
@@ -392,13 +393,13 @@ class Multiplex(Bruker):
         else:
             return self.message
 
+
 if __name__ == '__main__':
     """
     test plugin
     """
     # need this to test  directly
-    import sys, os
-    import pylab as pl
+    import os
     from masai.plugins.catalog import Bruker
     from masai.plugins.catalog import Plot1d, Plot2d, Process
 
@@ -410,34 +411,34 @@ if __name__ == '__main__':
     Multiplex = Multiplex()
 
     print(__file__)
-    DATADIR = os.path.expanduser(os.path.join('..','..','..' ,'exemples'))
-    FIGDIR = 'figures' # this directory should exist in the current directory, however
+    DATADIR = os.path.expanduser(os.path.join('..', '..', '..', 'exemples'))
+    FIGDIR = 'figures'  # this directory should exist in the current directory, however
     user = 'user'
     name = 'MULTIPLEX'
     expno = 4
-    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
+    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
     source = Multiplex(path)
     # possibly correct the F1 encoding
     source.par2.encoding = 'STATES'
 
-    #source.par.SF = source.par.BF1
+    # source.par.SF = source.par.BF1
 
 
-    Process(source, transform = 'em 1 --k_shifted 3 0 --verbose')
+    Process(source, transform='em 1 --k_shifted 3 0 --verbose')
     # Process(source, transform = 'us 3')
     # F2 dimension
 
-    Process(source, transform = 'zf 1')  # 1 zero-filling
-    Process(source, transform = 'ft')
-    Process(source, transform = 'cl -40 40') # clipping
-    Process(source, transform = 'pk -72.558  0.214')#0 0 --auto --fit_phc1')
+    Process(source, transform='zf 1')  # 1 zero-filling
+    Process(source, transform='ft')
+    Process(source, transform='cl -40 40')  # clipping
+    Process(source, transform='pk -72.558  0.214')  # 0 0 --auto --fit_phc1')
 
     # F1 dimension
-    #Process(source, axis=0, transform='em .1')
+    # Process(source, axis=0, transform='em .1')
 
     #Process(source, axis=0, transform='lp 128 --tdeff 106') # must be before any zf command
     Process(source, axis=0, transform='zf 1')
     Process(source, axis=0, transform='ft --shear 3 0 --shift 15')
-    Process(source, axis=0, transform='pk -13.910 10.000') #0 0 --auto --fit_phc1 --select cols')
+    Process(source, axis=0, transform='pk -13.910 10.000')  #0 0 --auto --fit_phc1 --select cols')
 
-    p_2 = Plot2d(source, figsize=(3, 2.7))#, xlim=(-48, -20), ylim=(-40, -20) )
+    p_2 = Plot2d(source, figsize=(3, 2.7))  #, xlim=(-48, -20), ylim=(-40, -20) )

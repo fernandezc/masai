@@ -17,21 +17,24 @@
 """
 Model parameters handling
 """
-#==============
+# ==============
 # python import
-#==============
+# ==============
 import sys
-import re                       # For regular expression search
+import re  # For regular expression search
 import string
 import types
+from UserDict import UserDict  # This is to be able to create a special dictionary
+
 import numpy as np
-from UserDict import UserDict # This is to be able to create a special dictionary
+
+
 
 #=================
 # enthought import
 #=================
 from traits.api import (HasTraits, Str, Instance, on_trait_change,
-                        Property, Int, Float, List)
+                        Property, List)
 
 #=============
 # local import
@@ -53,10 +56,12 @@ def _id_generator():
     1
     
     """
-    n=1
+    n = 1
     while True:
         yield n
         n += 1
+
+
 id_generator = _id_generator()
 
 
@@ -72,17 +77,17 @@ class FitParameters(UserDict):
 
     #------------------
     def __init__(self):
-        UserDict.__init__(self)     # Create a dictionary class
-        self.lob = {}               # Lower bound
-        self.upb = {}               # Upper bound
-        self.fixed = {}             # true for non-variable parameter
-        self.reference = {}         #
-        self.common = {}            # indicates if a parameters belong to a common block
-        self.model = {}             # model to use
-        self.models = []            # list of models
-        self.sequence = ''          # sequence used in the experiment
-        self.expvars = []           # list of parameters which are experiment dependent
-        self.expnumber = 1          # number of experiments
+        UserDict.__init__(self)  # Create a dictionary class
+        self.lob = {}  # Lower bound
+        self.upb = {}  # Upper bound
+        self.fixed = {}  # true for non-variable parameter
+        self.reference = {}  #
+        self.common = {}  # indicates if a parameters belong to a common block
+        self.model = {}  # model to use
+        self.models = []  # list of models
+        self.sequence = ''  # sequence used in the experiment
+        self.expvars = []  # list of parameters which are experiment dependent
+        self.expnumber = 1  # number of experiments
 
     #---------------------------------
     def __setitem__(self, key, value):
@@ -92,20 +97,20 @@ class FitParameters(UserDict):
         if self.reference[key]:
             # we get a reference to another parameter 
             self.data[key] = str(value)
-            self.fixed[key] = True 
-        elif isinstance(value,tuple) or isinstance(value,list):
+            self.fixed[key] = True
+        elif isinstance(value, tuple) or isinstance(value, list):
             self.data[key] = self._evaluate(value[0])
             self.lob[key] = None
             self.upb[key] = None
             try:
-                if len(value)>2:
+                if len(value) > 2:
                     self.lob[key] = self._evaluate(value[1])
                     self.upb[key] = self._evaluate(value[2])
                     self._checkerror(key)
             except:
                 pass
             self.fixed[key] = False
-            if isinstance(value[-1],bool):
+            if isinstance(value[-1], bool):
                 self.fixed[key] = value[-1]
         else:
             self.data[key] = self._evaluate(value)
@@ -118,7 +123,7 @@ class FitParameters(UserDict):
         key = str(key)
         if self.data.has_key(key):
             return self.data[key]
-        raise KeyError("parameter %s is not found"%key)
+        raise KeyError("parameter %s is not found" % key)
 
     #-------------------
     def iteritems(self):
@@ -130,11 +135,11 @@ class FitParameters(UserDict):
         if self.lob[key] is None and self.upb[key] is None:
             return False
         elif (self.lob[key] is not None and self.data[key] < self.lob[key]) \
-            or (self.upb[key] is not None and self.data[key] > self.upb[key]) :
-            raise ValueError('%s value %s is out of bounds'%(key, str(self.data[key])))
+                or (self.upb[key] is not None and self.data[key] > self.upb[key]):
+            raise ValueError('%s value %s is out of bounds' % (key, str(self.data[key])))
 
     #-----------------
-    def __str__(self): 
+    def __str__(self):
 
         #.............................................................
         def makestr(key):
@@ -156,17 +161,18 @@ class FitParameters(UserDict):
                 val = str(self.data[key])
 
                 return "%s: %s, %s, %s \n" % (keystring, val, lob, upb)
+
         #..............................................................
 
         message = "#PARAMETER SCRIPT\n\nCOMMON: \n"
 
         var = ""
         for item in self.expvars:
-            var += " %s"%item
+            var += " %s" % item
 
         if var:
-            message += "\texperiment_number: %s \n"%str(self.expnumber)
-            message += "\texperiment_variables: %s \n"%var
+            message += "\texperiment_number: %s \n" % str(self.expnumber)
+            message += "\texperiment_variables: %s \n" % var
 
         # look for common parameters
         for key in self.keys():
@@ -175,7 +181,7 @@ class FitParameters(UserDict):
                 message += makestr(key)
 
         # model parameters
-        models = self.models  
+        models = self.models
         for model in models:
             message += "\nMODEL: %s\n" % model
             message += "shape: %s\n" % self.model[model]
@@ -204,7 +210,7 @@ class FitParameters(UserDict):
         
         """
         res = False
-        
+
         if type(strg) is types.StringType or type(strg) is types.UnicodeType:
             #strg=string.upper(strg)
             p = re.compile('\s+')
@@ -212,25 +218,25 @@ class FitParameters(UserDict):
             try:
                 res = eval(m[0])
             except NameError:
-                message="Cannot evaluate '"+strg+"' >> "+m[0]+" is not defined"
-                raise NameError,message
+                message = "Cannot evaluate '" + strg + "' >> " + m[0] + " is not defined"
+                raise NameError, message
             except SyntaxError:
-                message="Syntax error in '"+strg+"'"
-                raise SyntaxError,message
+                message = "Syntax error in '" + strg + "'"
+                raise SyntaxError, message
             #read mulitplier
             if len(m) > 1:
                 try:
-                    res=res*eval(m[1])
+                    res = res * eval(m[1])
                 except NameError:
-                    message= "Cannot evaluate '"+strg+"' >> "+m[1]+" is not defined"
-                    raise ValueError,message
+                    message = "Cannot evaluate '" + strg + "' >> " + m[1] + " is not defined"
+                    raise ValueError, message
                 except SyntaxError:
-                    message="Syntax error in '"+strg+"'"
-                    raise ValueError,message
+                    message = "Syntax error in '" + strg + "'"
+                    raise ValueError, message
         else:
             # not a string (probably a scalar that can be return as it is)
             res = strg
-            
+
         return res
 
     #----------------------------------------
@@ -240,7 +246,7 @@ class FitParameters(UserDict):
         """
         key = str(key)
         if not self.data.has_key(key):
-            raise KeyError("parameter %s is not found"%key)
+            raise KeyError("parameter %s is not found" % key)
 
         if expi is not None:
             pe = self.data[key][expi]
@@ -249,22 +255,22 @@ class FitParameters(UserDict):
         lob = self.lob[key]
         upb = self.upb[key]
 
-        is_lob = lob is not None and lob > -0.1/sys.float_info.epsilon # lob is not None
-        is_upb = lob is not None and upb < +0.1/sys.float_info.epsilon # upb is not None
+        is_lob = lob is not None and lob > -0.1 / sys.float_info.epsilon  # lob is not None
+        is_upb = lob is not None and upb < +0.1 / sys.float_info.epsilon  # upb is not None
 
         if is_lob and is_upb:
-            lob = min(pe,lob)
-            upb =max(pe,upb)
+            lob = min(pe, lob)
+            upb = max(pe, upb)
             # With min and max bounds defined
-            pi = np.arcsin((2*(pe - lob)/(upb - lob)) - 1.)
+            pi = np.arcsin((2 * (pe - lob) / (upb - lob)) - 1.)
         elif is_upb:
-            upb =max(pe,upb)
+            upb = max(pe, upb)
             # With only max defined
-            pi = np.sqrt((upb - pe + 1.)**2 - 1.)
+            pi = np.sqrt((upb - pe + 1.) ** 2 - 1.)
         elif is_lob:
-            lob = min(pe,lob)
+            lob = min(pe, lob)
             # With only min defined
-            pi = np.sqrt((pe - lob + 1.)**2 - 1.)
+            pi = np.sqrt((pe - lob + 1.) ** 2 - 1.)
         else:
             pi = pe
         return pi
@@ -274,13 +280,13 @@ class FitParameters(UserDict):
 
         key = str(key)
         if not self.data.has_key(key):
-            raise KeyError("parameter %s is not found"%key)
+            raise KeyError("parameter %s is not found" % key)
 
         lob = self.lob[key]
         upb = self.upb[key]
 
-        is_lob = lob is not None and lob > -0.1/sys.float_info.epsilon # lob is not None
-        is_upb = lob is not None and upb < +0.1/sys.float_info.epsilon # upb is not None
+        is_lob = lob is not None and lob > -0.1 / sys.float_info.epsilon  # lob is not None
+        is_upb = lob is not None and upb < +0.1 / sys.float_info.epsilon  # upb is not None
 
         if not isinstance(pi, list):
             pi = [pi, ]  #make a list
@@ -289,63 +295,66 @@ class FitParameters(UserDict):
         for item in pi:
             if is_lob and is_upb:
                 #  With min and max bounds defined
-                pei = lob + ((upb - lob)/2.)*(np.sin(item) + 1.)
+                pei = lob + ((upb - lob) / 2.) * (np.sin(item) + 1.)
             elif is_upb:
                 #With only max defined
-                pei = upb + 1. - np.sqrt(item**2 + 1.)
+                pei = upb + 1. - np.sqrt(item ** 2 + 1.)
             elif is_lob:
                 #With only min defined
-                pei = lob - 1. + np.sqrt(item**2 + 1.)
+                pei = lob - 1. + np.sqrt(item ** 2 + 1.)
             else:
                 pei = pi
             pe.append(pei)
 
-        if len(pe)==1:
+        if len(pe) == 1:
             pe = pe[0]
 
         self.data[key] = pe
 
         return pe
 
+
 #========================
 class FitSteps(UserDict):
-#========================
+    #========================
     """
     Define which parameters are used in a step of the fit
     """
     count = 0
+
     def __init__(self, fitpar):
         UserDict.__init__(self)
         self.fixed = {}
         self.parameters = fitpar.keys
 
-    def __setitem__(self, step, value):        
-        self.data[step]=self.parameters
-        self.fixed[step]={}
+    def __setitem__(self, step, value):
+        self.data[step] = self.parameters
+        self.fixed[step] = {}
 
         # we start with all parameters fixed
         for k in self.parameters:
             self.fixed[step][k] = True
 
         if not value:
-            value='allfixed'
+            value = 'allfixed'
 
-        if isinstance(value,tuple) or isinstance(value,list):
+        if isinstance(value, tuple) or isinstance(value, list):
             value = "|".join(value)
 
-        if isinstance(value,str):
-            if value[0]!="^": '^('+value
-            if value[-1]!="$": value+")$"
+        if isinstance(value, str):
+            if value[0] != "^": '^(' + value
+            if value[-1] != "$": value + ")$"
 
-            p=re.compile(value)
+            p = re.compile(value)
             for k in self.parameters:
                 m = p.search(k)
                 if m: self.fixed[step][k] = False
         else:
-            raise ValueError, "FitStep["+str(step)+"]: Can't recognize this input!"
+            raise ValueError, "FitStep[" + str(step) + "]: Can't recognize this input!"
 
     def __getitem__(self, step):
         return self.fixed[step]
+
 
 #================
 # ParameterScript
@@ -355,10 +364,10 @@ class ParameterScript(HasTraits):
     This class allow some manipulation of the parameter list for modelling
     
     """
-    from masai.plugins import IPlugin
+
     sources = List(Instance("masai.plugins.sources.bruker_plugin.Bruker"))
     fp = Instance(FitParameters)
-        
+
     script = Str('')
 
     _list_of_models = Property()
@@ -367,7 +376,7 @@ class ParameterScript(HasTraits):
     _list_of_baselines = Property()
     basetype = DEnum(values_name='_list_of_baselines')
 
-    
+
     #===========================================================================
     # properties
     #===========================================================================
@@ -413,13 +422,13 @@ class ParameterScript(HasTraits):
         common = False
         fixed = False
         reference = False
-        
+
         # create a new FitParameters instance
         fp = FitParameters()
 
         # set the number of experiments
         fp.expnumber = len(self.sources)
-        print("The number of experiment(s) is set to %d"%fp.expnumber)
+        print("The number of experiment(s) is set to %d" % fp.expnumber)
 
         # start interpreting ------------------------------------------------------
         lines = script.split('\n')
@@ -435,40 +444,40 @@ class ParameterScript(HasTraits):
             s = line.split(':')
             if len(s) != 2:
                 raise SyntaxError('Cannot interpret line %d : A semi-column is missing?' % lc)
-                 
+
             key, values = s
             key = key.strip().lower()
             if key.startswith('model'):
                 modlabel = values.lower().strip()
                 if modlabel not in fp.models:
-                    fp.models.append(modlabel) 
+                    fp.models.append(modlabel)
                 common = False
                 continue
-            elif key.startswith('common') or key.startswith('vars'): 
+            elif key.startswith('common') or key.startswith('vars'):
                 common = True
                 modlabel = 'common'
                 continue
             elif key.startswith('shape'):
                 shape = values.lower().strip()
                 if shape is None or (shape not in self._list_of_models and shape not in self._list_of_baselines):
-                    raise SyntaxError('Shape of this model "%s" was not specified or is not implemented'%shape)
+                    raise SyntaxError('Shape of this model "%s" was not specified or is not implemented' % shape)
                 fp.model[modlabel] = shape
                 common = False
                 continue
-            elif key.startswith("experiment"): # must be in common
+            elif key.startswith("experiment"):  # must be in common
                 if not common:
                     raise SyntaxError(
-                    "'experiment_...' specification was found outside the common block.")
+                        "'experiment_...' specification was found outside the common block.")
                 if "variables" in key:
                     expvars = values.lower().strip()
-                    expvars = expvars.replace(',',' ').replace(';',' ')
+                    expvars = expvars.replace(',', ' ').replace(';', ' ')
                     expvars = expvars.split()
                     fp.expvars.extend(expvars)
                 continue
             else:
                 if modlabel is None and not common:
                     raise SyntaxError(
-                   "The first definition should be a label for a model or a block of variables or constants.")
+                        "The first definition should be a label for a model or a block of variables or constants.")
                 # get the parameters
                 if key.startswith('*'):
                     fixed = True
@@ -484,13 +493,13 @@ class ParameterScript(HasTraits):
                     key = key[1:].strip()
                 else:
                     raise SyntaxError('Cannot interpret line %d: A parameter definition must start with *,$ or >' % lc)
-                    
+
                 # store this parameter
                 s = values.split(',')
                 s = map(string.strip, s)
-                if len(s)>1 and ('[' in s[0]) and (']' in s[1]): #list
-                    s[0] = "%s, %s"%(s[0], s[1])
-                    if len(s)>2:
+                if len(s) > 1 and ('[' in s[0]) and (']' in s[1]):  #list
+                    s[0] = "%s, %s" % (s[0], s[1])
+                    if len(s) > 2:
                         s[1:] = s[2:]
                 if len(s) > 3:
                     raise SyntaxError('line %d: value, min, max should be defined in this order' % lc)
@@ -517,25 +526,27 @@ class ParameterScript(HasTraits):
                     val = eval(val)
                     if isinstance(val, list):
                         # if the parameter is already a list, that's ok if the number of parameters is ok
-                        if len(val)!=fp.expnumber:
-                            raise ValueError('the number of parameters for %s is not the number of experiments.'%len(val))
+                        if len(val) != fp.expnumber:
+                            raise ValueError(
+                                'the number of parameters for %s is not the number of experiments.' % len(val))
                         if key not in fp.expvars:
-                            raise ValueError('parameter %s is not declared as variable'%key)
+                            raise ValueError('parameter %s is not declared as variable' % key)
                     else:
                         if key in fp.expvars:
                             # we create a list of parameters corresponding
-                            val = [val]*fp.expnumber
+                            val = [val] * fp.expnumber
                     fp[ks] = val, mini.strip(), maxi.strip(), fixed
                 else:
                     fp[ks] = value.strip()
-        return fp 
+        return fp
 
-###########################
+        ###########################
+
 
 if __name__ == '__main__':
 
-    import os, commands
-    from masai.api import Bruker, Process, Plot1d, Fit1d
+    import os
+    from masai.api import Bruker, Process, Fit1d
 
     # we try here a multi source fit
     # print(commands.getoutput('pwd'))
@@ -567,20 +578,20 @@ if __name__ == '__main__':
 
     """
     for i, delta in enumerate(pos):
-        fa = '*' if i==0 else '$'
-        script +="""
+        fa = '*' if i == 0 else '$'
+        script += """
             MODEL: LINE_%d
             shape: voigtmodel
                 %s ampl:  0.6, 0.0, none
                 $ pos: %.3f, %.3f, %.3f
                 > ratio: gratio
                 $ width: [0.4, %.3f], %.3f, %.3f
-        """%(i, fa, delta, delta-.2, delta+0.2,
-                    0.57, 0.45, 0.65)
+        """ % (i, fa, delta, delta - .2, delta + 0.2,
+               0.57, 0.45, 0.65)
 
-    print('#'*10)
+    print('#' * 10)
     # prepare fit
-    f = Fit1d( [source1, source2], script)
+    f = Fit1d([source1, source2], script)
     #f.run(maxiter=200, every=10)
-    print('#'*10)
+    print('#' * 10)
     print(f.script)

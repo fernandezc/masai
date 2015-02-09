@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 #
-#===============================================================================
+# ===============================================================================
 # masai.version
-#===============================================================================
+# ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
 #       christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
@@ -12,16 +12,19 @@
 # the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
 # at the following URL "http://www.cecill.info".
 # See Licence.txt in the main masai source directory
-#===============================================================================
+# ===============================================================================
 """
 This module contains version information. It use git to get the last version and
 revision number.
 """
 from __future__ import print_function, division
 
-from enthought.preferences.api import Preferences
 import os
-import commands #TODO: may be we could use Fabric
+import commands  #TODO: may be we could use Fabric
+
+from enthought.preferences.api import Preferences
+
+
 
 #===============================================================================
 # Constants
@@ -31,7 +34,7 @@ _TITLE_ = u"MASAI"
 _COPYRIGHT_ = u"2015, C.Fernandez"
 
 # set or read the preference file
-_path = os.path.join(os.path.expanduser('~'),'.masai')
+_path = os.path.join(os.path.expanduser('~'), '.masai')
 if not os.path.exists(_path):
     os.makedirs(_path)
 _filename = os.path.join(_path, "masai.ini")
@@ -47,8 +50,10 @@ preferences = Preferences(filename=_filename)
 #TODO: not sure it is useful without  GUI interface but we'll see
 if _TOOLKIT_SETUP:
     from traits.etsconfig.api import ETSConfig
+
     ETSConfig.toolkit = "qt4"
     import matplotlib
+
     matplotlib.use('Qt4Agg')  # We want matplotlib to use a QT backend
 
 #===============================================================================
@@ -70,6 +75,7 @@ def get_git_version():
     else:
         return None
 
+
 #===============================================================================
 # get_version
 #===============================================================================
@@ -85,13 +91,13 @@ def get_version():
     verstr = get_git_version()
     if verstr:
         verstr = verstr.split('-')
-        verstr = "%s.%s"%tuple(verstr[:2])
+        verstr = "%s.%s" % tuple(verstr[:2])
 
     if verstr:
-        preferences.set("api.version",verstr)
+        preferences.set("api.version", verstr)
         preferences.flush()
     else:
-        verstr = preferences.get("api.version","unknown")
+        verstr = preferences.get("api.version", "unknown")
     return verstr
 
 
@@ -106,10 +112,10 @@ def get_fullversion_string():
         A complete version string
     """
     __version__ = get_version()
-    txt = "*"*40 + "\n"
+    txt = "*" * 40 + "\n"
     txt += "%s, version : %s\nCopyright (c)%s" % (
-                                               _TITLE_, __version__, _COPYRIGHT_)
-    txt += "\n" + "*"*40 + "\n"
+        _TITLE_, __version__, _COPYRIGHT_)
+    txt += "\n" + "*" * 40 + "\n"
     return txt
 
 #===============================================================================

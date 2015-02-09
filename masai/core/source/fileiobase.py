@@ -11,7 +11,6 @@ from __future__ import division
 
 import os
 import string
-import sys
 import itertools
 from functools import reduce
 
@@ -27,16 +26,16 @@ def create_blank_udic(ndim):
 
     for i in range(ndim):
         d = dict()
-        d["sw"] = 999.99        # spectral width in Hz
-        d["complex"] = True     # Quadrature, True when dimension is complex
-        d["obs"] = 999.99       # Observation frequency in MHz
-        d["car"] = 999.99       # Carrier frequency in Hz
-        d["size"] = 1           # Number of points in dimension based on the
-                                # shape of the data array. As such the direct
-                                # dimension (-1) size is R|I, all indirect
-                                # dimensions are R+I
+        d["sw"] = 999.99  # spectral width in Hz
+        d["complex"] = True  # Quadrature, True when dimension is complex
+        d["obs"] = 999.99  # Observation frequency in MHz
+        d["car"] = 999.99  # Carrier frequency in Hz
+        d["size"] = 1  # Number of points in dimension based on the
+        # shape of the data array. As such the direct
+        # dimension (-1) size is R|I, all indirect
+        # dimensions are R+I
 
-        d["label"] = ["X", "Y", "Z", "A"][i]    # name of dimension
+        d["label"] = ["X", "Y", "Z", "A"][i]  # name of dimension
 
         # encoding of dimension, ie states, tppi, etc.  The direct dimension
         # should be listed as direct.
@@ -72,13 +71,14 @@ class unit_conversion():
         Carrier frequency in Hz.
 
     """
+
     def __init__(self, size, cplx, sw, obs, car):
         """
         create and set up a unit_conversion object
         """
         # fundamental units
         self._size = size
-        self._sizem = size-1
+        self._sizem = size - 1
         self._cplx = cplx
         self._sw = sw
         self._obs = obs
@@ -146,8 +146,8 @@ class unit_conversion():
             pts = self.__us2pts(val)
         else:
             raise ValueError("invalid unit type")
-        #if self._cplx:
-        #    return pts+round(pts)
+        # if self._cplx:
+        # return pts+round(pts)
         #else:
         return pts
 
@@ -156,8 +156,8 @@ class unit_conversion():
         Convert points to units
         """
         units = units.upper()
-        #if self._cplx:
-        #    val = val-round(val)
+        # if self._cplx:
+        # val = val-round(val)
         if units == "PPM":
             k = self.__pts2ppm(val)
         elif units == "HZ":
@@ -332,7 +332,7 @@ class unit_conversion():
         x0, x1 = self.us_limits()
         return np.linspace(x0, x1, self._size)
 
-    __call__ = i    # calling the object x is the same as x.i
+    __call__ = i  # calling the object x is the same as x.i
 
 
 def uc_from_udic(udic, dim=-1):
@@ -376,6 +376,7 @@ def open_towrite(filename, overwrite=False, mode='wb'):
         os.makedirs(p)
 
     return open(filename, mode)
+
 
 ################################################
 # numpy ndarray emulation and helper functions #
@@ -500,14 +501,15 @@ def trace2index_reg(shape, ntrace):
     total = [b * 2 + a for b, a in zip(base, to_add)]
     return tuple(total)
 
+
 #
 # data_nd class
 #
 # inherited classes should define:
 #
-#    __init__ which sets up the object and defines at minimum
+# __init__ which sets up the object and defines at minimum
 #
-#       self.fshape shape of data on disk (shape when order = (0,1,2...)
+# self.fshape shape of data on disk (shape when order = (0,1,2...)
 #       self.order order of axes, default is (0,1,2,...)
 #       self.dtype
 #
@@ -678,18 +680,18 @@ class data_nd(object):
             Object whose axes are permuted.
 
         """
-        if axes == ():    # default is to switch order of axes
+        if axes == ():  # default is to switch order of axes
             axes = range(self.ndim)[::-1]
 
-        if len(axes) == 1:    # if a single tuple is given unpack
+        if len(axes) == 1:  # if a single tuple is given unpack
             axes = axes[0]
 
-        try:    # convert to integers
+        try:  # convert to integers
             axes = [int(i) for i in axes]
         except:
             raise TypeError("an integer is required")
 
-        if len(axes) != self.ndim:   # check for to few/many axes
+        if len(axes) != self.ndim:  # check for to few/many axes
             raise ValueError("axes don't match array")
 
         # replace negatives axes values with positives

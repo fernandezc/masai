@@ -4,8 +4,8 @@
 # masai.core.process.baseline
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -15,15 +15,14 @@
 # ===============================================================================
 
 from __future__ import print_function, division
-import sys
 
-import numpy as np
-import nmrglue as ng
-from scipy.interpolate import pchip
-import pandas as pd
 import argparse
 
+import numpy as np
+import pandas as pd
+
 from masai.core.process.smooth import smooth
+
 
 __all__ = ["ab", "basecorr"]
 
@@ -76,8 +75,8 @@ def ab(source=None, options='', axis=-1):
                            [--mult MULT] [--order ORDER] [--verbose]
     """)
     # positional arguments
-    parser.add_argument('--mode', '-mo', default='linear', choices=['linear', 'poly', 'svd'], help = "mode of correction")
-    parser.add_argument('--dryrun', action='store_true', help='dry flag' )
+    parser.add_argument('--mode', '-mo', default='linear', choices=['linear', 'poly', 'svd'], help="mode of correction")
+    parser.add_argument('--dryrun', action='store_true', help='dry flag')
 
     parser.add_argument('--window', '-wi', default=0.05, type=float, help='selected window for linear and svd bc')
     parser.add_argument('--step', '-st', default=5, type=int, help='step for svd bc')
@@ -85,8 +84,8 @@ def ab(source=None, options='', axis=-1):
     parser.add_argument('--mult', '-mt', default=4, type=int, help='multiplicator of zone for poly')
     parser.add_argument('--order', '-or', default=5, type=int, help='polynom order for poly')
 
-    parser.add_argument('--verbose', action='store_true', help='verbose flag' )
-    args  = parser.parse_args(options.split())
+    parser.add_argument('--verbose', action='store_true', help='verbose flag')
+    args = parser.parse_args(options.split())
 
     source.history.append('baseline correction mode:%s' % args.mode)
 
@@ -96,7 +95,7 @@ def ab(source=None, options='', axis=-1):
         par = source.par2
 
     if not par.isfreq:
-        pass #todo: fid correction
+        pass  #todo: fid correction
 
     # we will work on the ndarray, not DataFrame
     data = source.data
@@ -104,8 +103,8 @@ def ab(source=None, options='', axis=-1):
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
         data = data.T
-    index=data.index
-    columns=data.columns
+    index = data.index
+    columns = data.columns
 
     base, w = basecorr(data.values, args, retw=True)
     par.baseline = pd.DataFrame(base, index=index, columns=columns)
@@ -114,7 +113,7 @@ def ab(source=None, options='', axis=-1):
     if not args.dryrun:
         data = data - base
 
-     # un-transpose the data if needed
+        # un-transpose the data if needed
     if axis == 0:
         data = data.T
         par.baseline = par.baseline.T
@@ -210,6 +209,7 @@ def _planeFit(points):
 
     """
     from numpy.linalg import svd
+
     npts = points.shape[0]
     points = np.reshape(points, (npts, -1))
     assert points.shape[0] < points.shape[1]
@@ -217,6 +217,7 @@ def _planeFit(points):
     x = points - ctr[:, None]
     M = np.dot(x, x.T)
     return ctr, svd(M)[0][:, -1]
+
 
 #=======================================================================================================================
 def _svdbase(data, args=None, retw=False):
@@ -336,7 +337,7 @@ def _polybase(data, args=None, retw=False):
         # increase nstd
         nstd = nstd * 1.1
     if DEBUG: print('basf optimized nstd: %.2F mult: %.2f' % (nstd, mult))
-    
+
     wm = np.array(zip(*np.argwhere(~baseline[:1].mask))[1])
     bm = baseline[:, wm]  # [~baseline[0].mask]
     bm = smooth(bm.T, window_len=max(int(dat.shape[0] / 10), 3)).T
@@ -348,7 +349,7 @@ def _polybase(data, args=None, retw=False):
     #    baseline = sr(w) + si(w) * 1.0j
     #    baseline = smooth(baseline, window_len=int(nw / 4))
     #else:
-        # fit a polynom
+    # fit a polynom
     pf = np.polyfit(wm, bm.T, order).T
     for i, row in enumerate(pf[:]):
         poly = np.poly1d(row)

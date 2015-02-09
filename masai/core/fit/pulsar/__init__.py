@@ -1,6 +1,6 @@
-#===============================================================================
+# ===============================================================================
 # Copyright (C) 2012-2013 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.  
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
 #       christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law 
 # and abiding by the rules of distribution of free software.  

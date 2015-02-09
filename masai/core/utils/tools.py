@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
-#===============================================================================
+# ===============================================================================
 # masai.core.utils.tools
-#===============================================================================
+# ===============================================================================
 # Copyright (C) 2012-2013 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.  
 #       christian.fernandez@ensicaen.fr
@@ -22,10 +22,10 @@ in other modules...
 __all__ = ['Timer']
 
 import threading
-import time
+
 
 class Timer:
-    def __init__(self, tempo, target, args= [], kwargs={}):
+    def __init__(self, tempo, target, args=[], kwargs={}):
         self._target = target
         self._args = args
         self._kwargs = kwargs
@@ -35,7 +35,7 @@ class Timer:
         self._timer = threading.Timer(self._tempo, self._run)
         self._timer.start()
         self._target(*self._args, **self._kwargs)
-        
+
     def start(self):
         self._timer = threading.Timer(self._tempo, self._run)
         self._timer.start()
@@ -43,6 +43,6 @@ class Timer:
     def stop(self):
         self._timer.cancel()
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     pass

@@ -4,8 +4,8 @@
 # masai.plugins.api
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -15,8 +15,12 @@
 # ===============================================================================
 import os
 import glob
-from addict import Dict as aDict
 import sys
+
+from addict import Dict as aDict
+
+__info__ = "plugin catalog"
+__pluginlist__ = aDict()
 
 #===============================================================================
 # Load all plugins
@@ -29,9 +33,10 @@ def _loadPlugins():
     # find the path of the masai module
 
     import masai
-    directory = os.path.join(os.path.dirname(masai.__file__),'plugins')
 
-    plugins = glob.glob(os.path.join(directory,"*","*_plugin.py"))
+    directory = os.path.join(os.path.dirname(masai.__file__), 'plugins')
+
+    plugins = glob.glob(os.path.join(directory, "*", "*_plugin.py"))
 
     dic = aDict()
 
@@ -49,12 +54,14 @@ def _loadPlugins():
         # Import the plugin module temporarily long enough to instantiate an object
         # which is stored in a globally accessible dictionary.
 
-        tempModule = __import__(name+"_plugin")
+        tempModule = __import__(name + "_plugin")
         attrs = dir(tempModule)
         if '__plugin_main__' in attrs:
-            attr = getattr(tempModule,'__plugin_main__')
+            attr = getattr(tempModule, '__plugin_main__')
             cls = getattr(tempModule, attr)
             if cls:
                 globals()[name.capitalize()] = cls
+                __pluginlist__[name.capitalize()] = cls
 
 _loadPlugins()
+print("list", __pluginlist__)

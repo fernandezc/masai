@@ -4,8 +4,8 @@
 # masai.core.process.apodisation
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -16,16 +16,17 @@
 
 from __future__ import print_function
 
-from traits.api import (HasTraits, Instance)
+import argparse
 
+from traits.api import (HasTraits, Instance)
 import numpy as np
 import pandas as pd
-import argparse
+
 from masai.core.process import proc_base
 from masai.core.utils.misc import position2index
 from masai.core.process.mqstmas import k_ratio
 
-__all__ = ["zf", "cs", "ls", "rs", "em", 'mc', 'pc' ]
+__all__ = ["zf", "cs", "ls", "rs", "em", 'mc', 'pc']
 
 #
 # pc : power calculation
@@ -46,10 +47,10 @@ def pc(source=None, options='', axis=-1):
     parser = argparse.ArgumentParser(description='PC processing.',
                                      usage="""
     pc npc [-h]
-    """,)
+    """, )
     # positional arguments
-    parser.add_argument('npc', default=2,  nargs='?', type=int, help='power (default square)')
-    args  = parser.parse_args(options.split())
+    parser.add_argument('npc', default=2, nargs='?', type=int, help='power (default square)')
+    args = parser.parse_args(options.split())
 
     if axis == -1:
         par = source.par
@@ -68,7 +69,7 @@ def pc(source=None, options='', axis=-1):
         datv = datv.T
 
     npc = args.npc
-    datv = np.abs(datv)**npc
+    datv = np.abs(datv) ** npc
 
     # un-transpose the data if needed
     if axis == 0:
@@ -77,16 +78,18 @@ def pc(source=None, options='', axis=-1):
     # change the current data with the transformed data
     source.data = datv  # scale will be calculated here
 
-    if npc!=1:
+    if npc != 1:
         source.history.append('Power spectrum calculation')
     else:
         source.history.append('Magnitude spectrum calculation')
+
 
 #
 # mc : magniyude calculation
 #
 def mc(source=None, options='', axis=-1):
     pc(source, options='1', axis=axis)
+
 
 #
 # zf : zero-filling
@@ -110,10 +113,10 @@ def zf(source=None, options='', axis=-1):
     parser = argparse.ArgumentParser(description='ZF processing.',
                                      usage="""
     zf [nzf] [-h]
-    """,)
+    """, )
     # positional arguments
-    parser.add_argument('nzf', default=0,  nargs='?', type=int, help='number of zero-filling')
-    args  = parser.parse_args(options.split())
+    parser.add_argument('nzf', default=0, nargs='?', type=int, help='number of zero-filling')
+    args = parser.parse_args(options.split())
 
     if axis == -1:
         par = source.par
@@ -132,7 +135,7 @@ def zf(source=None, options='', axis=-1):
         datv = datv.T
 
     nzf = args.nzf
-    si = proc_base.largest_power_of_2(datv.shape[-1]) * 2**nzf
+    si = proc_base.largest_power_of_2(datv.shape[-1]) * 2 ** nzf
     datv = proc_base.zf_size(datv, si)
 
     # store the new pars
@@ -147,6 +150,7 @@ def zf(source=None, options='', axis=-1):
     source.data = datv  # scale will be calculated here
 
     source.history.append('Zero-filling to si:%d' % par.SI)
+
 
 #
 # cs : circular shift
@@ -173,11 +177,11 @@ def cs(source=None, options='', axis=-1):
     parser = argparse.ArgumentParser(description='CS shift.',
                                      usage="""
     cs [ncs|tcs] [-h]
-    """,)
+    """, )
     # positional arguments
-    parser.add_argument('ncs', default=0, type=float,  help='circular shit in points or time units')
+    parser.add_argument('ncs', default=0, type=float, help='circular shit in points or time units')
     parser.add_argument('--time', action='store_true', help='is time')
-    args  = parser.parse_args(options.split())
+    args = parser.parse_args(options.split())
 
     if axis == -1:
         par = source.par
@@ -197,7 +201,7 @@ def cs(source=None, options='', axis=-1):
 
     ncs = args.ncs
     if args.time:
-        sign = ncs/abs(ncs)
+        sign = ncs / abs(ncs)
         ncs = sign * position2index(data, abs(ncs))
     datv = data.values
     datv = proc_base.cs(datv, int(ncs))
@@ -215,6 +219,7 @@ def cs(source=None, options='', axis=-1):
     source.data = datv  # scale will be calculated here
 
     source.history.append('circular shift by: %d' % ncs)
+
 
 #
 # ls : left shift
@@ -239,11 +244,11 @@ def ls(source=None, options='', axis=-1):
     parser = argparse.ArgumentParser(description='LS shift.',
                                      usage="""
     ls [nls|tls] [-h]
-    """,)
+    """, )
     # positional arguments
-    parser.add_argument('nls', default=0, type=float,  help='left shift in points or time units')
+    parser.add_argument('nls', default=0, type=float, help='left shift in points or time units')
     parser.add_argument('--time', action='store_true', help='is time')
-    args  = parser.parse_args(options.split())
+    args = parser.parse_args(options.split())
 
     if axis == -1:
         par = source.par
@@ -280,6 +285,7 @@ def ls(source=None, options='', axis=-1):
 
     source.history.append('left shift by: %d' % nls)
 
+
 #
 # rs : circular shift
 #
@@ -303,7 +309,7 @@ def rs(source=None, options='', axis=-1):
     parser = argparse.ArgumentParser(description='RS shift.',
                                      usage="""
     rs [nrs|trs] [-h]
-    """,)
+    """, )
     # positional arguments
     parser.add_argument('nrs', default=0, type=float, help='right shift in points or time units')
     parser.add_argument('--time', action='store_true', help='is time')
@@ -344,6 +350,7 @@ def rs(source=None, options='', axis=-1):
 
     source.history.append('right shift by: %d' % nrs)
 
+
 #
 # em
 #
@@ -369,14 +376,14 @@ def em(source=None, options='', axis=-1, **kargs):
                                      usage="""
     em [lb] [-h]
        [--shifted SHIFTED | --k_shifted P Q] [--verbose]
-    """,)
+    """, )
     # positional arguments
-    parser.add_argument('lb', default=10.,  nargs='?', type=float, help='broadening value in Hz')
-    parser.add_argument('--shifted', default=0.0, type=float, help = "position of the top in units of time")
-    parser.add_argument('--k_shifted', default=None, type=int, nargs=2, help = "p and q parameters")
+    parser.add_argument('lb', default=10., nargs='?', type=float, help='broadening value in Hz')
+    parser.add_argument('--shifted', default=0.0, type=float, help="position of the top in units of time")
+    parser.add_argument('--k_shifted', default=None, type=int, nargs=2, help="p and q parameters")
     # optional arguments
-    parser.add_argument('--verbose', action='store_true', help='verbose flag' )
-    args  = parser.parse_args(options.split())
+    parser.add_argument('--verbose', action='store_true', help='verbose flag')
+    args = parser.parse_args(options.split())
 
     if axis == -1:
         par = source.par
@@ -393,21 +400,21 @@ def em(source=None, options='', axis=-1, **kargs):
 
     command = 'em'
 
-    lb = args.lb # float(kargs.get('lb', 10.))
-    shifted = args.shifted #float(kargs.get('top', 0.0))
+    lb = args.lb  # float(kargs.get('lb', 10.))
+    shifted = args.shifted  #float(kargs.get('top', 0.0))
     k_shifted = args.k_shifted
 
     if k_shifted and (axis == -1 or axis == 1) and source.is_2d:
         # in k shifted method for 2D spectra, the top of
         # the broadening function follow the top of the echoes
         # parameters p and q should be defined in parameters
-        command ='k_shifted_em'
+        command = 'k_shifted_em'
 
-        p = k_shifted[0] # coherence
-        q = k_shifted[1] # satellite order
+        p = k_shifted[0]  # coherence
+        q = k_shifted[1]  # satellite order
 
-        if p==1 and q==0:
-            ratio=1.0
+        if p == 1 and q == 0:
+            ratio = 1.0
         else:
             ratio = k_ratio(source, p, q)
         shifted = np.abs(ratio)
@@ -429,6 +436,7 @@ def em(source=None, options='', axis=-1, **kargs):
     source.data = datv
     source.history.append('Exponential apodization lb:%.2f' % par.LB)
 
+
 #
 # apodization
 #
@@ -437,13 +445,14 @@ def _apodization(data, func, **kargs):
     Apply a given apodization to the source data
 
     """
-    model = ApodModels(data = data)
+    model = ApodModels(data=data)
 
     _func = getattr(model, func)
 
     datv = (data.values * _func(**kargs))
 
     return datv
+
 
 #
 # ApodModels
@@ -526,11 +535,11 @@ class ApodModels(HasTraits):
 
         ratio = abs(shifted)
         # ratio must be converted in points ratio
-        r = (y[1]-y[0])/(x[1]-x[0])
+        r = (y[1] - y[0]) / (x[1] - x[0])
         ratio = ratio * r
 
-        f = np.fromfunction(lambda y, x, lb, ratio: (np.exp(-np.pi * np.abs(x - y*ratio)* lb)
-                                                            + np.exp(-np.pi * np.abs(x + y*ratio)* lb))/2.,
+        f = np.fromfunction(lambda y, x, lb, ratio: (np.exp(-np.pi * np.abs(x - y * ratio) * lb)
+                                                     + np.exp(-np.pi * np.abs(x + y * ratio) * lb)) / 2.,
                             data.shape, dtype=float, lb=lb, ratio=ratio)
 
         # If we are in states mode (general case two rows correspond

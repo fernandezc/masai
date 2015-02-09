@@ -1,5 +1,5 @@
-#  """
-#  Adapted from
+# """
+# Adapted from
 #
 #   Eric S. Raymond
 #
@@ -25,10 +25,12 @@
 #
 #  """
 
-import pexpect
 import string
 import logging
 from time import time
+
+import pexpect
+
 
 log = logging.getLogger('logger.main')
 loghost = logging.getLogger('logger.host')
@@ -38,7 +40,6 @@ loghost = logging.getLogger('logger.host')
 #  SSHSession
 #===============================================================================
 class SSHSession(object):
-
     def __init__(self, user, host, name="", password=None, verbose=True):
         self.terminated = False
         self.connected = False
@@ -52,7 +53,7 @@ class SSHSession(object):
             '@@@@@@@@@@@@',
             'Command not found.',
             pexpect.EOF,
-            ]
+        ]
         self.name = name if name != "" else host
         self.history = ["init", ]
         self.timeout = self.init_timeout = 15
@@ -67,7 +68,7 @@ class SSHSession(object):
         self.verbose = False
         connected = self.is_connected()
         st = time()
-        if show_time :
+        if show_time:
             print st - st0
         if not connected:
             for i in range(repetition):
@@ -76,7 +77,7 @@ class SSHSession(object):
                 connected = self.is_connected()
                 st1 = st
                 st = time()
-                if show_time :
+                if show_time:
                     print st - st0, st - st1
                 if connected:
                     break
@@ -105,8 +106,8 @@ class SSHSession(object):
     def __repr__(self):
         if self.connected:
             return 'SSH2 session host:%(host)s user:%(user)s' % {
-                                                              'host': self.host,
-                                                              'user': self.user}
+                'host': self.host,
+                'user': self.user}
         else:
             return ""
 
@@ -118,9 +119,9 @@ class SSHSession(object):
         #  Execute a command on the remote host.    Return the output.
         com = "%s %s" % (server, command)
         child = pexpect.spawn(
-                              com.strip(),
-                              timeout=self.timeout
-                             )
+            com.strip(),
+            timeout=self.timeout
+        )
         if self.verbose and verbose:
             if server != "":
                 loghost.debug("%s>%s" % (self.name, command))
@@ -152,16 +153,16 @@ class SSHSession(object):
         """usage: scp(file1, mode=['to','from'], file2)"""
         if mode == 'to':
             return self._exec(server="",
-                               command="scp %s %s@%s:%s" % (f1, self.user,
-                                                            self.host, f2))
+                              command="scp %s %s@%s:%s" % (f1, self.user,
+                                                           self.host, f2))
         elif mode == 'from':
             return self._exec(server="",
-                               command="scp %s@%s:%s %s" \
-                                             % (self.user,
-                                                self.host, f2, f1))
+                              command="scp %s@%s:%s %s" \
+                                      % (self.user,
+                                         self.host, f2, f1))
         else:
             log.error(
-                   "%s>scp mode unknown (should be 'to' or 'from')" % self.name)
+                "%s>scp mode unknown (should be 'to' or 'from')" % self.name)
             log.error(
                 "%s>usage: scp(file1, mode=['to','from'], file2)\n" % self.name)
 
@@ -178,9 +179,11 @@ class SSHSession(object):
             except:
                 pass
 
+
 if __name__ == "__main__":
 
     import sys
+
     log.addHandler(logging.StreamHandler())
     log.setLevel(logging.INFO)
 
@@ -191,5 +194,5 @@ if __name__ == "__main__":
     #s.scp("__init__.py", "to", "essai_scp")
     #s.exists("chabazite-0")
     #s.ssh('cd data/siblanixenon/nmr; ls')
-    
-# EOF --------------------------------------------------------------------------
+
+    # EOF --------------------------------------------------------------------------

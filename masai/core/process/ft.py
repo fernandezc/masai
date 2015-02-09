@@ -4,8 +4,8 @@
 # masai.core.process.ft
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -43,18 +43,18 @@ def ft(source, options='', axis=-1):
     """
     # options evaluation
     parser = argparse.ArgumentParser(description='FT processing',
-             usage = """ft [--si [SI]] [--tdeff [TDEFF]]""")
+                                     usage="""ft [--si [SI]] [--tdeff [TDEFF]]""")
     # positional arguments
-    parser.add_argument('--si',  nargs='?', help='size of fourier transform')
-    parser.add_argument('--tdeff', default=0,  nargs='?', type=int, help='size of fourier transform')
-    if axis==0:
-        parser.add_argument('--shear', default=None, type=int, nargs=2, help = "p and q parameters for shearing")
-        parser.add_argument('--shift', default=0, type=float, help = "shift in ppm unit")
+    parser.add_argument('--si', nargs='?', help='size of fourier transform')
+    parser.add_argument('--tdeff', default=0, nargs='?', type=int, help='size of fourier transform')
+    if axis == 0:
+        parser.add_argument('--shear', default=None, type=int, nargs=2, help="p and q parameters for shearing")
+        parser.add_argument('--shift', default=0, type=float, help="shift in ppm unit")
 
-    args  = parser.parse_args(options.split())
+    args = parser.parse_args(options.split())
     if source is None:
         return
-    
+
     if axis == -1:
         par = source.par
     else:
@@ -78,7 +78,7 @@ def ft(source, options='', axis=-1):
 
 
     # read parameters TDeff and SI
-    tdeff = args.tdeff #kargs.get('tdeff', par.TDeff)
+    tdeff = args.tdeff  #kargs.get('tdeff', par.TDeff)
     if tdeff > par.TD or tdeff < 4:
         tdeff = par.TD
 
@@ -123,8 +123,8 @@ def ft(source, options='', axis=-1):
             sw2 = source.par.SW_h
             sw1 = 1. / source.par.IN[0]
             source.par2.SW_h = sw1
-            O1 = (sfo12-bf12)*1.e6
-            SR = (sf2-bf12)*1.e6
+            O1 = (sfo12 - bf12) * 1.e6
+            SR = (sf2 - bf12) * 1.e6
 
             p0 = 0.
             p1 = 0.
@@ -139,7 +139,7 @@ def ft(source, options='', axis=-1):
 
                 I = source.get_spin()
                 n_spin = int(np.ceil(2.0 * I))
-                if p==n_spin:
+                if p == n_spin:
                     p = -p
 
                 dra = abs(ratio - float(p))
@@ -171,26 +171,26 @@ def ft(source, options='', axis=-1):
             # for MQMAS
             sign = 1
             if p < 0:
-                 sign = -1
+                sign = -1
 
             # shearing and/or shift
             if shear is not None or shift != 0.0:
                 # create a 2D array of phases and performs the phase correction
                 twopi = 2. * np.pi
-                w2 = source.data.columns # it's transposed
-#                _, yy = np.meshgrid(range(si2), data.shape[-1])
-#                w = np.array([w2[i] for i in yy])*bf12
+                w2 = source.data.columns  # it's transposed
+                #                _, yy = np.meshgrid(range(si2), data.shape[-1])
+                #                w = np.array([w2[i] for i in yy])*bf12
                 def func(i2, i1):
-                    w = np.array([w2[i] for i in i2])*bf12
-                    return np.exp((sign * twopi * ratio * (w - O1 +SR)/ sw1 - p0) * i1.astype(float) * 1.0j)
-                phases = np.fromfunction(func,
-                                    data.shape, dtype=int)
+                    w = np.array([w2[i] for i in i2]) * bf12
+                    return np.exp((sign * twopi * ratio * (w - O1 + SR) / sw1 - p0) * i1.astype(float) * 1.0j)
 
+                phases = np.fromfunction(func,
+                                         data.shape, dtype=int)
 
                 data = data * phases
 
     # now perform the fft
-    data = fft(data) #/float(si)
+    data = fft(data)  #/float(si)
 
     # store the new pars
 
@@ -224,7 +224,7 @@ def _makestates(source, tppi=False):
     #data = ar.imag + ai.imag * 1.0j
 
     if tppi:
-         data[1::2] = -data[1::2]
+        data[1::2] = -data[1::2]
 
     source.par2.TD = data.shape[0]
 

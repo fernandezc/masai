@@ -21,6 +21,7 @@ class ProgPercent(Prog):
             (requires 'psutil' package).
 
     """
+
     def __init__(self, iterations, track_time=True, stream=2, title='', monitor=False):
         Prog.__init__(self, iterations, track_time, stream, title, monitor)
         self.last_progress = 0
@@ -29,9 +30,9 @@ class ProgPercent(Prog):
             try:
                 self.process.get_cpu_percent()
                 self.process.get_memory_percent()
-            except AttributeError: # old version of psutil
+            except AttributeError:  # old version of psutil
                 cpu_total = self.process.cpu_percent()
-                mem_total = self.process.memory_percent()   
+                mem_total = self.process.memory_percent()
 
 
     def _print(self):

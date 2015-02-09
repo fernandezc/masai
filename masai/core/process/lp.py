@@ -4,8 +4,8 @@
 # masai.core.process.lp
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -14,11 +14,12 @@
 # See Licence.txt in the main masai source directory
 # ===============================================================================
 
-import numpy as np
 import argparse
+
 from masai.core.process import proc_lp
 
-__all__ = ["lp" ]
+
+__all__ = ["lp"]
 #
 # undersampling
 #
@@ -37,11 +38,11 @@ def lp(source=None, options='', axis=-1):
     parser = argparse.ArgumentParser(description='Forward linear prediction.',
                                      usage="""
     lp [ncs|tcs] [-h]
-    """,)
+    """, )
     # positional arguments
-    parser.add_argument('npred', default=0, type=int,  help='points to predict')
-    parser.add_argument('--tdeff', default=0,  nargs='?', type=int, help='size of the valid data')
-    args  = parser.parse_args(options.split())
+    parser.add_argument('npred', default=0, type=int, help='points to predict')
+    parser.add_argument('--tdeff', default=0, nargs='?', type=int, help='size of the valid data')
+    args = parser.parse_args(options.split())
 
     if axis == -1:
         par = source.par

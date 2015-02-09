@@ -4,8 +4,8 @@
 # masai.plugins.analyses.pca_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -25,11 +25,7 @@ from __future__ import print_function, division
 from traits.api import (HasTraits, Bool, Any, ListStr, List, Either,
                         Array, Str, Instance, provides, Property)
 import traits.has_traits
-import sys
-import re
-import numpy as np
 import pandas as pd
-from IPython.display import display, HTML
 
 # ===============================================================================
 # local imports
@@ -52,7 +48,6 @@ __plugin_main__ = 'Pca'
 # ===================================================================================
 @provides(IPlugin)
 class Pca(HasTraits):
-
     # minimal plugin attribute -----------------------------------------------------
     description = Str("Pca (type: analyses), PCA analysis of a series of spectra.")
     type = Str("Pca")
@@ -109,7 +104,7 @@ class Pca(HasTraits):
             if isinstance(args[0], list) or (isinstance(args[0], Source) and args[0].is_2d):
                 sources = self.sources = args[0]
         else:
-           return
+            return
 
         self.data = data = sources.data
 
@@ -124,7 +119,7 @@ class Pca(HasTraits):
         scores, loadings = self.pca.model(npc=npc)
         # make a dataframe of loadings and scores
         self.loadings = loadings = pd.DataFrame(loadings, columns=self.data.columns)
-        self.scores = scores = pd.DataFrame(scores, index= self.data.index)
+        self.scores = scores = pd.DataFrame(scores, index=self.data.index)
         return loadings, scores
 
     def transform(self, npc=None):
@@ -150,5 +145,6 @@ class Pca(HasTraits):
             base, w = baseline._polybase(self.loadings.iloc[i].values, retw=True)
             self.loadings.iloc[i] = self.loadings.values[i] - base
 
+
 if __name__ == '__main__':
-    print (Pca()._repr_html_())
+    print(Pca()._repr_html_())

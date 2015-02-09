@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
-#===============================================================================
+# ===============================================================================
 # masai.core.fit.models
-#===============================================================================
+# ===============================================================================
 # Copyright (C) 2012-2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.  
 #       christian.fernandez@ensicaen.fr
@@ -19,36 +19,38 @@ This module holds the definitions all the various models used by Masaï.
 
 """
 import os
+
 import numpy as np
+
 
 #from masai.processing.processbase import _ft
 from pulsar.pypulsar import (parameters, compute, reset)
 
 
 basic_1D_baselines = [  # baseline models
-                       'polynomialbaseline',
-                     ]
+                        'polynomialbaseline',
+]
 basic_2D_baselines = [  # 2Dbaseline models
-                       'commonrowpolynomialbaseline',
-                     ]
+                        'commonrowpolynomialbaseline',
+]
 
 basic_1D_models = [  # list of sequence independant models
-                    'voigtmodel',
-                    'gaussianmodel',
-                    'lorentzianmodel',
-                   ]
+                     'voigtmodel',
+                     'gaussianmodel',
+                     'lorentzianmodel',
+]
 
-basic_2D_models = [ # list of sequence independant models
-                    'gaussian2dmodel',
-                    'poynomialseriesofvoigtmodel',
-                   ]
+basic_2D_models = [  # list of sequence independant models
+                     'gaussian2dmodel',
+                     'poynomialseriesofvoigtmodel',
+]
 
 quadrupolar_1D_models = [
-                          'quad2model',
-                          'quad2ssbmodel',
-                          'quadallssbmodel',
-                          # 'czjzekquad2model'
-                        ]
+    'quad2model',
+    'quad2ssbmodel',
+    'quadallssbmodel',
+    # 'czjzekquad2model'
+]
 
 
 def list_of_models(nd, spin=0):
@@ -71,7 +73,7 @@ def list_of_models(nd, spin=0):
     elif nd == 2:
         models = basic_2D_models[:]
     else:
-        raise NotImplementedError('not yet implemented: %s'%str(nd))
+        raise NotImplementedError('not yet implemented: %s' % str(nd))
     return models
 
 
@@ -208,13 +210,14 @@ class voigtmodel(object):
 
     def f(self, x, ampl, width, ratio, pos, **kargs):
         from scipy.special import wofz
+
         gb = ratio * width / 2.3548
         lb = (1. - ratio) * width / 2.
         if gb < 1.e-16:
             w = lorentzianmodel().f(x, 1., lb * 2., pos, **kargs)
         else:
             w = wofz(((x - pos) + 1.0j * lb) * 2 ** -0.5 / gb)
-            w = w.real * (2.*np.pi) ** -0.5 / gb
+            w = w.real * (2. * np.pi) ** -0.5 / gb
             w = w * np.abs(x[1] - x[0])
         return ampl * w
 
@@ -238,8 +241,9 @@ class quad2model(object):
     $ cq: 1000000.0, 0.0, None
     * etaq: 0.1, 0.0, 1.0
     """
+
     def f(self, x, ampl, width, ratio, pos, cq, etaq,
-                    vr=None, czjzek=False, all=False, **kargs):
+          vr=None, czjzek=False, all=False, **kargs):
         # evaluate all parameters
         reset()
         if kargs.has_key('sequence'):
@@ -270,9 +274,9 @@ class quad2model(object):
         logging.disable(logging.INFO)  # to avoid multiple output during calculation
         parameters.protonfrequency = protonf
         parameters.nucleus = [[1,  # index
-                           nucleus.spin,  # spin
-                           sfo1 * 1.e6,  # larmor
-                           nucleus.abundance]]  # abundance
+                               nucleus.spin,  # spin
+                               sfo1 * 1.e6,  # larmor
+                               nucleus.abundance]]  # abundance
         parameters.idealpulse = True
         parameters.pulse = [[1, 2, 0, 0, 0, 0, 0, 0]]
         parameters.delay = [[1, 0.0, 1]]
@@ -301,12 +305,12 @@ class quad2model(object):
             parameters.accuracy = 3
             sigmaq = cq
             # look for the max of the distribution
-            vq = np.linspace(0.0, 6.*sigmaq, 128)
+            vq = np.linspace(0.0, 6. * sigmaq, 128)
             mp = np.max(pczjzeck(vq, .6, sigmaq))
             # now we will use a gauss legendre quadrature (may be not the best?)
 
         broad = voigtmodel().f(x, 1., width, ratio, sr / sfo1)  # centered
-                                                # on the middle of the window!
+        # on the middle of the window!
         data = np.convolve(data, broad, 'same')
         #logging.disable(logging.NOTSET)  # to restore normal logger level
 
@@ -334,6 +338,7 @@ class quad2ssbmodel(object):
     * etaq: 0.1, 0.0, 1.0
     * vr: 12000., 0.0, None
     """
+
     def f(self, x, ampl, width, ratio, pos, cq, etaq, vr, **kargs):
         return quad2model().f(x, ampl, width, ratio, pos, cq, etaq, vr, **kargs)
 
@@ -364,7 +369,7 @@ class quadallssbmodel(object):
 
     def f(self, x, ampl, width, ratio, pos, cq, etaq, vr, **kargs):
         return quad2model().f(x, ampl, width, ratio, pos, cq, etaq,
-                                                          vr, all=True, **kargs)
+                              vr, all=True, **kargs)
 
 
 #===============================================================================
@@ -406,7 +411,7 @@ def pczjzeck(vq, eta, sigma):
         (`<http://www.sciencedirect.com/science/article/pii/S1090780708000888>`_)
 
     """
-    p = 1. / (np.sqrt(2.* np.pi) * sigma ** 5)
+    p = 1. / (np.sqrt(2. * np.pi) * sigma ** 5)
     p = p * vq ** 4 * eta * (1. - eta ** 2 / 9.)
     p = p * np.exp(-vq ** 2 * (1. + eta ** 2 / 3.) / 2. / sigma ** 2)
     return p
@@ -466,46 +471,47 @@ class simpsonquad2model(object):
 
         # in this script the vr is made exactly the spectral width
         simpson_script = \
-        """
-        spinsys {
-              channels %(symbol)s
-              nuclei   %(symbol)s
-              shift 1 %(pos).3fp 0 0 0 0 0
-              quadrupole 1 2 %(cq).3f %(etaq).3f 0 0 0
-        }
+            """
+            spinsys {
+                  channels %(symbol)s
+                  nuclei   %(symbol)s
+                  shift 1 %(pos).3fp 0 0 0 0 0
+                  quadrupole 1 2 %(cq).3f %(etaq).3f 0 0 0
+            }
 
-        par {
-              proton_frequency %(protonf).0f
-              method          gcompute
-              gamma_angles    1
-              crystal_file    rep2000
-              start_operator  I1x
-              detect_operator I1c
-              spin_rate       %(vr).3f
-              np              %(td)d
-              sw              spin_rate
-              variable tsw    1e6/sw
-              verbose         0
-        }
+            par {
+                  proton_frequency %(protonf).0f
+                  method          gcompute
+                  gamma_angles    1
+                  crystal_file    rep2000
+                  start_operator  I1x
+                  detect_operator I1c
+                  spin_rate       %(vr).3f
+                  np              %(td)d
+                  sw              spin_rate
+                  variable tsw    1e6/sw
+                  verbose         0
+            }
 
-        proc pulseq {} {
-          delay 9999
-        }
+            proc pulseq {} {
+              delay 9999
+            }
 
-        proc main {} {
-          global par
-          set f [fsimpson]
-          faddlb $f %(lb)s %(r)s
-          fsave $f %(path)s -raw_bin
+            proc main {} {
+              global par
+              set f [fsimpson]
+              faddlb $f %(lb)s %(r)s
+              fsave $f %(path)s -raw_bin
 
-        }
+            }
 
-        """ % {'symbol':nucleus, 'cq':cq, 'vr':vr, 'etaq':etaq, 'protonf': protonf,
-             'td':2048, 'si':si, 'lb':lb + gb, 'r':r, 'pos':pos - sr, 'path':temp_fid}
+            """ % {'symbol': nucleus, 'cq': cq, 'vr': vr, 'etaq': etaq, 'protonf': protonf,
+                   'td': 2048, 'si': si, 'lb': lb + gb, 'r': r, 'pos': pos - sr, 'path': temp_fid}
 
         with open(temp_in, 'wb') as f:
             f.write(simpson_script)
         import subprocess
+
         subprocess.check_output(['simpson', temp_in])
 
         data = read_raw_bin(temp_fid)
@@ -616,6 +622,7 @@ class poynomialseriesofvoigtmodel(object):
         ret = (ret.T * vm).T
         return ret
 
+
 #===============================================================================
 # 2DGaussianModel
 #===============================================================================
@@ -623,7 +630,8 @@ class gaussian2dmodel(object):
     """
     Two dimensional Gaussian model (*not* normalized - peak value is 1).
     """
-    args = ['ampl','width','width1','pos','pos1', 'theta']
+    args = ['ampl', 'width', 'width1', 'pos', 'pos1', 'theta']
+
     def f(self, x, y, ampl, width, width1, pos, pos1, theta=0.0, **kargs):
         sigma_x = width / 2.3548
         sigma_y = width1 / 2.3548
@@ -633,15 +641,17 @@ class gaussian2dmodel(object):
         x_, y_ = np.meshgrid(x, y)
         xo = float(pos)
         yo = float(pos1)
-        a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
-        b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
-        c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
-        w = np.exp( - (a*((x_-xo)**2) + 2*b*(x_-xo)*(y_-yo) + c*((y_-yo)**2)))
+        a = (np.cos(theta) ** 2) / (2 * sigma_x ** 2) + (np.sin(theta) ** 2) / (2 * sigma_y ** 2)
+        b = -(np.sin(2 * theta)) / (4 * sigma_x ** 2) + (np.sin(2 * theta)) / (4 * sigma_y ** 2)
+        c = (np.sin(theta) ** 2) / (2 * sigma_x ** 2) + (np.cos(theta) ** 2) / (2 * sigma_y ** 2)
+        w = np.exp(- (a * ((x_ - xo) ** 2) + 2 * b * (x_ - xo) * (y_ - yo) + c * ((y_ - yo) ** 2)))
         if 'SQ-DQ' in kargs.get('kind'):
-            xo = yo - xo # find the symmetric
-            w += np.exp( - (a*((x_-xo)**2) + 2*b*(x_-xo)*(y_-yo) + c*((y_-yo)**2)))    # symmetrize pattern
+            xo = yo - xo  # find the symmetric
+            w += np.exp(
+                - (a * ((x_ - xo) ** 2) + 2 * b * (x_ - xo) * (y_ - yo) + c * ((y_ - yo) ** 2)))  # symmetrize pattern
         #w = w * np.abs(x[1] - x[0])
         return ampl * w
+
 
 #===============================================================================
 # Voigt2DModel
@@ -663,11 +673,12 @@ class voigt2Dmodel(object):
     $ ratio: 0.1, 0.0, 1.0
     """
 
-    def f(self, x, y, ampl, width, width1, ratio, pos, pos1,  **kargs):
+    def f(self, x, y, ampl, width, width1, ratio, pos, pos1, **kargs):
         """
         ['ampl', 'width', 'width1', 'ratio', 'pos', 'pos1']
         """
         from scipy.special import wofz
+
         gb = ratio * width / 2.3548
         lb = (1. - ratio) * width / 2.
         gb1 = ratio * width1 / 2.3548
@@ -681,10 +692,10 @@ class voigt2Dmodel(object):
             w1 = lorentzianmodel().f(y, 1., lb1 * 2., pos1, **kargs)
         else:
             w = wofz(((x - pos) + 1.0j * lb) * 2 ** -0.5 / gb)
-            w = w.real * (2.*np.pi) ** -0.5 / gb
+            w = w.real * (2. * np.pi) ** -0.5 / gb
             w = w * incx
             w1 = wofz(((y - pos1) + 1.0j * lb1) * 2 ** -0.5 / gb1)
-            w1 = w1.real * (2.*np.pi) ** -0.5 / gb1
+            w1 = w1.real * (2. * np.pi) ** -0.5 / gb1
             w1 = w1 * incy
         return ampl * w * w1
 
@@ -750,6 +761,7 @@ def getmodel(x, y=None, modelname=None, par=None, **kargs):
         res = a.f(x, y, *args, **kargs)
     return res
 
+
 #===============================================================================
 # read_raw_bin
 #===============================================================================
@@ -780,8 +792,9 @@ def read_raw_bin(filename):
 
 if __name__ == '__main__':
     import pylab as pl
+
     x = np.linspace(0, 10., 100.)
     y = np.linspace(0, 10., 100.)
-    s = gaussian2dmodel().f(x, y, 1., 1., 2., 5.,  5., 45.)
+    s = gaussian2dmodel().f(x, y, 1., 1., 2., 5., 5., 45.)
     pl.contour(s)
     pl.show()

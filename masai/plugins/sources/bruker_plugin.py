@@ -27,9 +27,11 @@ import os
 import glob
 
 import logging
+
 logging.getLogger()
 
 from warnings import warn, filterwarnings
+
 filterwarnings("ignore")
 
 import pandas as pd
@@ -42,6 +44,7 @@ from masai.plugins import IPlugin
 from masai.core.database import Isotopes
 
 import traits.has_traits
+
 traits.has_traits.CHECK_INTERFACES = 2
 from masai.core.utils import htmldoc
 
@@ -80,7 +83,7 @@ class Bruker(Source):
     # public functions
     # *******************************************************************************
 
-    #------------------------------------
+    # ------------------------------------
     def get_multiplicator(self, axis=-1):
         """
         Compute a unit multiplicator depending on the unit string, i.e. 'ms'--> 1.e3
@@ -179,7 +182,7 @@ class Bruker(Source):
             del self.par
             del self._data_orig
             del self._data
-        if hasattr(self,'par2'):
+        if hasattr(self, 'par2'):
             del self.par2
 
         path = ''
@@ -212,7 +215,7 @@ class Bruker(Source):
         if not os.path.exists(path):
             # nothing else to try
             return
-            #raise Exception('a valid path to an existing file is needed in the arguments')
+            # raise Exception('a valid path to an existing file is needed in the arguments')
 
         self._read(path, **kargs)
 
@@ -249,7 +252,8 @@ class Bruker(Source):
             if _processed:
                 _dir = pdir
             return _dir, parfiles
-        #------------------------
+
+        # ------------------------
 
         if os.path.isdir(path) is not True:
             raise IOError("directory %s does not exist" % path)
@@ -276,7 +280,7 @@ class Bruker(Source):
         expnos = kargs.get('expnos', False)
         paths = None
         if expnos:
-            paths = [os.path.join(path,str(expno)) for expno in expnos]
+            paths = [os.path.join(path, str(expno)) for expno in expnos]
         else:
             paths = [path, ]
 
@@ -285,7 +289,7 @@ class Bruker(Source):
 
         n = 0
         ldata = []
-        lvarpars =[]
+        lvarpars = []
         ldates = []
 
         for path in paths:
@@ -315,7 +319,8 @@ class Bruker(Source):
                 elif processed:
                     logging.warn("No processed Bruker binary file could be found in %s. Use fid's." % path)
 
-            npath, par_files = _get_par_files(path, procno, processed)  # we read all parameters file whatever the datatype
+            npath, par_files = _get_par_files(path, procno,
+                                              processed)  # we read all parameters file whatever the datatype
 
             if datatype in ['FID', 'SER']:
                 dic, data = read(npath, acqus_files=par_files)
@@ -326,18 +331,18 @@ class Bruker(Source):
                     # we must reshape using the acqu parameters
                     td1 = dic['acqu2']['TD']
                     try:
-                        data = data.reshape(td1,-1)
+                        data = data.reshape(td1, -1)
                     except ValueError:
                         try:
-                            td = dic['acqu']['TD']/2
+                            td = dic['acqu']['TD'] / 2
                             data = data.reshape(-1, td)
                         except ValueError:
-                            print ("Inconsistency between TD's and data size")
+                            print("Inconsistency between TD's and data size")
                             raise ValueError
 
                 #reduce to td
-                ntd = dic['acqus']['TD']/2
-                data = data[...,:ntd] # necessary for agreement with bruker data and phase
+                ntd = dic['acqus']['TD'] / 2
+                data = data[..., :ntd]  # necessary for agreement with bruker data and phase
             else:
                 dic, data = read_pdata(npath, procs_files=par_files)
 
@@ -351,7 +356,7 @@ class Bruker(Source):
             if datatype in ['FID', 'SER'] and kargs.get('dgfilter', True):
                 data = self._remove_digital_filter(dic, data)
 
-            if n>0 and datatype != adic.datatype:
+            if n > 0 and datatype != adic.datatype:
                 raise ValueError("Experiments not compatibles. End")
 
             dic['datatype'] = datatype
@@ -362,7 +367,7 @@ class Bruker(Source):
             # compatibles
 
             # but we keep the original dictionary for further reference if necessary
-            adic.fulldic['exp_%d'%n] = dic
+            adic.fulldic['exp_%d' % n] = dic
 
             for key, val in dic.iteritems():
                 if isinstance(val, dict):
@@ -435,7 +440,7 @@ class Bruker(Source):
                 dat /= fac
                 return dat
 
-            data = np.conj(data * 1.0j) # this transformation is to make data coherent with bruker processsing
+            data = np.conj(data * 1.0j)  # this transformation is to make data coherent with bruker processsing
             data = _norm(data)
 
             # make attributes from dict
@@ -452,23 +457,23 @@ class Bruker(Source):
             varpars = kargs.get('varpars')
             if isinstance(varpars, str):
                 varpars = varpars.split()
-                if len(varpars)==1:
+                if len(varpars) == 1:
                     # this should be one of the dic parameters
-                    lvarpars.append(adic.par[varpars[0]]) # store the variable
-                elif len(varpars)==2:
-                    lvarpars.append(adic.par[varpars[0]][int(varpars[1])]) # store the variable
-                ldates.append(adic.par.DATE) # and the date
+                    lvarpars.append(adic.par[varpars[0]])  # store the variable
+                elif len(varpars) == 2:
+                    lvarpars.append(adic.par[varpars[0]][int(varpars[1])])  # store the variable
+                ldates.append(adic.par.DATE)  # and the date
             elif isinstance(varpars, list):
                 # this should be a list of parameters
                 p = []
                 for var in varpars:
                     p.append(adic.par[var])
-                lvarpars.append(p) # store the variable
-                ldates.append(adic.par.DATE) # and the date
+                lvarpars.append(p)  # store the variable
+                ldates.append(adic.par.DATE)  # and the date
             n += 1
         # ---------------------------------------
 
-        if n>1:
+        if n > 1:
             # we need to concat the various arrays into a 2D array
             # but first check if they are all compatibles
             shapes = []
@@ -489,7 +494,7 @@ class Bruker(Source):
             else:
                 data.index = ldates
 
-            data.fillna(0, inplace=True) # replace NaN with zeros
+            data.fillna(0, inplace=True)  # replace NaN with zeros
             self.datatype = 'FIDSER'
 
             # correct some values
@@ -656,7 +661,7 @@ class Bruker(Source):
         ndata = np.fft.ifft(np.fft.ifftshift(pdata, -1), si, axis=-1) * float(si / 2)
 
         # remove last points * 2
-        rp = 4*(phase//2)
+        rp = 4 * (phase // 2)
         pdata = ndata[..., :-rp]
 
         return pdata
@@ -707,7 +712,7 @@ class Bruker(Source):
 
         """
         if not self.par:
-             return htmldoc(self.__init__.__doc__)
+            return htmldoc(self.__init__.__doc__)
 
         txt = self.__repr__().replace('***\n', '</em>')
         txt = txt.replace('***', '<em>')
@@ -725,128 +730,30 @@ class Bruker(Source):
         if 'history' in name:
             print(self.history[-1])
 
-        elif '_data'  in name:
+        elif '_data' in name:
             if new is None:
                 return
             if name == '_data_orig':
-                self.history = ['Loaded %s'%self.datatype]
+                self.history = ['Loaded %s' % self.datatype]
 
             # set labels
             if not self.par.isfreq:
                 self.par.units = 'ms'
-                self.par.label = r'$\mathrm{time\,(%s)}$'%self.par.units
+                self.par.label = r'$\mathrm{time\,(%s)}$' % self.par.units
             else:
                 self.par.units = 'ppm'
-                self.par.label = r'$\mathrm{\delta\,(%s)}$'%self.par.units
+                self.par.label = r'$\mathrm{\delta\,(%s)}$' % self.par.units
 
             if self.is_2d or self.is_3d:
                 if self.par2.units in ['us', 'ms', 's']:
-                    self.par2.label = r'$\mathrm{time\,(%s)}$'%self.par.units
+                    self.par2.label = r'$\mathrm{time\,(%s)}$' % self.par.units
                 elif self.par2.units in ['hz', 'ppm']:
-                    self.par2.label = r'$\mathrm{\delta\,(%s)}$'%self.par.units
+                    self.par2.label = r'$\mathrm{\delta\,(%s)}$' % self.par.units
 
         return
 
+
 if __name__ == '__main__':
-    """
-    test plugin
-    """
-    DATADIR = '../../../doc/tutorial/exemples'
-    sources = Bruker(data_dir=DATADIR,
-            user = 'user',
-            name = 'CP',
-            expnos = range(80,95,1),
-            varpars = "P 15")
+    pass
 
-    #print(sources)
-    import sys
-    sys.exit()
-
-    # need this to test  directly
-    import pylab as pl
-    from masai.plugins.catalog import Process, Plot2d
-
-    Bruker = Bruker()
-    Process = Process()
-    Plot2d = Plot2d()
-
-    path = '/Users/christian/Dropbox/PycharmProjects/masai/exemples/user/nmr/HMQC/31'
-    fd = Bruker(path)
-    print(fd)
-    d6 = fd.par.D[6]*1e3
-    Process(fd, transform='em 5000 --shifted %.2f'%d6)
-    #Process(fd, transform='zf 0; ft; pk -78 -10')
-    Plot2d(fd)
-
-
-    import sys
-    sys.exit()
-
-    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
-
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-    fd = Bruker(path, dgfilter=True)
-
-    user = 'aurelie'
-    name = 'RbNO3'
-    expno = 15
-    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-    fd = Bruker(path, dgfilter=True)
-
-
-
-    #_----------------------------------
-    import warnings
-    warnings.filterwarnings("ignore")
-
-    Bruker = Bruker()
-
-
-
-    sources = Bruker(
-                data_dir=DATADIR,
-                user = 'siblanixenon',
-                name = 'NaY1-QIN',
-                expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
-                varpars = "TE",
-                )
-
-    sources = Bruker(
-                 data_dir=DATADIR,
-                 user = 'siblanixenon',
-                 name = 'NaY1-QIN',
-                 expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
-                 varpars = "TE",
-                 )
-
-    sources.data.T.plot(legend=False)
-    #print(sources)
-    pl.show()
-
-
-    import sys
-    sys.exit()
-
-    user = 'christian'
-    name = 'example1'
-    expno = 10
-    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-    fd = Bruker(path, dgfilter=True)
-    fd.data.T.plot(legend=False)
-
-    user = 'aurelie'
-    name = 'RbNO3'
-    expno = 15
-    path = os.path.join(DATADIR,user,'nmr',name, str(expno))
-    fd = Bruker(path, dgfilter=True)
-
-    row = fd.row(0, byindex=False)
-    row.T.plot(legend=False)
-
-    col = fd.col(0, width=.1, byindex=False)
-    col.T.plot(legend=False)
-
-    pl.show()
+# eof --------------------------------------------------------------------------

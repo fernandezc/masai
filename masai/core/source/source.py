@@ -214,9 +214,9 @@ class Source(HasTraits):
 
         x0, x1 = a[0], a[-1]
         if x0 < x1:
-            return a[a<=pos].size-1
+            return a[a <= pos].size - 1
         else:
-            return a[a>=pos].size-1
+            return a[a >= pos].size - 1
 
     # *******************************************************************************
     # Private functions
@@ -228,7 +228,7 @@ class Source(HasTraits):
         Extract a section by ppm (or Hz) position or by index
 
         """
-        if not self.is_2d :
+        if not self.is_2d:
             print("1D data, so we return the input data itself!")
             return self.data
 
@@ -237,12 +237,12 @@ class Source(HasTraits):
         axis = kargs.get('axis', -1)
         axis = range(data.ndim)[axis]
 
-        #print(data.ndim-1)
-        if axis == data.ndim-1:
-            txt1 = 'taking horizontal (axis=%d) section'%axis
+        # print(data.ndim-1)
+        if axis == data.ndim - 1:
+            txt1 = 'taking horizontal (axis=%d) section' % axis
         else:
             data = data.T
-            txt1 = 'taking vertical (axis=%d) section'%axis
+            txt1 = 'taking vertical (axis=%d) section' % axis
 
         x = data.index
         y = data.columns
@@ -253,35 +253,36 @@ class Source(HasTraits):
         if not byindex:
             txt2 = ' by position'
             w2 = width / 2.0
-            lb = position2index(x, index-w2)
-            ub = position2index(x, index+w2)
+            lb = position2index(x, index - w2)
+            ub = position2index(x, index + w2)
             x0 = x[lb]
             x1 = x[ub]
             if width != 0:
-                txt3 = ' from %.2f to %.2f'%(x0,x1)
+                txt3 = ' from %.2f to %.2f' % (x0, x1)
             else:
-                txt3 = ' at %.2f'%x0
-            print(txt1+txt2+txt3)
+                txt3 = ' at %.2f' % x0
+            print(txt1 + txt2 + txt3)
 
         else:
             txt2 = ' by index'
             w2 = int(width / 2)
             lb = max(index - w2, 0)
-            ub = min(lb + width, x.size-1)
+            ub = min(lb + width, x.size - 1)
             ub = ub - width
             if width != 0:
-                txt3 = ' from index %d to %d'%(lb,ub)
+                txt3 = ' from index %d to %d' % (lb, ub)
             else:
-                txt3 = ' at index %d'%lb
-            print(txt1+txt2+txt3)
+                txt3 = ' at index %d' % lb
+            print(txt1 + txt2 + txt3)
 
-        if lb>ub:
+        if lb > ub:
             lb, ub = ub, lb
-        section = data.iloc[lb:ub+1].sum(axis=0)
+        section = data.iloc[lb:ub + 1].sum(axis=0)
 
         assert section.size == y.size
 
         return pd.DataFrame(section, index=y).T
+
 
 if __name__ == '__main__':
     pass

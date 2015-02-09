@@ -21,7 +21,6 @@ from __future__ import print_function, division
 #
 # Python imports
 #
-from IPython.display import display, display_pretty
 import numpy as np
 import pylab as pl
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
@@ -37,6 +36,7 @@ from masai.core.source import Source
 from masai.plugins import IPlugin
 import traits.has_traits
 from masai.core.utils import htmldoc
+
 traits.has_traits.CHECK_INTERFACES = 2
 
 DEBUG = False
@@ -146,7 +146,7 @@ class Stackplot(HasTraits):
             if isinstance(sources[0], Source):
                 listdata = [source.data for source in sources]
             # or of pandas DataFrame?
-            elif isinstance(sources[0],DataFrame):
+            elif isinstance(sources[0], DataFrame):
                 listdata = sources
             # or of pandas Series?
             elif isinstance(sources[0], Series):
@@ -179,13 +179,13 @@ class Stackplot(HasTraits):
 
         # when using matplotlib inline
         # dpi is the savefig.dpi so we should set it here
-        pl.rcParams['figure.figsize']=figsize
-        pl.rcParams['figure.dpi']=dpi
-        pl.rcParams['savefig.dpi']=dpi
-        pl.rcParams['font.size']=fontsize
-        pl.rcParams['legend.fontsize'] = int(fontsize*.8)
-        pl.rcParams['xtick.labelsize']=fontsize
-        pl.rcParams['ytick.labelsize']=fontsize
+        pl.rcParams['figure.figsize'] = figsize
+        pl.rcParams['figure.dpi'] = dpi
+        pl.rcParams['savefig.dpi'] = dpi
+        pl.rcParams['font.size'] = fontsize
+        pl.rcParams['legend.fontsize'] = int(fontsize * .8)
+        pl.rcParams['xtick.labelsize'] = fontsize
+        pl.rcParams['ytick.labelsize'] = fontsize
 
         if 'axe' not in kargs.keys():
             fig = pl.figure(figsize=figsize, dpi=dpi)
@@ -196,7 +196,7 @@ class Stackplot(HasTraits):
         # attribute
         c = kargs.get('color', kargs.get('c', 'map'))
         alpha = kargs.get('alpha', 0.5)
-        lw = kargs.get('linewidth',  kargs.get('lw', 1.))
+        lw = kargs.get('linewidth', kargs.get('lw', 1.))
         ls = kargs.get('linestyle', kargs.get('lw', 'solid'))
         colormap = kargs.get('colormap', kargs.get('cm', 'jet'))
         normalize = kargs.get('normalize', None)
@@ -223,21 +223,21 @@ class Stackplot(HasTraits):
         spec = data.values.real
         x = data.columns.values
 
-        yoffset = spec.max()*offset/100.
-        speco = (spec.T + np.arange(spec.shape[0])*yoffset).T
+        yoffset = spec.max() * offset / 100.
+        speco = (spec.T + np.arange(spec.shape[0]) * yoffset).T
 
         if c != 'map':
             # plot the source data
             lines = axe.plot(x, speco.T)
             for line in lines:
-               line.set_color(c)
-               line.set_linewidth(lw)
-               line.set_linestyle(ls)
+                line.set_color(c)
+                line.set_linewidth(lw)
+                line.set_linestyle(ls)
 
-        else: # map
+        else:  # map
             norm = mpl.colors.Normalize(vmin=y[0], vmax=y[-1])  # we normalize to the max time
 
-            #TODO: add a kargs
+            # TODO: add a kargs
             if normalize:
                 norm.vmax = normalize[-1]
                 norm.vmin = normalize[0]
@@ -249,10 +249,10 @@ class Stackplot(HasTraits):
                 fun = LineCollection
 
             line_segments = fun([list(zip(x, speco[i].tolist())) for i in xrange(len(y))][::-1],
-                                        linewidths=lw,
-                                        linestyles=ls,
-                                        alpha=alpha,
-                             )
+                                linewidths=lw,
+                                linestyles=ls,
+                                alpha=alpha,
+            )
 
             line_segments.set_array(y[::-1])
             line_segments.set_cmap(colormap)
@@ -270,9 +270,9 @@ class Stackplot(HasTraits):
         # limits of the spectra
         if not axe in kargs:
             xlim = (x[0], x[-1])
-            mi,ma = spec.min(),spec.max()
-            amp = ma-mi
-            zlim = (mi-amp*.05,ma+amp*.05)
+            mi, ma = spec.min(), spec.max()
+            amp = ma - mi
+            zlim = (mi - amp * .05, ma + amp * .05)
         else:
             xlim = axe.get_xlim()
             zlim = axe.get_ylim()
@@ -357,8 +357,8 @@ if __name__ == '__main__':
     Process = Process()
 
 
-    #DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
-    #user = 'christian'
+    # DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
+    # user = 'christian'
     #name = 'example1'
     #expno = 10
     #path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
@@ -371,18 +371,17 @@ if __name__ == '__main__':
     # plot a Dataframe
     #ax = Stackplot(sources, color='r')
 
-    DATADIR = os.path.expanduser(os.path.join('~','Dropbox','storage','bruker','data'))
-
+    DATADIR = os.path.expanduser(os.path.join('~', 'Dropbox', 'storage', 'bruker', 'data'))
 
     sources = Bruker(
-                data_dir=DATADIR,
-                user = 'siblanixenon',
-                name = 'NaY1-QIN',
-                expnos = [25,49,65,85,105,124,144,164,184,194,209,224,242],
-                varpars = "TE",
-                )
+        data_dir=DATADIR,
+        user='siblanixenon',
+        name='NaY1-QIN',
+        expnos=[25, 49, 65, 85, 105, 124, 144, 164, 184, 194, 209, 224, 242],
+        varpars="TE",
+    )
 
-    Process(sources, transform='em 50; zf 0; ft; cl -100 300; pk --auto')# --fit_phc1 --byrow')
+    Process(sources, transform='em 50; zf 0; ft; cl -100 300; pk --auto')  # --fit_phc1 --byrow')
 
     Stackplot(sources, offset=5., ylabel='temperature (K)', colorbar=False)
 

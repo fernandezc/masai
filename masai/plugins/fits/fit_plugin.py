@@ -4,8 +4,8 @@
 # masai.plugins.fits.fit1d_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -54,7 +54,6 @@ __plugin_main__ = 'Fit'
 # ===================================================================================
 @provides(IPlugin)
 class Fit(HasTraits):
-
     # minimal plugin attribute -----------------------------------------------------
     description = Str("Fit (type: fits), fit a source or a series of source with some models.")
     type = Str("fits")
@@ -127,7 +126,7 @@ shape: voigtmodel
 
             chi2 = 0
             som = 0
-            ncalls +=1
+            ncalls += 1
 
             for exp_idx, source in enumerate(sources):
                 modeldata = self._get_modeldata(source, exp_idx)
@@ -147,27 +146,27 @@ shape: voigtmodel
 
                         # Case of SQ-DQ experiments
                         if self.kind == 'SQ-DQ' and \
-                                    'max_connections' in constraints[0]:
+                                        'max_connections' in constraints[0]:
                             # check connectivity numbers
                             nbconnections = {}
                             for key in params.keys():
                                 if 'pos1' in key:
                                     connect = key[-2:]
-                                    key = 'ampl_line_'+connect # get amplitude
+                                    key = 'ampl_line_' + connect  # get amplitude
                                     ki = connect[0].upper()
                                     if ki not in nbconnections.keys():
-                                        nbconnections[ki]=0
-                                    if int(params[key])>0:
+                                        nbconnections[ki] = 0
+                                    if int(params[key]) > 0:
                                         nbconnections[ki] += 1
-                            for k,v in nbconnections.iteritems():
-                                if v>constraints[0]['max_connections']:
-                                    merror *= v*10.
+                            for k, v in nbconnections.iteritems():
+                                if v > constraints[0]['max_connections']:
+                                    merror *= v * 10.
 
                 diff = data - mdata
-                chi2 += np.sum(diff**2)*merror
-                som += np.sum(data**2)
+                chi2 += np.sum(diff ** 2) * merror
+                som += np.sum(data ** 2)
 
-            chi2 = np.sqrt(chi2/som)
+            chi2 = np.sqrt(chi2 / som)
 
             return chi2
 
@@ -182,26 +181,26 @@ shape: voigtmodel
             global niter, chi2, everyiter, ncalls
             niter += 1
 
-            if niter%everyiter != 0:
+            if niter % everyiter != 0:
                 return
             #if f is not None:  # hopping
             #    pass
             #if f is None:  # simplex
             display.clear_output(wait=True)
-            print("Iterations: %d, Calls: %d (chi2: %.5f)"%(niter, ncalls, chi2))
+            print("Iterations: %d, Calls: %d (chi2: %.5f)" % (niter, ncalls, chi2))
             sys.stdout.flush()
 
         # end callback function ---------------------------------------------------
 
-        fp = self.fp # starting parameters
+        fp = self.fp  # starting parameters
 
         fp, fopt = optimize(funchi2, fp,
-                           args=(self.sources,),
-                           maxfun=maxfun,
-                           maxiter=maxiter,
-                           method=method,
-                           constraints=constraints,
-                           callback=callback)
+                            args=(self.sources,),
+                            maxfun=maxfun,
+                            maxiter=maxiter,
+                            method=method,
+                            constraints=constraints,
+                            callback=callback)
 
         # replace the previous script
         self.parameterscript.script = str(fp)
@@ -217,10 +216,12 @@ shape: voigtmodel
     # property
 
     fp = Property
+
     def _get_fp(self):
         return self.parameterscript.fp
 
     script = Property
+
     def _get_script(self):
         return self.parameterscript.script
 
@@ -276,7 +277,7 @@ shape: voigtmodel
             script = args[1]
 
         else:
-           return
+            return
 
         # get parameters form script
         self.parameterscript = ParameterScript(sources=self.sources, script=script)
@@ -284,8 +285,8 @@ shape: voigtmodel
         #sequence = kargs.get('sequence', 'ideal_pulse')
         #self.sequence = PulseSequence(type=sequence)
 
-        self.mode = kargs.get('mode',None)
-        self.kind = kargs.get('kind',None)
+        self.mode = kargs.get('mode', None)
+        self.kind = kargs.get('kind', None)
 
         for exp_idx, source in enumerate(self.sources):
             source.modeldata = self._get_modeldata(source, exp_idx)
@@ -308,7 +309,7 @@ shape: voigtmodel
 
         x = data.columns.values
 
-        if not source.is_2d: #1D
+        if not source.is_2d:  #1D
             modeldata = np.zeros((nbmodels + 2, x.size)).astype(float)
             if nbmodels < 1:
                 names = ['baseline', 'modelsum']
@@ -338,10 +339,10 @@ shape: voigtmodel
 
             xi = np.arange(float(x.size))
             A, a, b = ampbas(xi, data.values[-1], modeldata[-1])  #(fitzone-fitzone[0], data.take(fitzone),
-                                 #modeldata[-1].take(fitzone))
+            #modeldata[-1].take(fitzone))
 
-            modeldata = A*modeldata
-            baseline = a*xi + b   #a*(xi-fitzone[0]) + b
+            modeldata = A * modeldata
+            baseline = a * xi + b  #a*(xi-fitzone[0]) + b
 
             #update the modeldata
             modeldata[0] += baseline
@@ -352,7 +353,7 @@ shape: voigtmodel
             # return dataframes
             return pd.DataFrame(modeldata, index=names, columns=x)
 
-        else: #2D
+        else:  #2D
             y = data.index.values
             modeldata = np.zeros((y.size, x.size)).astype(float)
 
@@ -362,43 +363,43 @@ shape: voigtmodel
             # Calculates model data
             for model in models:
                 calc = getmodel(x, y, modelname=model, par=parameters,
-                               fd=source, kind = self.kind)
-                modeldata +=  calc
+                                fd=source, kind=self.kind)
+                modeldata += calc
 
             xi = np.arange(float(x.size))
             yj = np.arange(float(y.size))
             A, a, b, c = ampbas2D(xi, yj, data.values, modeldata)  #(fitzone-fitzone[0], data.take(fitzone),
-                                 #modeldata[-1].take(fitzone))
+            #modeldata[-1].take(fitzone))
 
-            modeldata = A*modeldata
+            modeldata = A * modeldata
             base = np.ones_like(modeldata)
-            baseline = a*xi*base + (b*yj*base.T).T +  c
+            baseline = a * xi * base + (b * yj * base.T).T + c
 
             #update the modeldata
             modeldata += baseline
 
             self.A = A
 
-        # call the userfunction
-        # (in case something is executed in it - nothing by default)
-        # if default_userscript:
-        #     modeldata = self.userfunction(modeldata, self.fp)
+            # call the userfunction
+            # (in case something is executed in it - nothing by default)
+            # if default_userscript:
+            #     modeldata = self.userfunction(modeldata, self.fp)
 
             return pd.DataFrame(modeldata, index=y, columns=x)
 
 
-
 # global functions
 def parsing(expr, param):
-    keyword = r"\b([a-z]+[0-9]*)\b" #match a whole word
+    keyword = r"\b([a-z]+[0-9]*)\b"  #match a whole word
     pat = re.compile(keyword)
     mo = pat.findall(expr)
     for kw in mo:
         if param.has_key(kw):
             expr = expr.replace(kw, str(param[kw]))
-        elif np.__dict__.has_key(kw):# check if it is a recognized math function
+        elif np.__dict__.has_key(kw):  # check if it is a recognized math function
             expr = expr.replace(kw, "np.%s" % kw)
     return expr
+
 
 def prepare(param, exp_idx):
     """
@@ -412,8 +413,8 @@ def prepare(param, exp_idx):
     for key in param.iterkeys():
 
         if param.reference[key]:
-            new_param.reference[key] = False    # important to put it here
-                                                # before other instruction
+            new_param.reference[key] = False  # important to put it here
+            # before other instruction
             # try to interpret the given refpar expression
             refpar = param[key]
             while True:
@@ -429,12 +430,13 @@ def prepare(param, exp_idx):
                 return
 
             new_param.fixed[key] = True
-            new_param.reference[key] = True     #restore it for the next call
+            new_param.reference[key] = True  #restore it for the next call
 
         if isinstance(new_param[key], list):
             new_param.data[key] = new_param.data[key][exp_idx]
 
     return new_param
+
 
 #===============================================================================
 # automatic calculation of amplitude and baseline
@@ -448,84 +450,105 @@ def ampbas(xi, expe, calc):
     n = xi.size
     sE = sum(expe)
     sF = sum(calc)
-    sFI = sum(xi*calc)
-    sFd = sum(calc*calc)
+    sFI = sum(xi * calc)
+    sFd = sum(calc * calc)
     sI = sum(xi)
-    sEF = sum(expe*calc)
-    sEI = sum(xi*expe)
-    sId = sum(xi**2)
+    sEF = sum(expe * calc)
+    sEI = sum(xi * expe)
+    sId = sum(xi ** 2)
 
-    a = (-sE*(sF*sFI - sFd*sI) + sEF*(n*sFI - sF*sI) - sEI*(n*sFd - sF**2)
-        )/(n*sFI**2 - n*sFd*sId + sF**2*sId - 2*sF*sFI*sI + sFd*sI**2)
+    a = (-sE * (sF * sFI - sFd * sI) + sEF * (n * sFI - sF * sI) - sEI * (n * sFd - sF ** 2)
+        ) / (n * sFI ** 2 - n * sFd * sId + sF ** 2 * sId - 2 * sF * sFI * sI + sFd * sI ** 2)
 
-    A= (sE*(sF*sId - sFI*sI) - sEF*(n*sId - sI**2) + sEI*(n*sFI - sF*sI)
-       )/(n*sFI**2 - n*sFd*sId + sF**2*sId - 2*sF*sFI*sI + sFd*sI**2)
+    A = (sE * (sF * sId - sFI * sI) - sEF * (n * sId - sI ** 2) + sEI * (n * sFI - sF * sI)
+        ) / (n * sFI ** 2 - n * sFd * sId + sF ** 2 * sId - 2 * sF * sFI * sI + sFd * sI ** 2)
 
-    b= (sE*(sFI**2 - sFd*sId) + sEF*(sF*sId - sFI*sI) - sEI*(sF*sFI - sFd*sI)
-       )/(n*sFI**2 - n*sFd*sId + sF**2*sId - 2*sF*sFI*sI + sFd*sI**2)
+    b = (sE * (sFI ** 2 - sFd * sId) + sEF * (sF * sId - sFI * sI) - sEI * (sF * sFI - sFd * sI)
+        ) / (n * sFI ** 2 - n * sFd * sId + sF ** 2 * sId - 2 * sF * sFI * sI + sFd * sI ** 2)
 
     # in case the modeldata is zero, to avoid further errors
-    if np.isnan(A): A=0.0
-    if np.isnan(a): a=0.0
-    if np.isnan(b): b=0.0
+    if np.isnan(A): A = 0.0
+    if np.isnan(a): a = 0.0
+    if np.isnan(b): b = 0.0
     return A, a, b
 
-def ampbas2D(xi, yj, expe, calc):
 
+def ampbas2D(xi, yj, expe, calc):
     n = float(xi.size)
     m = float(yj.size)
     sE = expe.sum()
     sF = calc.sum()
-    sFI = (xi*calc).sum()
-    sFJ = ((yj*calc.T)).sum()
-    sFd = (calc*calc).sum()
+    sFI = (xi * calc).sum()
+    sFJ = ((yj * calc.T)).sum()
+    sFd = (calc * calc).sum()
     sI = sum(xi)
     sJ = sum(yj)
-    sIJ = ((np.ones_like(calc)*xi).T*yj).sum()
-    sEF = (expe*calc).sum()
-    sEI = (xi*expe).sum()
-    sEJ = (yj*expe.T).sum()
-    sId = sum(xi**2)
-    sJd = sum(yj**2)
+    sIJ = ((np.ones_like(calc) * xi).T * yj).sum()
+    sEF = (expe * calc).sum()
+    sEI = (xi * expe).sum()
+    sEJ = (yj * expe.T).sum()
+    sId = sum(xi ** 2)
+    sJd = sum(yj ** 2)
 
-    c= (sE*(-m*n*sFd*sId*sJd + m*sFJ**2*sId + n*sFI**2*sJd - 2*sFI*sFJ*sIJ + sFd*sIJ**2) + sEF*(m*n*sF*sId*sJd
-        - m*n*sFI*sI*sJd - m*n*sFJ*sId*sJ + m*sFJ*sI*sIJ + n*sFI*sIJ*sJ - sF*sIJ**2) + sEI*(m*n*sFd*sI*sJd
-        - m*sFJ**2*sI - n*sF*sFI*sJd + n*sFI*sFJ*sJ - n*sFd*sIJ*sJ + sF*sFJ*sIJ) + sEJ*(m*n*sFd*sId*sJ - m*sF*sFJ*sId
-        + m*sFI*sFJ*sI - m*sFd*sI*sIJ - n*sFI**2*sJ + sF*sFI*sIJ))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId
-        + m**2*n*sFd*sI**2*sJd - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd
-        - 2*m*n*sF*sFI*sI*sJd - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ
-        + m*n*sFd*sIJ**2 + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+    c = (sE * (
+        -m * n * sFd * sId * sJd + m * sFJ ** 2 * sId + n * sFI ** 2 * sJd - 2 * sFI * sFJ * sIJ + sFd * sIJ ** 2) + sEF * (
+             m * n * sF * sId * sJd
+             - m * n * sFI * sI * sJd - m * n * sFJ * sId * sJ + m * sFJ * sI * sIJ + n * sFI * sIJ * sJ - sF * sIJ ** 2) + sEI * (
+             m * n * sFd * sI * sJd
+             - m * sFJ ** 2 * sI - n * sF * sFI * sJd + n * sFI * sFJ * sJ - n * sFd * sIJ * sJ + sF * sFJ * sIJ) + sEJ * (
+             m * n * sFd * sId * sJ - m * sF * sFJ * sId
+             + m * sFI * sFJ * sI - m * sFd * sI * sIJ - n * sFI ** 2 * sJ + sF * sFI * sIJ)) / (
+            -m ** 2 * n ** 2 * sFd * sId * sJd + m ** 2 * n * sFJ ** 2 * sId
+            + m ** 2 * n * sFd * sI ** 2 * sJd - m ** 2 * sFJ ** 2 * sI ** 2 + m * n ** 2 * sFI ** 2 * sJd + m * n ** 2 * sFd * sId * sJ ** 2 + m * n * sF ** 2 * sId * sJd
+            - 2 * m * n * sF * sFI * sI * sJd - 2 * m * n * sF * sFJ * sId * sJ + 2 * m * n * sFI * sFJ * sI * sJ - 2 * m * n * sFI * sFJ * sIJ - 2 * m * n * sFd * sI * sIJ * sJ
+            + m * n * sFd * sIJ ** 2 + 2 * m * sF * sFJ * sI * sIJ - n ** 2 * sFI ** 2 * sJ ** 2 + 2 * n * sF * sFI * sIJ * sJ - sF ** 2 * sIJ ** 2)
 
-    a= (n*sEF*(m*n*sFI*sJd - m*sF*sI*sJd + m*sFJ*sI*sJ - m*sFJ*sIJ - n*sFI*sJ**2 + sF*sIJ*sJ) + n*sEI*(-m*n*sFd*sJd
-        + m*sFJ**2 + n*sFd*sJ**2 + sF**2*sJd - 2*sF*sFJ*sJ) + sE*(m*n*sFd*sI*sJd - m*sFJ**2*sI - n*sF*sFI*sJd
-        + n*sFI*sFJ*sJ - n*sFd*sIJ*sJ + sF*sFJ*sIJ) - sEJ*(m*n*sFI*sFJ + m*n*sFd*sI*sJ - m*n*sFd*sIJ - m*sF*sFJ*sI
-        - n*sF*sFI*sJ + sF**2*sIJ))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId + m**2*n*sFd*sI**2*sJd
-        - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd - 2*m*n*sF*sFI*sI*sJd
-        - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ + m*n*sFd*sIJ**2
-        + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+    a = (n * sEF * (
+        m * n * sFI * sJd - m * sF * sI * sJd + m * sFJ * sI * sJ - m * sFJ * sIJ - n * sFI * sJ ** 2 + sF * sIJ * sJ) + n * sEI * (
+             -m * n * sFd * sJd
+             + m * sFJ ** 2 + n * sFd * sJ ** 2 + sF ** 2 * sJd - 2 * sF * sFJ * sJ) + sE * (
+             m * n * sFd * sI * sJd - m * sFJ ** 2 * sI - n * sF * sFI * sJd
+             + n * sFI * sFJ * sJ - n * sFd * sIJ * sJ + sF * sFJ * sIJ) - sEJ * (
+             m * n * sFI * sFJ + m * n * sFd * sI * sJ - m * n * sFd * sIJ - m * sF * sFJ * sI
+             - n * sF * sFI * sJ + sF ** 2 * sIJ)) / (
+            -m ** 2 * n ** 2 * sFd * sId * sJd + m ** 2 * n * sFJ ** 2 * sId + m ** 2 * n * sFd * sI ** 2 * sJd
+            - m ** 2 * sFJ ** 2 * sI ** 2 + m * n ** 2 * sFI ** 2 * sJd + m * n ** 2 * sFd * sId * sJ ** 2 + m * n * sF ** 2 * sId * sJd - 2 * m * n * sF * sFI * sI * sJd
+            - 2 * m * n * sF * sFJ * sId * sJ + 2 * m * n * sFI * sFJ * sI * sJ - 2 * m * n * sFI * sFJ * sIJ - 2 * m * n * sFd * sI * sIJ * sJ + m * n * sFd * sIJ ** 2
+            + 2 * m * sF * sFJ * sI * sIJ - n ** 2 * sFI ** 2 * sJ ** 2 + 2 * n * sF * sFI * sIJ * sJ - sF ** 2 * sIJ ** 2)
 
-    A= (m*n*sEF*(-m*n*sId*sJd + m*sI**2*sJd + n*sId*sJ**2 - 2*sI*sIJ*sJ + sIJ**2) + m*sEJ*(m*n*sFJ*sId - m*sFJ*sI**2
-        - n*sF*sId*sJ + n*sFI*sI*sJ - n*sFI*sIJ + sF*sI*sIJ) + n*sEI*(m*n*sFI*sJd - m*sF*sI*sJd + m*sFJ*sI*sJ
-        - m*sFJ*sIJ - n*sFI*sJ**2 + sF*sIJ*sJ) + sE*(m*n*sF*sId*sJd - m*n*sFI*sI*sJd - m*n*sFJ*sId*sJ + m*sFJ*sI*sIJ
-        + n*sFI*sIJ*sJ - sF*sIJ**2))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId + m**2*n*sFd*sI**2*sJd
-        - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd - 2*m*n*sF*sFI*sI*sJd
-        - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ + m*n*sFd*sIJ**2
-        + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+    A = (m * n * sEF * (
+        -m * n * sId * sJd + m * sI ** 2 * sJd + n * sId * sJ ** 2 - 2 * sI * sIJ * sJ + sIJ ** 2) + m * sEJ * (
+             m * n * sFJ * sId - m * sFJ * sI ** 2
+             - n * sF * sId * sJ + n * sFI * sI * sJ - n * sFI * sIJ + sF * sI * sIJ) + n * sEI * (
+             m * n * sFI * sJd - m * sF * sI * sJd + m * sFJ * sI * sJ
+             - m * sFJ * sIJ - n * sFI * sJ ** 2 + sF * sIJ * sJ) + sE * (
+             m * n * sF * sId * sJd - m * n * sFI * sI * sJd - m * n * sFJ * sId * sJ + m * sFJ * sI * sIJ
+             + n * sFI * sIJ * sJ - sF * sIJ ** 2)) / (
+            -m ** 2 * n ** 2 * sFd * sId * sJd + m ** 2 * n * sFJ ** 2 * sId + m ** 2 * n * sFd * sI ** 2 * sJd
+            - m ** 2 * sFJ ** 2 * sI ** 2 + m * n ** 2 * sFI ** 2 * sJd + m * n ** 2 * sFd * sId * sJ ** 2 + m * n * sF ** 2 * sId * sJd - 2 * m * n * sF * sFI * sI * sJd
+            - 2 * m * n * sF * sFJ * sId * sJ + 2 * m * n * sFI * sFJ * sI * sJ - 2 * m * n * sFI * sFJ * sIJ - 2 * m * n * sFd * sI * sIJ * sJ + m * n * sFd * sIJ ** 2
+            + 2 * m * sF * sFJ * sI * sIJ - n ** 2 * sFI ** 2 * sJ ** 2 + 2 * n * sF * sFI * sIJ * sJ - sF ** 2 * sIJ ** 2)
 
-    b= (m*sEF*(m*n*sFJ*sId - m*sFJ*sI**2 - n*sF*sId*sJ + n*sFI*sI*sJ - n*sFI*sIJ + sF*sI*sIJ) + m*sEJ*(-m*n*sFd*sId
-        + m*sFd*sI**2 + n*sFI**2 + sF**2*sId - 2*sF*sFI*sI) + sE*(m*n*sFd*sId*sJ - m*sF*sFJ*sId + m*sFI*sFJ*sI
-        - m*sFd*sI*sIJ - n*sFI**2*sJ + sF*sFI*sIJ) - sEI*(m*n*sFI*sFJ + m*n*sFd*sI*sJ - m*n*sFd*sIJ - m*sF*sFJ*sI
-        - n*sF*sFI*sJ + sF**2*sIJ))/(-m**2*n**2*sFd*sId*sJd + m**2*n*sFJ**2*sId + m**2*n*sFd*sI**2*sJd
-        - m**2*sFJ**2*sI**2 + m*n**2*sFI**2*sJd + m*n**2*sFd*sId*sJ**2 + m*n*sF**2*sId*sJd - 2*m*n*sF*sFI*sI*sJd
-        - 2*m*n*sF*sFJ*sId*sJ + 2*m*n*sFI*sFJ*sI*sJ - 2*m*n*sFI*sFJ*sIJ - 2*m*n*sFd*sI*sIJ*sJ + m*n*sFd*sIJ**2
-        + 2*m*sF*sFJ*sI*sIJ - n**2*sFI**2*sJ**2 + 2*n*sF*sFI*sIJ*sJ - sF**2*sIJ**2)
+    b = (m * sEF * (
+        m * n * sFJ * sId - m * sFJ * sI ** 2 - n * sF * sId * sJ + n * sFI * sI * sJ - n * sFI * sIJ + sF * sI * sIJ) + m * sEJ * (
+             -m * n * sFd * sId
+             + m * sFd * sI ** 2 + n * sFI ** 2 + sF ** 2 * sId - 2 * sF * sFI * sI) + sE * (
+             m * n * sFd * sId * sJ - m * sF * sFJ * sId + m * sFI * sFJ * sI
+             - m * sFd * sI * sIJ - n * sFI ** 2 * sJ + sF * sFI * sIJ) - sEI * (
+             m * n * sFI * sFJ + m * n * sFd * sI * sJ - m * n * sFd * sIJ - m * sF * sFJ * sI
+             - n * sF * sFI * sJ + sF ** 2 * sIJ)) / (
+            -m ** 2 * n ** 2 * sFd * sId * sJd + m ** 2 * n * sFJ ** 2 * sId + m ** 2 * n * sFd * sI ** 2 * sJd
+            - m ** 2 * sFJ ** 2 * sI ** 2 + m * n ** 2 * sFI ** 2 * sJd + m * n ** 2 * sFd * sId * sJ ** 2 + m * n * sF ** 2 * sId * sJd - 2 * m * n * sF * sFI * sI * sJd
+            - 2 * m * n * sF * sFJ * sId * sJ + 2 * m * n * sFI * sFJ * sI * sJ - 2 * m * n * sFI * sFJ * sIJ - 2 * m * n * sFd * sI * sIJ * sJ + m * n * sFd * sIJ ** 2
+            + 2 * m * sF * sFJ * sI * sIJ - n ** 2 * sFI ** 2 * sJ ** 2 + 2 * n * sF * sFI * sIJ * sJ - sF ** 2 * sIJ ** 2)
 
     # in case the modeldata is zero, to avoid further errors
-    if np.isnan(A): A=0.0
-    if np.isnan(a): a=0.0
-    if np.isnan(b): b=0.0
-    if np.isnan(c): c=0.0
+    if np.isnan(A): A = 0.0
+    if np.isnan(a): a = 0.0
+    if np.isnan(b): b = 0.0
+    if np.isnan(c): c = 0.0
     return A, a, b, c
 
+
 if __name__ == '__main__':
-    print (Fit())
+    print(Fit())

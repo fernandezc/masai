@@ -4,8 +4,8 @@
 # masai.plugins.plots.plot2d_plugin
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -40,6 +40,7 @@ from matplotlib.ticker import MaxNLocator
 # ===============================================================================
 from masai.plugins import IPlugin
 import traits.has_traits
+
 traits.has_traits.CHECK_INTERFACES = 2
 from masai.core.utils import htmldoc
 
@@ -53,7 +54,6 @@ __plugin_main__ = 'Plot2d'
 # ===================================================================================
 @provides(IPlugin)
 class Plot2d(HasTraits):
-
     # minimal plugin attribute -----------------------------------------------------
     description = Str("Plot2d (type: plots), output a matplotlib 2D contour plot.")
     type = Str("plot")
@@ -112,7 +112,7 @@ class Plot2d(HasTraits):
             return
 
         if not source.is_2d:
-            print("This is not a 2D source.\nCannot Plot! Use Plot1d instead", file=sys.stderr )
+            print("This is not a 2D source.\nCannot Plot! Use Plot1d instead", file=sys.stderr)
             return
 
         # data
@@ -127,13 +127,13 @@ class Plot2d(HasTraits):
 
         # when using matplotlib inline
         # dpi is the savefig.dpi so we should set it here
-        pl.rcParams['figure.figsize']=figsize
-        pl.rcParams['figure.dpi']=dpi
-        pl.rcParams['savefig.dpi']=dpi
-        pl.rcParams['font.size']=fontsize
-        pl.rcParams['legend.fontsize'] = int(fontsize*.8)
-        pl.rcParams['xtick.labelsize']=fontsize
-        pl.rcParams['ytick.labelsize']=fontsize
+        pl.rcParams['figure.figsize'] = figsize
+        pl.rcParams['figure.dpi'] = dpi
+        pl.rcParams['savefig.dpi'] = dpi
+        pl.rcParams['font.size'] = fontsize
+        pl.rcParams['legend.fontsize'] = int(fontsize * .8)
+        pl.rcParams['xtick.labelsize'] = fontsize
+        pl.rcParams['ytick.labelsize'] = fontsize
 
         # get the proj keyword
         proj = kargs.get('proj')
@@ -143,7 +143,7 @@ class Plot2d(HasTraits):
         if 'axe' not in kargs.keys():
             fig = pl.figure(figsize=figsize, dpi=dpi)
             self.fig = fig
-            axe = fig.add_subplot(1,1,1)
+            axe = fig.add_subplot(1, 1, 1)
             if proj or xproj or yproj:
                 # create new axes on the right and on the top of the current axes
                 # The first argument of the new_vertical(new_horizontal) method is
@@ -193,7 +193,7 @@ class Plot2d(HasTraits):
         axe.set_ylim(ylim)
 
         # attribute
-        colormap = kargs.get('colormap', kargs.get('cmap','jet'))
+        colormap = kargs.get('colormap', kargs.get('cmap', 'jet'))
         lw = kargs.get('linewidth', kargs.get('lw', 1.))
         alpha = kargs.get('alpha', kargs.get('alpha', .8))
 
@@ -226,19 +226,19 @@ class Plot2d(HasTraits):
         axe.xaxis.set_major_locator(MaxNLocator(5))
         axe.yaxis.set_major_locator(MaxNLocator(5))
 
-        if proj=='sky' or xproj=='sky':
+        if proj == 'sky' or xproj == 'sky':
             dxp = spec.values.max(axis=0)
-            xproj, = axex.plot(x,dxp)
-        if proj=='sky' or yproj=='sky':
+            xproj, = axex.plot(x, dxp)
+        if proj == 'sky' or yproj == 'sky':
             dyp = spec.values.max(axis=1)
             yproj, = axey.plot(dyp, y)
-        if proj=='sum' or 'sum'==xproj:
+        if proj == 'sum' or 'sum' == xproj:
             dxp = spec.values.sum(axis=0)
-            dxp = dxp/(dxp.max()-dxp.min())
-            xproj, = axex.plot(x,dxp)
-        if 'sum'==proj or 'sum'==yproj:
+            dxp = dxp / (dxp.max() - dxp.min())
+            xproj, = axex.plot(x, dxp)
+        if 'sum' == proj or 'sum' == yproj:
             dyp = spec.values.sum(axis=1)
-            dyp = dyp/(dyp.max()-dyp.min())
+            dyp = dyp / (dyp.max() - dyp.min())
             yproj, = axey.plot(dyp, y)
 
         # Layout
@@ -280,7 +280,8 @@ class Plot2d(HasTraits):
         self.fig.savefig(savename)
         self.savename = savename
 
-   #===========================================================================
+        #===========================================================================
+
     # clevels
     #===========================================================================
     def clevels(self, data, **kargs):
@@ -289,26 +290,26 @@ class Plot2d(HasTraits):
         # contours
         maximum = data.max()
         minimum = -maximum
-        spacing = kargs.get('spacing',20)
-        exponent = kargs.get('exponent',1.2)
-        start = kargs.get('start',-1)
+        spacing = kargs.get('spacing', 20)
+        exponent = kargs.get('exponent', 1.2)
+        start = kargs.get('start', -1)
 
-        if (exponent-1.00)<.005:
+        if (exponent - 1.00) < .005:
             clevelc = np.linspace(minimum, maximum, spacing)
-            clevelc[clevelc.size/2-1:clevelc.size/2+1]=np.NaN
+            clevelc[clevelc.size / 2 - 1:clevelc.size / 2 + 1] = np.NaN
             return clevelc
 
         maximum = data.max()
-        ms = maximum/spacing
+        ms = maximum / spacing
         for xi in range(100):
-            if ms*exponent**xi>maximum:
+            if ms * exponent ** xi > maximum:
                 xl = xi
                 break
-        if start!=0:
-            clevelc = [float(start)*ms*exponent**xi
-                      for xi in range(xl)]+[ms*exponent**xi for xi in range(xl)]
+        if start != 0:
+            clevelc = [float(start) * ms * exponent ** xi
+                       for xi in range(xl)] + [ms * exponent ** xi for xi in range(xl)]
         else:
-            clevelc = [ms*exponent**xi for xi in range(xl)]
+            clevelc = [ms * exponent ** xi for xi in range(xl)]
         return clevelc
 
     def _repr_html_(self):
@@ -320,8 +321,8 @@ class Plot2d(HasTraits):
     def __repr__(self):
         return self.__init__.__doc__
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     """
     test plugin
     """

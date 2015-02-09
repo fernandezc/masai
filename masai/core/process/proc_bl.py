@@ -32,7 +32,7 @@ def base(data, nl, nw=0):
     """
     if data.ndim == 1:
         data = data - calc_bl_linear(data, nl, nw)
-    else:   # for 2D array loop over traces
+    else:  # for 2D array loop over traces
         for i, vec in enumerate(data):
             data[i] = data[i] - calc_bl_linear(vec, nl, nw)
     return data
@@ -192,8 +192,8 @@ def calc_bl_med(x, mw, sf, sigma):
     """
     # create extrema array (non extrema values are masked out)
     mask = x == scipy.ndimage.median_filter(x, size=3)
-    mask[0] = False     # first pt always extrema
-    mask[-1] = False    # last pt always extrema
+    mask[0] = False  # first pt always extrema
+    mask[-1] = False  # last pt always extrema
     e = np.ma.masked_array(x, mask)
 
     # fill in the median vector
@@ -323,9 +323,9 @@ def poly_fd(data):
     # 3. Calculate intensity (abs) of each centered vector
     # 4. Sort intensities, lower 30% belong to baseline
     # 5. Fit base line intensities to Normal distribution, gives estimation
-    #    of standard deviation (std) of noise
+    # of standard deviation (std) of noise
     # 6. Classification threshold set to 1.5*std
     # 7. Qualify each block in centered vector as baseline only
-    #    (its std < thres) or not (std > thres)
+    # (its std < thres) or not (std > thres)
     # 8. Fit baseline only points to polynomial and substract off
     raise NotImplementedError

@@ -4,8 +4,8 @@
 # masai.core.api
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
-#       Laboratoire Catalyse et Spectrochimie, Caen, France.
-#       christian.fernandez@ensicaen.fr
+# Laboratoire Catalyse et Spectrochimie, Caen, France.
+# christian.fernandez@ensicaen.fr
 # This software is governed by the CeCILL-B license under French law
 # and abiding by the rules of distribution of free software.
 # You can  use, modify and/ or redistribute the software under
@@ -14,9 +14,3 @@
 # See Licence.txt in the main masai source directory
 # ===============================================================================
 
-from .process import *
-from .database import *
-from .analysis import *
-from .tools import *
-from .utils import *
-from .fit import *

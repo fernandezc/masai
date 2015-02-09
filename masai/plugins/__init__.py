@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
-#===============================================================================
+# ===============================================================================
 # masai.plugins.__init__
-#===============================================================================
+# ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 #       Laboratoire Catalyse et Spectrochimie, Caen, France.
 #       christian.fernandez@ensicaen.fr
@@ -21,13 +21,10 @@ from __future__ import print_function, division
 #===============================================================================
 # Imports
 #===============================================================================
-import glob      # Imported for handling command line arguments.
-import sys       # Imported for file directory listing capabilities.
-import os        # Imported for file path manipulation capabilities.
-from addict import Dict as aDict
-from traits.api import HasTraits, Interface, provides, Str
+from traits.api import Interface, Str
 
 import traits.has_traits
+
 traits.has_traits.CHECK_INTERFACES = 2
 
 #===============================================================================
@@ -39,7 +36,6 @@ DEBUG = False
 # Bruker plugin
 #===================================================================================
 class IPlugin(Interface):
-
     #===============================================================================
     # minimal arguments
     #===============================================================================

@@ -5,8 +5,9 @@
 # progress in a iterative Python procedure
 
 from math import floor
+
 from prog_class import Prog
-import time
+
 
 class ProgBar(Prog):
     """
@@ -23,6 +24,7 @@ class ProgBar(Prog):
             (requires 'psutil' package).
 
     """
+
     def __init__(self, iterations, track_time=True, width=30, stream=2, title='', monitor=False):
         Prog.__init__(self, iterations, track_time, stream, title, monitor)
         self.bar_width = width
@@ -34,16 +36,16 @@ class ProgBar(Prog):
             try:
                 self.process.get_cpu_percent()
                 self.process.get_memory_percent()
-            except AttributeError: # old version of psutil
+            except AttributeError:  # old version of psutil
                 cpu_total = self.process.cpu_percent()
-                mem_total = self.process.memory_percent()   
+                mem_total = self.process.memory_percent()
         if self.item_id:
             self._print_item_id()
 
     def _adjust_width(self):
         """Shrinks bar if number of iterations is less than the bar width"""
         if self.bar_width > self.max_iter:
-            self.bar_width = int(self.max_iter) 
+            self.bar_width = int(self.max_iter)
             # some Python 3.3.3 users specifically
             # on Linux Red Hat 4.4.7-1, GCC v. 4.4.7
             # reported that self.max_iter was converted to

@@ -1,12 +1,15 @@
-#===============================================================================
+# ===============================================================================
 # imports
-#===============================================================================
+# ===============================================================================
 from __future__ import print_function
 import sys
+
 import scipy.optimize
+
 from masai.core.fit.parameters import FitParameters
 
-__all__ = ["optimize",]
+
+__all__ = ["optimize", ]
 
 #===========================================================================
 # _fitting
@@ -45,12 +48,12 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
             if keysp[0] in fp.expvars:
                 ps = []
                 for i in xrange(fp.expnumber):
-                    ks = "%s_exp%d"%(key, i)
+                    ks = "%s_exp%d" % (key, i)
                     if ks not in keys:
                         break
                     k = keys.index(ks)
                     ps.append(p[k])
-                if len(ps)>0:
+                if len(ps) > 0:
                     fp.to_external(key, ps)
             else:
                 if not key in keys:
@@ -73,7 +76,7 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
 
     # make internal parameters
     par = []
-    keys= []
+    keys = []
     for key in sorted(fp0.keys()):
         if not fp0.fixed[key]:
             # we make internal parameters in case of bounding
@@ -82,7 +85,7 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
             if keysp in fp0.expvars:
                 for i in xrange(fp0.expnumber):
                     par.append(fp0.to_internal(key, i))
-                    keys.append("%s_exp%d"%(key,i))
+                    keys.append("%s_exp%d" % (key, i))
             else:
                 par.append(fp0.to_internal(key))
                 keys.append(key)
@@ -94,7 +97,7 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
         args.append(constraints)
 
     if not maxfun:
-        maxfun = 4*maxiter
+        maxfun = 4 * maxiter
     if method.upper() == "SIMPLEX":
         result = scipy.optimize.fmin(internal_func, par,
                                      args=tuple(args),
@@ -121,7 +124,7 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
         raise NotImplementedError("method: %s" % method)
         #TODO: implement other algorithms
     else:
-        raise NotImplementedError("method: %s"%method)
+        raise NotImplementedError("method: %s" % method)
 
     #restore the external parameter
     fpe = restore_external(fp0, res, keys)
@@ -129,14 +132,14 @@ def optimize(func, fp0, args=(), constraints={}, method="SIMPLEX",
     #    fp0.to_external(key, res[i])
 
 
-    if warnmess==1 :
+    if warnmess == 1:
         print("Maximum number of function evaluations made.", file=sys.stderr)
     if warnmess == 2:
-        print ("Maximum number of iterations reached.", file=sys.stderr)
+        print("Maximum number of iterations reached.", file=sys.stderr)
 
     return fpe, fopt
 
-if __name__=="__main__":
 
+if __name__ == "__main__":
     pass
 
