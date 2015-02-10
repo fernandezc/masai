@@ -15,6 +15,8 @@ and a attributes file with
 *.ipynb filter=stripoutput
 
 
+to put in .git/info
+
 #You may need to do this for your script to work with GitX or Tower:
 #sys.path.append("/Users/chris/anaconda/envs/conda/lib/python2.7/site-packages")
 
