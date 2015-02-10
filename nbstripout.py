@@ -9,7 +9,7 @@ git filter driver
 Add this to your .git/config:
 
 [filter "stripoutput"]
-    clean = "/path/to/nbconvert/nbstripout"
+    clean = "/path/to/nbconvert/nbstripout.py"
 and a attributes file with
 
 *.ipynb filter=stripoutput
