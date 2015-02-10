@@ -10,7 +10,7 @@ Add this to your .git/config:
 
 [filter "stripoutput"]
     clean = "/path/to/nbconvert/nbstripout"
-and a .gitattributes file with
+and a attributes file with
 
 *.ipynb filter=stripoutput
 
