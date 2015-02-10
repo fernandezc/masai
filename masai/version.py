@@ -91,7 +91,11 @@ def get_version():
     verstr = get_git_version()
     if verstr:
         verstr = verstr.split('-')
-        verstr = "%s.%s" % tuple(verstr[:2])
+        # in case of a just tagged version version str contain only one string
+        if len(verstr)>=2:
+            verstr = "%s.%s" % tuple(verstr[:2])
+        else:
+            verstr = verstr[0]
 
     if verstr:
         preferences.set("api.version", verstr)
