@@ -123,6 +123,8 @@ class Plot1d(HasTraits):
             offset of the model individual lines
         commands: str,
             matplotlib commands to be executed
+        show_zero: boolean, optional
+            show the zero basis
         savename: str,
             name of the file to save the figure
         savefig: Bool,
@@ -255,6 +257,8 @@ class Plot1d(HasTraits):
         else:
             axe.set_yticks([])
 
+        if kargs.get('show_zero', False):
+            axe.haxlines()
         # Layout
         pl.tight_layout()
 

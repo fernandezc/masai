@@ -95,6 +95,15 @@ class Plot2d(HasTraits):
             line width
         colormap or cmap: str, optional
             color map definition
+        nc = int, default=20
+            number of contour levels (between -max and +max)
+            where max is the maximum amplitude of the spectra.
+            if there is no negative values,
+            then at the maximum nc/2 contours will be displayed
+        exponent = float, default=1.2
+            exponent
+        start = Integer, default=-1
+            start
         xlabel: str, optional
             label on the horizontal axis
         ylabel: str, optional
@@ -290,7 +299,9 @@ class Plot2d(HasTraits):
         # contours
         maximum = data.max()
         minimum = -maximum
-        spacing = kargs.get('spacing', 20)
+        if kargs.has_key('spacing'):
+            print("'spacing' is deprecated, use 'nc' instead.", file=sys.stderr)
+        spacing = kargs.get('nc',kargs.get('spacing', 20))
         exponent = kargs.get('exponent', 1.2)
         start = kargs.get('start', -1)
 
@@ -313,14 +324,10 @@ class Plot2d(HasTraits):
         return clevelc
 
     def _repr_html_(self):
-        if not self.source:
+        if not self.axe:
             return htmldoc(self.__init__.__doc__)
         else:
-            return self.message
-
-    def __repr__(self):
-        return self.__init__.__doc__
-
+            return
 
 if __name__ == '__main__':
     """

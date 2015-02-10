@@ -755,5 +755,6 @@ class Bruker(Source):
 
 if __name__ == '__main__':
     pass
-
+    source = Bruker("/Users/christian/Dropbox/PycharmProjects/noesy/user/nmr/150130/12")
+    print(source)
 # eof --------------------------------------------------------------------------
