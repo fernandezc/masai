@@ -20,7 +20,7 @@ import os
 
 import masai
 
-from masai.api import Bruker, Process
+from masai.api import Bruker, Process, Multiplex
 
 
 def read_fid(DATADIR, name, expno):
@@ -49,6 +49,14 @@ class BasicTests(unittest.TestCase):
         col = f2d.get_col(0, width=.1, byindex=False)
         row = f2d.get_row(1, byindex=True)
         col = f2d.get_col(1, byindex=True)
+
+        user = 'user'
+        name = 'MULTIPLEX'
+        expno = 4
+        path = os.path.join(self.DATADIR, user, 'nmr', name, str(expno))
+        source = Multiplex(path)
+        # possibly correct the F1 encoding
+        source.par2.encoding = 'STATES'
 
     def test_process_plugin(self):
         f1d = read_fid(self.DATADIR, 'SPEC1D', 10)
