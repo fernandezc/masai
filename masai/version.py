@@ -22,7 +22,7 @@ from __future__ import print_function, division
 import os
 import commands  #TODO: may be we could use Fabric
 
-from masai.core.utils.preferences import Preferences
+from masai.core.utils import Preferences
 #TODO: this replace the apptools version while the deprecation warning is still here
 #TODO: make a pull request to apptools
 

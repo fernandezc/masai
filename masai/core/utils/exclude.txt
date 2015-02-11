@@ -1,0 +1,15 @@
+1r
+1i
+2rr
+2ri
+2ir
+2ii
+outd
+thumb.png
+shimvalues
+specpar
+uxnmr.*
+scon2
+*.temp
+format.ased
+fq1list
