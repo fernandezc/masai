@@ -139,6 +139,9 @@ class Process(HasTraits):
             if 'em' in command:
                 em(source, options=options, axis=axis)
 
+            if 'bc' in command:
+                bc(source, options=options, axis=axis)
+
             elif 'zf' in command:
                 zf(source, options=options, axis=axis)
 

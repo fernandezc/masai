@@ -26,7 +26,79 @@ from masai.core.process import proc_base
 from masai.core.utils.misc import position2index
 from masai.core.process.mqstmas import k_ratio
 
-__all__ = ["zf", "cs", "ls", "rs", "em", 'mc', 'pc']
+__all__ = ["zf", "cs", "ls", "rs", "em", 'mc', 'pc', 'bc']
+
+#
+# bc : bc correction
+#
+def bc(source=None, options='', axis=-1):
+    """
+    bc correction
+
+    Parameters
+    ----------
+    source: source instance
+        The source to be zero filled
+    tdeff:
+    axis: optional
+
+    """
+
+    # options evaluation
+    parser = argparse.ArgumentParser(description='BC correction.',
+                                     usage="""
+    bc [nav] [--tdeff] [-h]
+    """, )
+    # positional arguments
+    parser.add_argument('nav', default=50, nargs='?', type=int, help='number of points for averaging')
+    parser.add_argument('--tdeff', default=0, nargs='?', type=int, help='td effective')
+    args = parser.parse_args(options.split())
+
+    if axis == -1:
+        par = source.par
+    else:
+        par = source.par2
+
+    if par.isfreq:
+        print('This source is already transformed: bc skipped!')
+        return
+
+    # data on which we apply zf
+
+    datv = source.data.values
+    if axis == 0:
+        # transpose temporarily the data for indirect dimension ft
+        datv = datv.T
+
+    # read parameters TDeff
+    tdeff = args.tdeff
+    if tdeff > par.TD or tdeff < 4:
+        tdeff = par.TD
+
+    # retain only TDeff points only (if TDeff if at least 4)
+    if tdeff > 4:
+        tdeff = min(tdeff, datv.shape[-1])
+        if datv.ndim > 1:
+            datv = datv[:, :tdeff]
+        else:
+            datv = datv[:tdeff]
+
+    # apply bc
+    nav = args.nav
+    datv = datv - datv[:,-nav:].mean()
+
+    # store the new pars
+    par.TD = datv.shape[-1]
+
+    # un-transpose the data if needed
+    if axis == 0:
+        datv = datv.T
+
+    # change the current data with the transformed data
+    source.data = datv  # scale will be calculated here
+
+    source.history.append('bc correction')
+
 
 #
 # pc : power calculation

@@ -650,7 +650,7 @@ class Bruker(Source):
         # fft
         si = data.shape[-1]
         pdata = np.fft.fftshift(np.fft.fft(data, si, axis=-1), -1) / float(si / 2)
-        pdata = (pdata.T - pdata.T[0]).T  # this allow generally to remove Bruker smiles
+        pdata = (pdata.T - pdata.T[0]).T  #TODO: this allow generally to remove Bruker smiles, not so sure actually
 
         # Phasing
         si = float(pdata.shape[-1])
