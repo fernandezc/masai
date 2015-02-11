@@ -1,0 +1,34 @@
+##TITLE= Audit trail, TOPSPIN		Version 3.2
+##JCAMPDX= 5.01
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= husseinelsiblani
+$$ /Users/husseinelsiblani/Documents/Xenonnmrdata/zeolite-Y3-qin/451/pdata/1/auditp.txt
+##AUDIT TRAIL=  $$ (NUMBER, WHEN, WHO, WHERE, PROCESS, VERSION, WHAT)
+(   1,<2014-10-02 20:44:36.517 +0200>,<nmr>,<lcs175n>,<go>,<TOPSPIN 3.2>,
+      <created by zg
+	started at 2014-10-02 20:27:57.625 +0200,
+	POWCHK disabled, PULCHK disabled,
+       terminated by command 'stop'
+       configuration hash MD5:
+       D3 8F 55 B5 35 68 DF 79 72 30 D9 BF C8 A6 7A 60
+       data hash MD5: 12K * 140
+       38 1A 90 E8 AD A3 6C CC 18 4C 35 92 AC 89 8F 51>)
+(   2,<2015-01-14 18:13:23.856 +0100>,<husseinelsiblani>,<dhcp207lcsn.ensicaen.fr>,<proc2d>,<TOPSPIN 3.2>,
+      <Start of raw data processing
+       xfb F2: SI = 16K WDW = 1 LB = 0 FT_mod = 6 PKNL = 1 PHC0 = -116.3888 PHC1 = 7.80047 F1: SI = 128 WDW = 1 LB = 0 FT_mod = 6 PHC0 = 85.37461 PHC1 = -169.1
+       data hash MD5: 16K * 128
+       06 2F 28 7E 6B E2 AE 29 6C 00 4F 10 79 52 ED FB>)
+(   3,<2015-01-14 18:16:07.113 +0100>,<husseinelsiblani>,<dhcp207lcsn.ensicaen.fr>,<audit>,<TOPSPIN 3.2>,
+      <user comment:
+       TITLE=fau-1
+       p=0.55bar T=245 150sccm
+       bobine on/laser on
+       20%liquidN2
+       
+       22-09-2014TITLE_END
+       data hash MD5: 16K * 128
+       06 2F 28 7E 6B E2 AE 29 6C 00 4F 10 79 52 ED FB>)
+##END=
+
+$$ hash MD5
+$$ D5 4D E7 C0 39 84 B0 2E 91 06 78 62 71 B6 87 D2

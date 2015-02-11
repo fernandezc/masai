@@ -1,0 +1,6 @@
+TITLE=fau-3
+p=0.55bar T=245 150sccm
+bobine on/laser on
+20%liquidN2
+
+22-09-2014TITLE_END

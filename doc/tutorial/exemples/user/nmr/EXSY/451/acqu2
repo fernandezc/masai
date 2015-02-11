@@ -1,0 +1,22 @@
+##TITLE= Parameter file, TOPSPIN		Version 3.2
+##JCAMPDX= 5.0
+##DATATYPE= Parameter Values
+##NPOINTS= 1	$$ modification sequence number
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= nmr
+$$ 2014-10-02 20:27:49.707 +0200  nmr@lcs175n
+$$ /home/nmr/data/siblanixenon/nmr/zeolite-Y3-qin/451/acqu2
+$$ process /opt/topspin3.2/prog/mod/edparproc
+##$ACQT0= 0
+##$BF1= 110.732
+##$FnMODE= 4
+##$NUC1= <129Xe>
+##$NusJSP= 0
+##$NusT2= 1
+##$NusTD= 0
+##$O1= 3992.44226
+##$SFO1= 110.73599244226
+##$SW= 150
+##$SW_h= 16610.398866339
+##$TD= 256
+##END=
