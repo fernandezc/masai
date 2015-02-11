@@ -20,4 +20,4 @@ pwd
 
 # commit
 git add .
-git commit -a -m "Test passed"
+git commit -a -m "Test passed / updated tutorials"
