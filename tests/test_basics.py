@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # ===============================================================================
-# masai
+# masai.tests.test_basics.py
 # ===============================================================================
 # Copyright (C) 2015 Christian Fernandez
 # Laboratoire Catalyse et Spectrochimie, Caen, France.

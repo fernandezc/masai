@@ -20,7 +20,6 @@ import os
 
 from masai.api import Bruker, Process, Fit
 
-
 def read_fid(DATADIR, name, expno):
     path = os.path.join(DATADIR, 'user', 'nmr', name, str(expno))
     source = Bruker(path)
