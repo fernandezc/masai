@@ -129,6 +129,8 @@ class Plot1d(HasTraits):
             name of the file to save the figure
         savefig: Bool,
             save the fig if savename is defined, should be executed after all other commands
+        vshift: float, optional
+            vertically shift the line from its baseline
         """
 
         multiplots = False
@@ -182,8 +184,10 @@ class Plot1d(HasTraits):
         # data
         x = data.columns.values
 
+        vshift = kargs.get('vshift', 0.0)
+
         # plot the source data
-        line, = axe.plot(x, spec.T)
+        line, = axe.plot(x, spec.T+vshift)
 
         # attribute
         c = kargs.get('color', kargs.get('c'))
