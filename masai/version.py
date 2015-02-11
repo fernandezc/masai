@@ -22,9 +22,9 @@ from __future__ import print_function, division
 import os
 import commands  #TODO: may be we could use Fabric
 
-from enthought.preferences.api import Preferences
-
-
+from masai.core.utils.preferences import Preferences
+#TODO: this replace the apptools version while the deprecation warning is still here
+#TODO: make a pull request to apptools
 
 #===============================================================================
 # Constants
