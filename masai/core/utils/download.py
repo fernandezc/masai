@@ -130,7 +130,7 @@ class Spectrometer(HasTraits):
             p = os.path.join(self.local, path,item)
             if not os.path.exists(p):
                 f= os.path.join(path, item)
-                print("%s does not exist -> download."%item)
+                print("%s does not exist -> download."%f)
                 self.session.ssh("rm tempo.tar.gz; tar cvzf tempo.tar.gz -X exclude.txt '%s'"%(f.strip()))
                 self.session.scp(self.local,"from","tempo.tar.gz")
                 try:
