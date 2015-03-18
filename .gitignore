@@ -8,29 +8,23 @@ org.eclipse.core.resources.prefs
 *.pyx
 *.pyc
 *.egg-info/
-Untitled0.ipynb
 
 # masai
-
 masai.egg-info
 data/
 sandbox/
 biblio
 
 # images
-
 *.png
-*.jpg
 *.eps
 
 # OS junk files
-
 [Tt]humbs.db
 *.DS_Store
 .DS_Store
 
 #Bruker files
-
 1i
 1r
 2rr
