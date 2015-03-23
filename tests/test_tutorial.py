@@ -18,6 +18,7 @@ Here we use runipy to generate all output from the tutorial notebooks
 and may be detect exceptions
 """
 from __future__ import print_function
+
 import unittest
 import os
 

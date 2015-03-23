@@ -48,6 +48,8 @@ __plugin_main__ = 'Pca'
 # ===================================================================================
 @provides(IPlugin)
 class Pca(HasTraits):
+    """ PCA (type: analyses), PCA analysis of a series of spectra.
+    """
     # minimal plugin attribute -----------------------------------------------------
     description = Str("Pca (type: analyses), PCA analysis of a series of spectra.")
     type = Str("Pca")

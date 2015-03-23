@@ -25,11 +25,10 @@ import sys
 import tarfile
 
 from traits.api import (HasTraits, Directory, Instance, Str, Dict)
-from traits.etsconfig.api import ETSConfig
 
-from .ssh import SSHSession
+from core.download.ssh import SSHSession
+from core.utils.preferences import Preferences
 
-from .preferences import Preferences
 preferences = Preferences(filename=os.path.join(os.path.expanduser('~'), '.masai','masai.ini'))
 
 class Spectrometer(HasTraits):

@@ -33,8 +33,8 @@ from warnings import warn
 
 import numpy as np
 
-from . import fileiobase
-from ..process import proc_base
+from masai.plugins.sources.bruker import fileiobase
+from masai.core.process import proc_base
 
 
 # data creation

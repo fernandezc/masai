@@ -1,5 +1,7 @@
-from setuptools import setup 
+from setuptools import setup
+
 from masai.version import get_version
+
 
 setup(
     name='masai',

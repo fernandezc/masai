@@ -1,46 +1,68 @@
 # -*- coding: utf-8 -*-
-#
-# ===============================================================================
-# masai.core.source.source
-# ===============================================================================
-# Copyright (C) 2015 Christian Fernandez
-# Laboratoire Catalyse et Spectrochimie, Caen, France.
-# christian.fernandez@ensicaen.fr
-# This software is governed by the CeCILL-B license under French law
-# and abiding by the rules of distribution of free software.
-# You can  use, modify and/ or redistribute the software under
-# the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
-# at the following URL "http://www.cecill.info".
-# See Licence.txt in the main masai source directory
-# ===============================================================================
 
 """
 Define basic source functionalities
+
 """
 
-# Imports
+# Copyright (c) C. Fernandez' group @ LCS.
+# Distributed under the terms of the CeCILL-B License.
 
-# python modules imports
 from __future__ import print_function
+
+# -----------------------------------------------------------------------------
+# Globals
+# -----------------------------------------------------------------------------
+
+# stdlib
 import sys
 
-# third-party libraries imports
+# third-party
 import pandas as pd
-from traits.api import *
+from traits.api import HasTraits, Property, Instance, List, Str, Either
 
-# local import
+# -----------------------------------------------------------------------------
+# Local utilities and constants
+# -----------------------------------------------------------------------------
 from masai.core.utils.misc import position2index
 
+# constants
+DEBUG = True
 
-# =======================
+
+#
+# Source class definition
+#
 class Source(HasTraits):
     """
-    Source class
+    Abstract Source class
 
     """
 
     description = Str
     type = Str
+
+    data_orig = Property
+    _data_orig = Instance(pd.DataFrame)
+
+    data = Property(depends_on='data_orig')
+    _data = Instance(pd.DataFrame)
+
+    real = Property
+
+    imag = Property
+
+    ndims = Property
+    is_2d = Property
+
+    is_3d = Property
+
+    units = Property  # units of the elements
+    _units = Either(Str(), None)
+    xunits = Property
+    _xunits = Either(Str(), None)
+    yunits = Property
+    _yunits = Either(Str(), None)
 
     modeldata = Instance(pd.DataFrame)
 
@@ -117,21 +139,28 @@ class Source(HasTraits):
                [data.columns[0], data.columns[-1]])[axis]
         return lim
 
+    # -------------------------------------
+    def position2index(self, pos, axis=-1):
+        if axis == 0:
+            a = self.data.index
+        else:
+            a = self.data.columns
+
+        x0, x1 = a[0], a[-1]
+        if x0 < x1:
+            return a[a <= pos].size - 1
+        else:
+            return a[a >= pos].size - 1
+
     # *******************************************************************************
     # Properties
     # *******************************************************************************
 
     # Data origin (as read by the __init__ function): Read only --------------------
-    data_orig = Property
-    _data_orig = Instance(pd.DataFrame)
-
     def _get_data_orig(self):
         return self._data_orig.copy()
 
     # data output ------------------------------------------------------------------
-    data = Property(depends_on='data_orig')
-    _data = Instance(pd.DataFrame)
-
     def _get_data(self):
         if self._data is None:
             return self._data_orig
@@ -145,8 +174,6 @@ class Source(HasTraits):
             self._data = self._make_dataframe(value)
 
     # Real data -----------------------------------------------------------------------
-    real = Property
-
     def _get_real(self):
         return self.get_real()
 
@@ -157,8 +184,6 @@ class Source(HasTraits):
         return pd.DataFrame(r, y, x)
 
     # Imag data -----------------------------------------------------------------------
-    imag = Property
-
     def _get_imag(self):
         return self.get_imag()
 
@@ -169,8 +194,6 @@ class Source(HasTraits):
         return pd.DataFrame(j, y, x)
 
     # ndims
-    ndims = Property
-
     def _get_ndims(self):
         ndims = 1
         if self.is_2d:
@@ -180,8 +203,6 @@ class Source(HasTraits):
         return ndims
 
     # is 2d -----------------------------------------------------------------------
-    is_2d = Property
-
     def _get_is_2d(self):
         """
         property getter: Check if the data are 2D or not
@@ -193,8 +214,6 @@ class Source(HasTraits):
             return False
 
     # is 3d ------------------------------------------------------------------------
-    is_3d = Property
-
     def _get_is_3d(self):
         """
         property getter: Check if the data are 2D or not
@@ -204,19 +223,6 @@ class Source(HasTraits):
         else:
             print('No data')
             return False
-
-    # -------------------------------------
-    def position2index(self, pos, axis=-1):
-        if axis == 0:
-            a = self.data.index
-        else:
-            a = self.data.columns
-
-        x0, x1 = a[0], a[-1]
-        if x0 < x1:
-            return a[a <= pos].size - 1
-        else:
-            return a[a >= pos].size - 1
 
     # *******************************************************************************
     # Private functions
@@ -268,7 +274,7 @@ class Source(HasTraits):
             w2 = int(width / 2)
             lb = max(index - w2, 0)
             ub = min(lb + width, x.size - 1)
-            ub = ub - width
+            ub -= width
             if width != 0:
                 txt3 = ' from index %d to %d' % (lb, ub)
             else:

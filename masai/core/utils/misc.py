@@ -122,3 +122,25 @@ if __name__ == '__main__':
     html = htmldoc(text)
     print(html)
 
+def is_sequence(arg):
+    return (not hasattr(arg, "strip") and
+            hasattr(arg, "__getitem__") or
+            hasattr(arg, "__iter__"))
+
+def srepr(arg):
+    if is_sequence(arg):
+        return '<' + ", ".join(srepr(x) for x in arg) + '>'
+    return repr(arg)
+
+
+def makestr(l):
+    """
+    make a string from a list of string
+    """
+
+    if is_sequence(l):
+        l = " ".join(map(str,l))
+    l = l.replace('$','')
+    l = l.replace(' ','\ ')
+    l = r'$%s$' % l
+    return l

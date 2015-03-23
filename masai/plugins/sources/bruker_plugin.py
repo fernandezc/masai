@@ -1,52 +1,52 @@
 # -*- coding: utf-8 -*-
-#
-# ===============================================================================
-# masai.plugins.sources.bruker_plugin
-# ===============================================================================
-# Copyright (C) 2015 Christian Fernandez
-# Laboratoire Catalyse et Spectrochimie, Caen, France.
-# christian.fernandez@ensicaen.
-# This software is governed by the CeCILL-B license under French law
-# and abiding by the rules of distribution of free software.
-# You can  use, modify and/ or redistribute the software under
-# the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA
-# at the following URL "http://www.cecill.info".
-# See Licence.txt in the main masai source directory
-# ===============================================================================
 
 """
 Define Bruker plugin functionalities
+
 """
+
+# Copyright (c) C. Fernandez' group @ LCS.
+# Distributed under the terms of the CeCILL-B License.
 
 from __future__ import print_function
 
-# ===============================================================================
-# Imports
-# ===============================================================================
+# -----------------------------------------------------------------------------
+# Globals
+# -----------------------------------------------------------------------------
+
+# stdlib
 import os
+import sys
 import glob
+import warnings
 
-import logging
-
-logging.getLogger()
-
-from warnings import warn, filterwarnings
-
-filterwarnings("ignore")
-
+# third-party
 import pandas as pd
 import numpy as np
 import addict
 from traits.api import *
-from masai.core.source import (Source, unit_conversion, read,
-                               read_pdata, bruker_dsp_table)
-from masai.plugins import IPlugin
-from masai.core.database import Isotopes
-
 import traits.has_traits
 
-traits.has_traits.CHECK_INTERFACES = 2
+# -----------------------------------------------------------------------------
+# Local utilities and constants
+# -----------------------------------------------------------------------------
+
+from masai.core.source import Source
+from masai.core.database import Isotopes
 from masai.core.utils import htmldoc
+
+from masai.plugins.sources.bruker import (unit_conversion, read,
+                               read_pdata, bruker_dsp_table)
+from masai.plugins import IPlugin
+
+# constants
+DEBUG = True
+traits.has_traits.CHECK_INTERFACES = 2
+
+# settings
+warnings.simplefilter("ignore", DeprecationWarning)
+warnings.simplefilter("ignore", FutureWarning)
+
 
 # ===============================================================================
 # Plugin signature
@@ -301,7 +301,7 @@ class Bruker(Source):
                 datatype = 'SER'
             else:
                 if not processed:
-                    warn('No binary fid or ser found in %s.\nTry processed files...' % path)
+                    print('No binary fid or ser found in %s.\nTry processed files...' % path, file=sys.stderr)
                     processed = True
 
             if os.path.isfile(os.path.join(path, 'pdata', procno, '1r')):
@@ -317,7 +317,7 @@ class Bruker(Source):
                 if not datatype:
                     raise IOError("No Bruker binary file could be found in %s" % path)
                 elif processed:
-                    logging.warn("No processed Bruker binary file could be found in %s. Use fid's." % path)
+                    print("No processed Bruker binary file could be found in %s. Use fid's." % path, file=sys.stderr)
 
             npath, par_files = _get_par_files(path, procno,
                                               processed)  # we read all parameters file whatever the datatype
@@ -751,10 +751,3 @@ class Bruker(Source):
                     self.par2.label = r'$\mathrm{\delta\,(%s)}$' % self.par.units
 
         return
-
-
-if __name__ == '__main__':
-    pass
-    source = Bruker("/Users/christian/Dropbox/PycharmProjects/noesy/user/nmr/150130/12")
-    print(source)
-# eof --------------------------------------------------------------------------
