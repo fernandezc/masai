@@ -186,11 +186,13 @@ class Bruker(Source):
             del self.par2
 
         path = ''
+
         # noinspection PyUnusedLocal
         expnos = False
         data_dir = kargs.get('data_dir', '')
         user = kargs.get('user', '')
         name = kargs.get('name', '')
+
         # reading single expno
         expno = kargs.get('expno', None)
 
@@ -213,6 +215,7 @@ class Bruker(Source):
                 path = os.path.join(str(data_dir), str(user), 'nmr', str(name))
 
         if not os.path.exists(path):
+            print('Non existent path: ', path)
             # nothing else to try
             return
             # raise Exception('a valid path to an existing file is needed in the arguments')
@@ -434,7 +437,7 @@ class Bruker(Source):
                         adic.par3.units = 'ppm'
                         adic.par2.isfreq = True
 
-            # normalised amplitudes to ns=1K and rg=1
+            # normalised amplitudes to ns=1 and rg=1
             def _norm(dat):
                 fac = float(adic.par.NS) * float(adic.par.RG)
                 dat /= fac
@@ -485,7 +488,8 @@ class Bruker(Source):
             # try to make a pseudo 2D.
             data = pd.concat(ldata)
             if data.shape[-1] != nc:
-                logging.warn('series of spectra not compatibles (scale different)')
+                print('series of spectra not compatibles (scale different)',
+                      file=sys.stderr)
 
             # set the index using the provided list of varpar
             # or just take the dates
@@ -517,7 +521,7 @@ class Bruker(Source):
             self.norm = maxi
             return dat
 
-        data = _globnorm(data)
+        #data = _globnorm(data)
 
         # store it as data_orig
         # we use the hidden properties because the associated properties is read_only
@@ -751,3 +755,20 @@ class Bruker(Source):
                     self.par2.label = r'$\mathrm{\delta\,(%s)}$' % self.par.units
 
         return
+
+if __name__ == '__main__':
+
+    from masai.api import *
+    DATADIR = '/Users/christian/Dropbox/storage/bruker/data'
+    FIGDIR = 'figures' # this directory should exist in the current directory, however
+    name = 'RUB-17-2015'
+    user = 'anaP'
+    expno = 1
+    s = []
+    for expno in [1,2,3]:
+        s.append(Bruker(data_dir=DATADIR, user=user, name=name, expno=expno))
+        print(s[-1].par.NS, s[-1].par.RG, s[-1].par.norm)
+
+        #Process(s[-1],
+        #        transform='em 1; zf 3; ft; cl -105 -75; pk 337.167 1.938; ab --mode poly')
+        print(np.abs(np.amax(s[-1].data.values)))
