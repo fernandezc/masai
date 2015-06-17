@@ -12,12 +12,12 @@ py.test -x
 
 # go to the tutorial directry and test ipynb
 #cd ~/Dropbox/PycharmProjects/masai/doc/tutorial
-#python test_tutorial.py
+#python test_tutorial.pyold
 
 # return to masai directory
 cd ~/Dropbox/PycharmProjects/masai
 pwd
 
 # commit
-git add .
-git commit -a -m "Test passed / updated tutorials"
+#git add .
+#git commit -a -m "Test passed / updated tutorials"
