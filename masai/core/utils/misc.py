@@ -44,6 +44,7 @@ def position2index(data, pos):
         a = data.columns
     else:
         a = data
+
     if a[0] < a[-1]:
         id = a[a <= pos].size
     else:

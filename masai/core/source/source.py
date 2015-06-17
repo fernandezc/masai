@@ -2,6 +2,8 @@
 
 """
 Define basic source functionalities
+This is a container for the spectroscopic data or other,
+and the associated parameters
 
 """
 
@@ -16,6 +18,7 @@ from __future__ import print_function
 
 # stdlib
 import sys
+import copy
 
 # third-party
 import pandas as pd
@@ -25,13 +28,14 @@ from traits.api import HasTraits, Property, Instance, List, Str, Either
 # Local utilities and constants
 # -----------------------------------------------------------------------------
 from masai.core.utils.misc import position2index, is_sequence
+
 # constants
 DEBUG = True
 
 
-#
+# =============================================================================
 # Source class definition
-#
+# =============================================================================
 class Source(HasTraits):
     """
     Abstract Source class
@@ -58,8 +62,6 @@ class Source(HasTraits):
 
     is_3d = Property
 
-    units = Property  # units of the elements
-    _units = Either(Str(), None)
     xunits = Property
     _xunits = Either(Str(), None)
     yunits = Property
@@ -71,10 +73,14 @@ class Source(HasTraits):
 
     # generic attibutes to easy access to coordinates
     X = Property
-    Y = Property # for 2D data
-    #Z = Property # for 3D data (max for the moment)
+    Y = Property  # for 2D data
+    Z = Property  # for 3D data (max for the moment)
 
     loc = Property
+
+    # *************************************************************************
+    # public functions
+    # *************************************************************************
 
     # deprecated function
     def row(self, *args, **kargs):
@@ -139,33 +145,93 @@ class Source(HasTraits):
         return self._getsection(value, axis=0, byindex=byindex, width=width)
 
     def get_limits(self, axis=-1):
+        """
+        Get the data limits
+
+        Parameters
+        ----------
+        axis: Int, default=-1
+            The axis where to get the limits
+
+        Returns
+        -------
+        limits: Tuple
+            A tuple with min and max limits
+        """
         data = self.data
-        lim = ([data.index[0], data.index[-1]],
-               [data.columns[0], data.columns[-1]])[axis]
+        lim = \
+        ([data.index[0], data.index[-1]], [data.columns[0], data.columns[-1]])[
+            axis]
         return lim
 
-    # -------------------------------------
-    #def position2index(self, pos, axis=-1):
-    #    if axis == 0:
-    #        a = self.data.index
-    #    else:
-    #        a = self.data.columns
-    #
-    #    x0, x1 = a[0], a[-1]
-    #    if x0 < x1:
-    #        return a[a <= pos].size - 1
-    #    else:
-    #        return a[a >= pos].size - 1
+    def get_index(self, pos, axis=-1):
+        """
+        Get the index of data from a data position
 
-    # *******************************************************************************
-    # Properties
-    # *******************************************************************************
+        Parameters
+        ----------
+        pos: Float,
+            The position in data units
+        axis: Int, default=-1
+            The axis where to select the position
 
-    # Data origin (as read by the __init__ function): Read only --------------------
+        Returns
+        -------
+            index: Int,
+                The index corresponding to the position
+        """
+        if axis == 0:
+            a = self.data.T
+        else:
+            a = self.data
+        return position2index(a, pos)
+
+    def get_imag(self):
+        """
+        Get imaginary data
+
+        Returns
+        -------
+            imag: DataFrame
+                The imaginary part of the data
+
+        Notes
+        -----
+        Can be advantageously replaced by the corresponding property: imag
+
+        """
+        j = self.data.values.imag
+        x = self.data.columns
+        y = self.data.index
+        return pd.DataFrame(j, y, x)
+
+    def get_real(self):
+        """
+        Get real data
+
+        Returns
+        -------
+            real: DataFrame
+                The imaginary part of the data
+
+        Notes
+        -----
+        Can be advantageously replaced by the corresponding property: real
+
+        """
+        r = self.data.values.real
+        x = self.data.columns
+        y = self.data.index
+        return pd.DataFrame(r, y, x)
+
+
+    # *************************************************************************
+    # Properties getter and setter
+    # *************************************************************************
+
     def _get_data_orig(self):
         return self._data_orig.copy()
 
-    # data output ------------------------------------------------------------------
     def _get_data(self):
         if self._data is None:
             return self._data_orig
@@ -178,27 +244,18 @@ class Source(HasTraits):
             # noinspection PyArgumentList
             self._data = self._make_dataframe(value)
 
-    # Real data -----------------------------------------------------------------------
     def _get_real(self):
+        """
+        property getter: return the imaginary part of the original data
+        """
         return self.get_real()
 
-    def get_real(self):
-        r = self.data.values.real
-        x = self.data.columns
-        y = self.data.index
-        return pd.DataFrame(r, y, x)
-
-    # Imag data -----------------------------------------------------------------------
     def _get_imag(self):
+        """
+        property getter: return the imaginary part of the original data
+        """
         return self.get_imag()
 
-    def get_imag(self):
-        j = self.data.values.imag
-        x = self.data.columns
-        y = self.data.index
-        return pd.DataFrame(j, y, x)
-
-    # ndims
     def _get_ndims(self):
         ndims = 1
         if self.is_2d:
@@ -207,7 +264,6 @@ class Source(HasTraits):
             ndims = 3
         return ndims
 
-    # is 2d -----------------------------------------------------------------------
     def _get_is_2d(self):
         """
         property getter: Check if the data are 2D or not
@@ -218,7 +274,6 @@ class Source(HasTraits):
             print('No data')
             return False
 
-    # is 3d ------------------------------------------------------------------------
     def _get_is_3d(self):
         """
         property getter: Check if the data are 2D or not
@@ -229,15 +284,7 @@ class Source(HasTraits):
             print('No data')
             return False
 
-    def _get_units(self):
-        if not self._units:
-            self._units = 'unitless'
-        return self._units
-
-    def _set_units(self, val):
-        self._units = val
-
-    def _get_units(self):
+    def _get_xunits(self):
         if not self._xunits:
             self._xunits = 'a.u.'
         return self._xunits
@@ -254,15 +301,14 @@ class Source(HasTraits):
         self._yunits = val
 
     def _get_X(self):
-        return self.coords[self.dims[-1]]
+        return self.data.columns
 
     def _get_Y(self):
-        if self.ndim>2:
-            return self.coords[self.dims[-2]]
+        return self.data.index
 
-    #def _get_Z(self):
-    #    if self.ndim==3:
-    #        return self.coords[self.dims[-3]]
+    def _get_Z(self):
+        pass
+        # not implemented
 
     def _get_loc(self):
         """Attribute for location based indexing like pandas.
@@ -270,16 +316,16 @@ class Source(HasTraits):
         return _LocIndexer(self)
 
     def _get_dims(self):
-        dims= ['X','Y']
+        dims = ['X', 'Y']
         if self.ndims == 1:
             dims = ['X']
         return dims
 
-    # *******************************************************************************
+    # *************************************************************************
     # Private functions
-    # *******************************************************************************
+    # *************************************************************************
 
-    # -------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _getsection(self, index, **kargs):
         """
         Extract a section by ppm (or Hz) position or by index
@@ -340,27 +386,24 @@ class Source(HasTraits):
 
         return pd.DataFrame(section, index=y).T
 
-    def __getitem__(self, key):
-        """Access coordinates or slice of data."""
-        if key in self.dims:
-            return self.coords[key]
-        elif isinstance(key, basestring):
-            print("Error: the key '%s' doesn't exist" % key,
-                  file=sys.stderr)
-            return
+    def copy(self, deepcopy=True):
+
+        if not deepcopy:
+            return copy.copy(self)  # shallow copy
         else:
-            # probably a slicing
-            d = self._get_slice_by_index(key)
-            if d.size < 2:
-                # scalar
-                return d.data
-            d.name = self.name + '%d' % newid.next()
-            return d
+            return copy.deepcopy(self)  # deep (recursive) copy
+
+    def __getitem__(self, key):
+        """
+        Access slice of data.
+        """
+        d = self._get_slice_by_index(key)
+        return d
 
     def __setitem__(self, key, value):
         """Add an array to this dataset."""
-        if key in self.dims:
-            self.coords.__setitem__(key, value)
+        pass
+        # TODO
 
     def __delitem__(self, key):
         """Remove a variable from this dataset."""
@@ -370,9 +413,11 @@ class Source(HasTraits):
 
         keys = [slice(None, None, None) for axis in self.dims]
 
-        if not is_sequence(inputkey):  # not isinstance(key, tuple) and not isinstance(key, list):
+        if not is_sequence(
+                inputkey):  # not isinstance(key, tuple) and not isinstance(
+            # key, list):
             # by default will use a tuple
-            inputkey = (inputkey, )
+            inputkey = (inputkey,)
 
         for i, item in enumerate(inputkey):
             if isinstance(item, slice):
@@ -380,37 +425,33 @@ class Source(HasTraits):
             else:
                 keys[i] = slice(item, item + 1, None)
 
+        # just a correction
+        # remember that 1D data are also represented by a 2D array with only
+        # one row!
+        if self.ndims == 1:
+            keys = slice(0, 1, None), keys[0]
+
         # slice the data
-        newdata = self.data[keys]
 
-        # act on several coordinates
-        newcoords = {}
-        newdims= []
-        for k in sorted(self.coords.keys()):
-            c = self.coords[k].copy()
-            newcoords[k] = c
-        for i, item in enumerate(keys):
-            c = self.coords[self.dims[i]].copy()
-            newcoords[self.dims[i]].data = c.data[item]  # slice it
+        newdata = self.data.iloc[keys]
 
-        #preparer to the squeezing (number of dimension should be in agreement)
-        for i, n in enumerate(newdata.shape):
-            if n>1:
-                newdims.append(self.dims[i])
-            else:
-                del newcoords[self.dims[i]]
+        # create a new source with the new data
+        newsource = self.copy()
 
-        return DataArray(newdata, dims=newdims, coords=newcoords, units=self.units, attrs=self.attrs)
+        newsource._data_orig = newdata
+        newsource.data = newdata
+
+        return newsource
 
     def __getattr__(self, item):
         """ The item attribute was not found look for it in attrs
         """
         res = self.attrs.get(item, None)
-       # if not res:
-       #     # look coordinates
-       #     res = [getattr(self[k], item) for k in self.dims]
-       #     if len(res) == 1:
-       #         res = res[0]
+        # if not res:
+        #     # look coordinates
+        #     res = [getattr(self[k], item) for k in self.dims]
+        #     if len(res) == 1:
+        #         res = res[0]
         return res
 
 
@@ -422,17 +463,17 @@ class _LocIndexer(object):
 
         self.data = data
 
-
     def loc2index(self, loc, axis=-1):
 
         # we determine the axe from the dim key
-        if axis==-1 and self.data.is_2d:
+        if axis == -1 and self.data.is_2d:
             axe = self.data.data.columns
         else:
-            axe=self.data.data.index
+            axe = self.data.data.index
 
         # if axe is a quantity but not the loc,
-        # we need to work on the magnitude to assuming the index are in the units
+        # we need to work on the magnitude to assuming the index are in the
+        # units
         x0, x1 = axe[0], axe[-1]
         if x0 < x1:
             return axe[axe <= loc].size
@@ -440,7 +481,8 @@ class _LocIndexer(object):
             return axe[axe >= loc].size - 1
 
     def select(self, key):
-        """ Here we need to transform from a slice made with location arguments, to a positional slice that
+        """ Here we need to transform from a slice made with location
+        arguments, to a positional slice that
         can be used by a numpy.array
 
         """
@@ -480,7 +522,8 @@ class _LocIndexer(object):
 
             return slices
 
-        # we need to have a list of slice for each argument or a single slice acting on the axis=0
+        # we need to have a list of slice for each argument or a single slice
+        #  acting on the axis=0
         # the given key can be a single argument or a single slice:
 
         slices = [slice(None, None, None) for axis in self.data.dims]
@@ -498,7 +541,8 @@ class _LocIndexer(object):
 
             else:
                 # it's a slice (the labelled dimension can be in start argument
-                if not isinstance(key.start, basestring): #key.start not in self.data.dims:
+                if not isinstance(key.start, basestring):  # key.start not in
+                    #  self.data.dims:
                     # a classical slice
                     slices[axis] = _get_slice(key, axis)
                 else:
@@ -515,15 +559,16 @@ class _LocIndexer(object):
 
     def __getitem__(self, key):
         newkey = self.select(key)
-        if len(newkey)==1:
+        if len(newkey) == 1:
             return self.data.data.iloc[newkey[0]]
         else:
-            return self.data.data.iloc[newkey[0],newkey[1]]
+            return self.data.data.iloc[newkey[0], newkey[1]]
 
     def __setitem__(self, key, value):
         newkey = self.select(key)
         self.data.data.iloc[newkey] = value
         # TODO: check if shape has changed
+
 
 if __name__ == '__main__':
     pass

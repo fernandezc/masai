@@ -34,8 +34,8 @@ from masai.core.source import Source
 from masai.core.database import Isotopes
 from masai.core.utils import htmldoc, addict
 
-from masai.plugins.sources.bruker import (unit_conversion, read,
-                               read_pdata, bruker_dsp_table)
+from masai.plugins.sources.bruker import (unit_conversion, read, read_pdata,
+                                          bruker_dsp_table)
 from masai.plugins import IPlugin
 
 # constants
@@ -55,8 +55,8 @@ __plugin_main__ = 'Bruker'
 # ===============================================================================
 # Constant
 # ===============================================================================
-FnMODE = ["undefined", "QF", "QSEQ", "TPPI", "STATES",
-          "STATES-TPPI", "ECHO-ANTIECHO"]
+FnMODE = ["undefined", "QF", "QSEQ", "TPPI", "STATES", "STATES-TPPI",
+          "ECHO-ANTIECHO"]
 
 
 # ===================================================================================
@@ -64,11 +64,14 @@ FnMODE = ["undefined", "QF", "QSEQ", "TPPI", "STATES",
 # ===================================================================================
 @provides(IPlugin)
 class Bruker(Source):
-    # minimal plugin attribute -----------------------------------------------------
-    description = Str("Bruker (type: source), return a source from a Bruker path.")
+    # minimal plugin attribute
+    # -----------------------------------------------------
+    description = Str(
+        "Bruker (type: source), return a source from a Bruker path.")
     type = Str("source")
 
-    # specific attributes ----------------------------------------------------------
+    # specific attributes
+    # ----------------------------------------------------------
 
     par = Instance(addict.Dict)
     par2 = Instance(addict.Dict)
@@ -83,7 +86,8 @@ class Bruker(Source):
     # ------------------------------------
     def get_multiplicator(self, axis=-1):
         """
-        Compute a unit multiplicator depending on the unit string, i.e. 'ms'--> 1.e3
+        Compute a unit multiplicator depending on the unit string,
+        i.e. 'ms'--> 1.e3
         """
         if axis == -1:
             par = self.par
@@ -103,12 +107,12 @@ class Bruker(Source):
             print('unknown unit scale')
             return 1.
 
-
     # *******************************************************************************
     # Properties
     # *******************************************************************************
 
-    # Spin --------------------------------------------------------------------------
+    # Spin
+    # --------------------------------------------------------------------------
     def get_spin(self, axis=-1):
         if self.is_2d:
             nucleus = [self.par2.NUC2, self.par.NUC1][axis]
@@ -116,7 +120,8 @@ class Bruker(Source):
             nucleus = self.par.NUC1
         return Isotopes(nucleus).spin
 
-    # is 2d -----------------------------------------------------------------------
+    # is 2d
+    # -----------------------------------------------------------------------
     is_2d = Property
 
     def _get_is_2d(self):
@@ -124,14 +129,16 @@ class Bruker(Source):
         property getter: Check if the data are 2D or not
         """
         if self._data_orig is not None:
-            return len(self._data_orig.shape) == 2 and self._data_orig.shape[-2] > 1
+            return len(self._data_orig.shape) == 2 and self._data_orig.shape[
+                                                           -2] > 1
         else:
             # check parmode parameters
             if self.par.PARMODE == 1:
                 return True
         return False
 
-    # is 3d ------------------------------------------------------------------------
+    # is 3d
+    # ------------------------------------------------------------------------
     is_3d = Property
 
     def _get_is_3d(self):
@@ -176,7 +183,8 @@ class Bruker(Source):
 
         """
 
-        # As this routine is subject to several call we need to retore the initial state
+        # As this routine is subject to several call we need to retore the
+        # initial state
         if hasattr(self, 'par'):
             del self.par
             del self._data_orig
@@ -207,7 +215,8 @@ class Bruker(Source):
 
         if not os.path.exists(path):
             # look alternative definitions
-            path = os.path.join(str(data_dir), str(user), 'nmr', str(name), str(expno))
+            path = os.path.join(str(data_dir), str(user), 'nmr', str(name),
+                                str(expno))
 
         if not os.path.exists(path):
             # look multiple
@@ -219,7 +228,8 @@ class Bruker(Source):
             print('Non existent path: ', path)
             # nothing else to try
             return
-            # raise Exception('a valid path to an existing file is needed in the arguments')
+            # raise Exception('a valid path to an existing file is needed in
+            # the arguments')
 
         self._read(path, **kargs)
 
@@ -305,7 +315,10 @@ class Bruker(Source):
                 datatype = 'SER'
             else:
                 if not processed:
-                    print('No binary fid or ser found in %s.\nTry processed files...' % path, file=sys.stderr)
+                    print(
+                        'No binary fid or ser found in %s.\nTry processed '
+                        'files...' % path,
+                        file=sys.stderr)
                     processed = True
 
             if os.path.isfile(os.path.join(path, 'pdata', procno, '1r')):
@@ -319,12 +332,18 @@ class Bruker(Source):
                     datatype = '3D'
             else:
                 if not datatype:
-                    raise IOError("No Bruker binary file could be found in %s" % path)
+                    raise IOError(
+                        "No Bruker binary file could be found in %s" % path)
                 elif processed:
-                    print("No processed Bruker binary file could be found in %s. Use fid's." % path, file=sys.stderr)
+                    print(
+                        "No processed Bruker binary file could be found in "
+                        "%s. Use fid's." % path,
+                        file=sys.stderr)
 
             npath, par_files = _get_par_files(path, procno,
-                                              processed)  # we read all parameters file whatever the datatype
+                                              processed)  # we read all
+                                              # parameters file whatever the
+                                              # datatype
 
             if datatype in ['FID', 'SER']:
                 dic, data = read(npath, acqus_files=par_files)
@@ -344,9 +363,11 @@ class Bruker(Source):
                             print("Inconsistency between TD's and data size")
                             raise ValueError
 
-                #reduce to td
+                # reduce to td
                 ntd = dic['acqus']['TD'] / 2
-                data = data[..., :ntd]  # necessary for agreement with bruker data and phase
+                data = data[...,
+                       :ntd]  # necessary for agreement with bruker data and
+                       # phase
             else:
                 dic, data = read_pdata(npath, procs_files=par_files)
 
@@ -367,10 +388,12 @@ class Bruker(Source):
 
             # we now make some rearrangement of the dic
             # to have something more user friendly
-            # we assume that all experiments have similar (important) parameters so that the experiments are
+            # we assume that all experiments have similar (important)
+            # parameters so that the experiments are
             # compatibles
 
-            # but we keep the original dictionary for further reference if necessary
+            # but we keep the original dictionary for further reference if
+            # necessary
             adic.fulldic['exp_%d' % n] = dic
 
             for key, val in dic.iteritems():
@@ -412,7 +435,8 @@ class Bruker(Source):
                 adic.par2.isfreq = False
 
                 if not adic.par2.FnMODE:  # For historical reasons,
-                    # MC2 is interpreted when the acquisition status parameter FnMODE has the value undefined, i.e. 0
+                    # MC2 is interpreted when the acquisition status
+                    # parameter FnMODE has the value undefined, i.e. 0
                     adic.par2.FnMODE = int(adic.par2.MC2) + 1
                 adic.par2.encoding = FnMODE[adic.par2.FnMODE]
 
@@ -444,7 +468,9 @@ class Bruker(Source):
                 dat /= fac
                 return dat
 
-            data = np.conj(data * 1.0j)  # this transformation is to make data coherent with bruker processsing
+            data = np.conj(
+                data * 1.0j)  # this transformation is to make data coherent
+                # with bruker processsing
             data = _norm(data)
 
             # make attributes from dict
@@ -457,7 +483,7 @@ class Bruker(Source):
             # store temporarily
             ldata.append(data)
 
-            #store also the varpars of the series
+            # store also the varpars of the series
             varpars = kargs.get('varpars')
             if isinstance(varpars, str):
                 varpars = varpars.split()
@@ -465,7 +491,8 @@ class Bruker(Source):
                     # this should be one of the dic parameters
                     lvarpars.append(adic.par[varpars[0]])  # store the variable
                 elif len(varpars) == 2:
-                    lvarpars.append(adic.par[varpars[0]][int(varpars[1])])  # store the variable
+                    lvarpars.append(adic.par[varpars[0]][
+                                        int(varpars[1])])  # store the variable
                 ldates.append(adic.par.DATE)  # and the date
             elif isinstance(varpars, list):
                 # this should be a list of parameters
@@ -522,10 +549,11 @@ class Bruker(Source):
             self.norm = maxi
             return dat
 
-        #data = _globnorm(data)
+        # data = _globnorm(data)
 
         # store it as data_orig
-        # we use the hidden properties because the associated properties is read_only
+        # we use the hidden properties because the associated properties is
+        # read_only
         self._data_orig = data
 
     # --------------------------------------------------------------------------------------
@@ -561,7 +589,8 @@ class Bruker(Source):
                 df = pd.DataFrame({'0': s}).T
             else:
                 y = [0, ]
-                df = pd.DataFrame(data.astype(np.complex128), index=y, columns=x)
+                df = pd.DataFrame(data.astype(np.complex128), index=y,
+                                  columns=x)
 
         return df
 
@@ -654,8 +683,10 @@ class Bruker(Source):
 
         # fft
         si = data.shape[-1]
-        pdata = np.fft.fftshift(np.fft.fft(data, si, axis=-1), -1) / float(si / 2)
-        pdata = (pdata.T - pdata.T[0]).T  #TODO: this allow generally to remove Bruker smiles, not so sure actually
+        pdata = np.fft.fftshift(np.fft.fft(data, si, axis=-1), -1) / float(
+            si / 2)
+        pdata = (pdata.T - pdata.T[0]).T  # TODO: this allow generally to
+        # remove Bruker smiles, not so sure actually
 
         # Phasing
         si = float(pdata.shape[-1])
@@ -663,22 +694,23 @@ class Bruker(Source):
         pdata = pdata * np.exp(ph)
 
         # ifft
-        ndata = np.fft.ifft(np.fft.ifftshift(pdata, -1), si, axis=-1) * float(si / 2)
+        ndata = np.fft.ifft(np.fft.ifftshift(pdata, -1), si, axis=-1) * float(
+            si / 2)
 
         # remove last points * 2
         rp = 4 * (phase // 2)
 
-        #print("removed",rp)
+        # print("removed",rp)
 
-        ndata[..., -rp:]=0j
-
+        ndata[..., -rp:] = 0j
 
         return ndata
 
     # -------------------------------------------------------------------------------
     def __repr__(self):
         """
-        private function: Create a html representation of some data in the Source traits
+        private function: Create a html representation of some data in the
+        Source traits
 
         """
         if not self.par:
@@ -686,7 +718,8 @@ class Bruker(Source):
 
         txt = "***Bruker Source***\n"
         txt += "- path: %s\n" % self.path
-        txt += "- datatype: %dD NMR %s\n" % (self.par.PARMODE + 1, self.datatype)
+        txt += "- datatype: %dD NMR %s\n" % (
+        self.par.PARMODE + 1, self.datatype)
         txt += "- pulse program: %s\n" % self.par.PULPROG
         if self.is_2d:
             if self.datatype in ['SER']:
@@ -694,9 +727,11 @@ class Bruker(Source):
                 txt += "- TD1: %d, TD2: %d\n" % (self.par2.TD, self.par.TD)
             elif self.datatype in ['FIDSER']:
                 if not self.par.isfreq:
-                    txt += "- n: %d, TD: %d\n" % (self._data_orig.shape[0], self.par.TD)
+                    txt += "- n: %d, TD: %d\n" % (
+                    self._data_orig.shape[0], self.par.TD)
                 else:
-                    txt += "- n: %d, SI: %d\n" % (self._data_orig.shape[0], self.par.SI)
+                    txt += "- n: %d, SI: %d\n" % (
+                    self._data_orig.shape[0], self.par.SI)
             else:
                 txt += "- SI1: %d, SI2: %d\n" % (self.par2.SI, self.par.SI)
             txt += "- F1 limits: %.2f to %.3f" % tuple(self.get_limits(axis=0))
@@ -717,7 +752,8 @@ class Bruker(Source):
     # -------------------------------------------------------------------------------
     def _repr_html_(self):
         """
-        private function: Create a html representation of some data in the Source traits
+        private function: Create a html representation of some data in the
+        Source traits
 
         """
         if not self.par:
@@ -728,7 +764,6 @@ class Bruker(Source):
         txt = txt.replace('\n', '')
         txt = txt.replace('- ', '<li>')
         return txt
-
 
     # *******************************************************************************
     # Events
@@ -742,52 +777,84 @@ class Bruker(Source):
         elif '_data' in name:
             if new is None:
                 return
-            if name == '_data_orig':
-                self.history = ['Loaded %s' % self.datatype]
 
             # set labels
             if not self.par.isfreq:
                 self.par.units = 'ms'
                 self.par.label = r'$\mathrm{time\,(%s)}$' % self.par.units
+                self.par.TD = self.data.shape[-1]
             else:
                 self.par.units = 'ppm'
                 self.par.label = r'$\mathrm{\delta\,(%s)}$' % self.par.units
+                self.par.SI = self.data.shape[-1]
 
-            if self.is_2d or self.is_3d:
+            if self.is_2d:
                 if self.par2.units in ['us', 'ms', 's']:
                     self.par2.label = r'$\mathrm{time\,(%s)}$' % self.par.units
+                    self.par2.TD = self.data.shape[-1]
                 elif self.par2.units in ['hz', 'ppm']:
-                    self.par2.label = r'$\mathrm{\delta\,(%s)}$' % self.par.units
+                    self.par2.label = r'$\mathrm{\delta\,(%s)}$' % \
+                                      self.par.units
+                    self.par2.SI = self.data.shape[-1]
+
+            if self.is_3d:
+                pass
+                # not implemented yet
 
         return
+
 
 if __name__ == '__main__':
 
     from masai.api import *
-    #DATADIR = '/Users/christian/Dropbox/storage/bruker/data'
-    #name = 'RUB-17-2015'
-    #user = 'anaP'
+
+    DATADIR = os.path.join(os.path.expanduser('~'), 'Dropbox', 'storage',
+                           'bruker', 'data')
+
+    name = 'RUB-17-2015'
+    user = 'anaP'
 
 
-    #s=[]
-    #for expno in [60,62]:
+    # s=[]
+    # for expno in [60,62]:
     #    s.append(Bruker(data_dir=DATADIR, user=user, name=name, expno=expno))
     #    # print(s[-1].par.NS, s[-1].par.RG, s[-1].norm)
     #    #    Process(s[-1],
-    #    #        transform='em 1; zf 3; ft; cl -105 -75; pk 337.167 1.938 --auto; ab --mode poly')
+    #    #        transform='em 1; zf 3; ft; cl -105 -75; pk 337.167 1.938
+    # --auto; ab --mode poly')
     #    Process(s[-1],
-    #            transform='em 1; zf 3; ft; cl -160 -20; pk 337.167 1.938 --auto; ab --mode poly')
-    #p = Plot1d(s[0])#, xlim=(-75,-100))
+    #            transform='em 1; zf 3; ft; cl -160 -20; pk 337.167 1.938
+    # --auto; ab --mode poly')
+    # p = Plot1d(s[0])#, xlim=(-75,-100))
 
 
-    DATADIR = os.path.join(os.path.expanduser('~'),'Dropbox', 'storage', 'bruker', 'data')
-    user = 'BBO10mm'
-    name = 'UF'
+    # user = 'BBO10mm'
+    # name = 'UF'
 
     # load the ultrafast experiment 106
 
-    expno = 105
-    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
-    print(os.listdir(path))
-    data = Bruker(path, dgfilter=False)
-    p = Plot1d(data)
+    expno = 60
+
+    path = os.path.join(DATADIR, user, 'nmr', name, str(expno))
+    # print(os.listdir(path))
+    source = Bruker(path, dgfilter=False)
+    print(source)
+    # p = Plot1d(source, display=False)
+
+    print("index for pos: 5", source.get_index(5))
+
+
+    # test copy method
+    # s2 = source.copy()
+    Process(source, transform='ft')
+    print(source)
+
+    # Plot1d(s2, display=True)
+    # Plot1d(source, display=True)
+
+    sx = source[45:250]
+
+    Plot1d(sx, display=True)
+    # Plot1d(source, display=True)
+
+    print(sx)
