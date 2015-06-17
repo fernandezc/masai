@@ -78,7 +78,7 @@ class unit_conversion():
         """
         # fundamental units
         self._size = size
-        self._sizem = size - 1
+        self._sizem = max(size - 1, 1)
         self._cplx = cplx
         self._sw = sw
         self._obs = obs

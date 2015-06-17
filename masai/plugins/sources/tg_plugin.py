@@ -22,7 +22,6 @@ import warnings
 # third-party
 import pandas as pd
 import numpy as np
-import addict
 from traits.api import *
 import traits.has_traits
 
@@ -32,7 +31,7 @@ import traits.has_traits
 
 from masai.core.source import (Source)
 from masai.core.database import Isotopes
-from masai.core.utils import htmldoc, is_sequence
+from masai.core.utils import htmldoc, addict, is_sequence
 from masai.plugins import IPlugin
 
 # constants
@@ -160,7 +159,10 @@ if __name__ == '__main__':
     DATADIR = os.path.join(USERPATH, 'storage', 'agir', 'data')
 
     names = ['P350','A350', 'B350', 'P400', 'A400', 'B400']
-    sources = []
+    tgs = {}
     for name in names:
         path = os.path.join(DATADIR, name)
-        sources.append(Tg(path))
+        tgs[name] = Tg(path)
+
+    tga = tgs['P350'].loc[-5:30]
+    print(tga)

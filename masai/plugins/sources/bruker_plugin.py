@@ -23,7 +23,6 @@ import warnings
 # third-party
 import pandas as pd
 import numpy as np
-import addict
 from traits.api import *
 import traits.has_traits
 
@@ -33,7 +32,7 @@ import traits.has_traits
 
 from masai.core.source import Source
 from masai.core.database import Isotopes
-from masai.core.utils import htmldoc
+from masai.core.utils import htmldoc, addict
 
 from masai.plugins.sources.bruker import (unit_conversion, read,
                                read_pdata, bruker_dsp_table)
@@ -70,8 +69,6 @@ class Bruker(Source):
     type = Str("source")
 
     # specific attributes ----------------------------------------------------------
-
-    silent = Bool(True)
 
     par = Instance(addict.Dict)
     par2 = Instance(addict.Dict)
@@ -174,6 +171,8 @@ class Bruker(Source):
             should we load already bruker processed files
         procno: int
             processing number
+        silent: bool
+            should we output details
 
         """
 
@@ -192,6 +191,8 @@ class Bruker(Source):
         data_dir = kargs.get('data_dir', '')
         user = kargs.get('user', '')
         name = kargs.get('name', '')
+
+        self.silent = kargs.get('silent', False)
 
         # reading single expno
         expno = kargs.get('expno', None)
@@ -666,9 +667,13 @@ class Bruker(Source):
 
         # remove last points * 2
         rp = 4 * (phase // 2)
-        pdata = ndata[..., :-rp]
 
-        return pdata
+        print("removed",rp)
+
+        ndata[..., -rp:]=0j
+
+
+        return ndata
 
     # -------------------------------------------------------------------------------
     def __repr__(self):
@@ -731,7 +736,7 @@ class Bruker(Source):
     # -------------------------------------------------------------------------------
     def _anytrait_changed(self, name, old, new):
 
-        if 'history' in name:
+        if 'history' in name and not self.silent:
             print(self.history[-1])
 
         elif '_data' in name:
@@ -759,16 +764,30 @@ class Bruker(Source):
 if __name__ == '__main__':
 
     from masai.api import *
-    DATADIR = '/Users/christian/Dropbox/storage/bruker/data'
-    FIGDIR = 'figures' # this directory should exist in the current directory, however
-    name = 'RUB-17-2015'
-    user = 'anaP'
-    expno = 1
-    s = []
-    for expno in [1,2,3]:
-        s.append(Bruker(data_dir=DATADIR, user=user, name=name, expno=expno))
-        print(s[-1].par.NS, s[-1].par.RG, s[-1].par.norm)
+    #DATADIR = '/Users/christian/Dropbox/storage/bruker/data'
+    #name = 'RUB-17-2015'
+    #user = 'anaP'
 
-        #Process(s[-1],
-        #        transform='em 1; zf 3; ft; cl -105 -75; pk 337.167 1.938; ab --mode poly')
-        print(np.abs(np.amax(s[-1].data.values)))
+
+    #s=[]
+    #for expno in [60,62]:
+    #    s.append(Bruker(data_dir=DATADIR, user=user, name=name, expno=expno))
+    #    # print(s[-1].par.NS, s[-1].par.RG, s[-1].norm)
+    #    #    Process(s[-1],
+    #    #        transform='em 1; zf 3; ft; cl -105 -75; pk 337.167 1.938 --auto; ab --mode poly')
+    #    Process(s[-1],
+    #            transform='em 1; zf 3; ft; cl -160 -20; pk 337.167 1.938 --auto; ab --mode poly')
+    #p = Plot1d(s[0])#, xlim=(-75,-100))
+
+
+    DATADIR = os.path.join(os.path.expanduser('~'),'Dropbox', 'storage', 'bruker', 'data')
+    user = 'BBO10mm'
+    name = 'UF'
+
+    # load the ultrafast experiment 106
+
+    expno = 105
+    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
+    print(os.listdir(path))
+    data = Bruker(path, dgfilter=False)
+    p = Plot1d(data)

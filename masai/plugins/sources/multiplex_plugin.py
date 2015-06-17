@@ -35,7 +35,6 @@ filterwarnings("ignore")
 
 import pandas as pd
 import numpy as np
-import addict
 
 from traits.api import provides, Str
 
@@ -46,7 +45,7 @@ import traits.has_traits
 from masai.plugins import IPlugin
 
 traits.has_traits.CHECK_INTERFACES = 2
-from masai.core.utils import htmldoc
+from masai.core.utils import htmldoc, addict
 
 # ===============================================================================
 # Plugin signature

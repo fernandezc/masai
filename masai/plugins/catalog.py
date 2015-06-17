@@ -17,10 +17,8 @@ import os
 import glob
 import sys
 
-from addict import Dict as aDict
-
 __info__ = "plugin catalog"
-__pluginlist__ = aDict()
+__pluginlist__ = {}
 
 #===============================================================================
 # Load all plugins
@@ -37,9 +35,6 @@ def _loadPlugins():
     directory = os.path.join(os.path.dirname(masai.__file__), 'plugins')
 
     plugins = glob.glob(os.path.join(directory, "*", "*_plugin.py"))
-
-    dic = aDict()
-
     plugins.sort()
 
     for file in plugins:

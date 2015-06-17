@@ -157,7 +157,7 @@ def pc(source=None, options='', axis=-1):
 
 
 #
-# mc : magniyude calculation
+# mc : magnitude calculation
 #
 def mc(source=None, options='', axis=-1):
     pc(source, options='1', axis=axis)

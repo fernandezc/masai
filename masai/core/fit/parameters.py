@@ -40,7 +40,7 @@ from traits.api import (HasTraits, Str, Instance, on_trait_change,
 # local import
 #=============
 from masai.core.fit.models import list_of_models, list_of_baselines
-from masai.core.utils import DEnum
+#from masai.core.utils import DEnum
 #from masai.core.source import Source
 
 #=============
@@ -48,13 +48,13 @@ from masai.core.utils import DEnum
 #=============
 def _id_generator():
     """Returns a sequence of numbers for the title of the objects.
-    
+
     Example:
     --------
-    
+
     >>> id_generator.next()
     1
-    
+
     """
     n = 1
     while True:
@@ -95,7 +95,7 @@ class FitParameters(UserDict):
         if not self.reference.has_key(key):
             self.reference[key] = False
         if self.reference[key]:
-            # we get a reference to another parameter 
+            # we get a reference to another parameter
             self.data[key] = str(value)
             self.fixed[key] = True
         elif isinstance(value, tuple) or isinstance(value, list):
@@ -196,18 +196,18 @@ class FitParameters(UserDict):
     def _evaluate(self, strg):
         """
         Allow the evaluation of strings containing some operations
-        
+
         Parameters
         ----------
-        strg: string  
-            A string to evaluate containing multiplier, 
+        strg: string
+            A string to evaluate containing multiplier,
             e.g., '10 k' evaluate to 10 000.
-        
+
         Return
         ------
         value : float or bool
             Value of the string, or False, if there is an error
-        
+
         """
         res = False
 
@@ -362,7 +362,7 @@ class FitSteps(UserDict):
 class ParameterScript(HasTraits):
     """
     This class allow some manipulation of the parameter list for modelling
-    
+
     """
     from masai.plugins import IPlugin
 
@@ -372,10 +372,10 @@ class ParameterScript(HasTraits):
     script = Str('')
 
     _list_of_models = Property()
-    modeltype = DEnum(values_name='_list_of_models')
+#    modeltype = DEnum(values_name='_list_of_models')
 
     _list_of_baselines = Property()
-    basetype = DEnum(values_name='_list_of_baselines')
+#    basetype = DEnum(values_name='_list_of_baselines')
 
 
     #===========================================================================
@@ -416,7 +416,7 @@ class ParameterScript(HasTraits):
     #-----------------------------
     def _interpret(self, script):
         """
-        Interpreter of the script content 
+        Interpreter of the script content
         """
         # init some flags
         modlabel = None

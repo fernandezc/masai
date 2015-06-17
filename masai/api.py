@@ -22,6 +22,17 @@ from functools import partial
 # third-party
 from IPython.core.magic import (Magics, magics_class, line_magic, cell_magic, line_cell_magic)
 from IPython import get_ipython
+
+# setup backend for ipython
+ip = get_ipython()
+if ip:
+    # if were are running this under ipython
+    ip.magic(u'matplotlib nbagg')
+
+
+    #print("matplotlib and numpy namespaces are available under the name 'plt' and 'np' respectively")
+    #print("matplotlib currently uses the 'nbagg' backend. \n\tYou can change it using e.g., plt.switch_backend('qt4agg') or %matplotlib inline")
+
 from matplotlib import rcParams
 
 # -----------------------------------------------------------------------------
@@ -36,17 +47,6 @@ DEBUG = False
 # settings
 warnings.simplefilter("ignore", DeprecationWarning)
 warnings.simplefilter("ignore", FutureWarning)
-preferences = v.preferences
-version = v.get_version()
-
-# ipython
-ip = get_ipython()
-if ip:
-    # if were are running this under ipython
-    ip.magic(u'pylab --no-import-all nbagg')
-    print("matplotlib and numpy namespaces are available under the name 'plt' and 'np' respectively")
-    print("matplotlib currently uses the 'nbagg' backend. \n\tYou can change it using e.g., plt.switch_backend('qt4agg') or %matplotlib inline")
-
 preferences = v.preferences
 version = v.get_version()
 

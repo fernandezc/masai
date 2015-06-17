@@ -21,7 +21,8 @@ from __future__ import print_function, division
 #
 # Python imports
 #
-import pylab as pl
+import matplotlib.pyplot as pl
+
 from traits.api import (HasTraits, Bool, Str, Int, Any, provides)
 from pandas import DataFrame, Series
 from matplotlib.ticker import MaxNLocator
@@ -30,7 +31,7 @@ from matplotlib.ticker import MaxNLocator
 # other imports
 #
 from masai.plugins import IPlugin
-from masai.core.utils import htmldoc
+from masai.core.utils import htmldoc, is_sequence
 
 import traits.has_traits
 
@@ -138,7 +139,9 @@ class Plot1d(HasTraits):
         if args:
             # look in args
             source = args[0]
-            if isinstance(source, list):
+            if isinstance(source, DataFrame):
+                multiplots = False
+            elif is_sequence(source):
                 # we will draw subplots
                 multiplots = True
         else:
@@ -146,19 +149,40 @@ class Plot1d(HasTraits):
             return
 
         imag = kargs.get('imag', False)
-        if isinstance(source, DataFrame):
-            data = source
-        elif isinstance(source, Series):
-            # this routine needs DataFrame input, not Series
-            data = DataFrame(source).T
-        else:
-            data = source.data
-        spec = data.values.real if not imag else data.values.imag
+        specs = []
 
-        if (spec.ndim >= 2) & (spec.shape[0] > 1):
-            # not well suitable for this
-            print('Cannot plot a 2D source.\n Use Plot2d.')
-            return
+        if not multiplots:
+
+            if isinstance(source, DataFrame):
+                data = source
+
+            elif isinstance(source, Series):
+                # this routine needs DataFrame input, not Series
+                data = DataFrame(source).T
+
+            else:
+                data = source.data
+
+            spec = data.values.real if not imag else data.values.imag
+
+            if (spec.ndim >= 2) & (spec.shape[0] > 1):
+                # not well suitable for this
+                print('Cannot plot a 2D source.\n Use Plot2d.')
+                return
+            specs = [spec]
+
+        else:
+
+            for s in source:
+                if isinstance(s, DataFrame):
+                    data = s
+                elif isinstance(s, Series):
+                    # this routine needs DataFrame input, not Series
+                    data = DataFrame(s).T
+                else:
+                    data = s.data
+                spec = data.values.real if not imag else data.values.imag
+                specs.append(spec)
 
         # setup figure and axes
         figsize = kargs.get('figsize', (3.4, 1.7))
@@ -187,7 +211,8 @@ class Plot1d(HasTraits):
         vshift = kargs.get('vshift', 0.0)
 
         # plot the source data
-        line, = axe.plot(x, spec.T+vshift)
+        for i, spec in enumerate(specs):
+            line, = axe.plot(x, spec.T + vshift*float(i+1))
 
         # attribute
         c = kargs.get('color', kargs.get('c'))
@@ -202,25 +227,26 @@ class Plot1d(HasTraits):
 
         # plot the models
         offset = 0.
-        if kargs.get('plot_model', False) and source.modeldata is not None:
-            # we now plot the model if it exists
-            mdata = source.modeldata
-            offset = (mdata.values.max()) * (float(kargs.get('offset', 1.0)) / 100.)
-            # print('offset',offset)
-            mls = kargs.get('modellinestyle', kargs.get('modls', '-'))
-            for model in mdata.index:
-                l, = axe.plot(x, mdata.loc[model], alpha=.75)
-                l.set_linestyle(mls)
-                l.set_linewidth(lw * .8)
-                if model == 'baseline':
-                    l.set_color('k')
-                    l.set_linestyle(':')
-                    l.set_linewidth(lw * .4)
-                    l.set_ydata(l.get_ydata() - offset)
-                elif model != 'modelsum':
-                    l.set_linestyle('-')
-                    l.set_linewidth(lw * .4)
-                    l.set_ydata(l.get_ydata() - offset)
+
+        if not multiplots and kargs.get('plot_model', False) and source.modeldata is not None:
+                # we now plot the model if it exists
+                mdata = source.modeldata
+                offset = (mdata.values.max()) * (float(kargs.get('offset', 1.0)) / 100.)
+                # print('offset',offset)
+                mls = kargs.get('modellinestyle', kargs.get('modls', '-'))
+                for model in mdata.index:
+                    l, = axe.plot(x, mdata.loc[model], alpha=.75)
+                    l.set_linestyle(mls)
+                    l.set_linewidth(lw * .8)
+                    if model == 'baseline':
+                        l.set_color('k')
+                        l.set_linestyle(':')
+                        l.set_linewidth(lw * .4)
+                        l.set_ydata(l.get_ydata() - offset)
+                    elif model != 'modelsum':
+                        l.set_linestyle('-')
+                        l.set_linewidth(lw * .4)
+                        l.set_ydata(l.get_ydata() - offset)
 
 
         # limits of the spectra
@@ -263,8 +289,9 @@ class Plot1d(HasTraits):
 
         if kargs.get('show_zero', False):
             axe.haxlines()
+
         # Layout
-        pl.tight_layout()
+        #pl.tight_layout()
 
         # commands
         commands = kargs.get('commands', [])
@@ -272,26 +299,27 @@ class Plot1d(HasTraits):
             for command in commands:
                 com, val = command.split('(')
                 val = val.split(')')[0].split(',')
-                args = []
-                kargs = {}
+                ags = []
+                kws = {}
                 for item in val:
                     if '=' in item:
                         k, v = item.split('=')
-                        kargs[k.strip()] = eval(v)
+                        kws[k.strip()] = eval(v)
                     else:
-                        args.append(eval(item))
+                        ags.append(eval(item))
                 if DEBUG:
-                    print(args)
-                    print(kargs)
-                getattr(axe, com)(*args, **kargs)
+                    print(ags)
+                    print(kws)
+                getattr(axe, com)(*ags, **kws)
 
         # should be after all plot commands
         savename = kargs.get('savefig', False)
         if savename:
             self.savefig(savename)
 
-        if not kargs.get('hold', False):
-            self.show()
+        if kargs.get('display', True):
+            if not kargs.get('hold', False):
+                    self.show()
 
         self.axe = axe
 
@@ -316,19 +344,26 @@ class Plot1d(HasTraits):
 
 
 if __name__ == '__main__':
-    """
-    test plot1d plugin
 
-    """
-    from masai.api import Bruker
-    import os
+    from masai.api import *
+    DATADIR = '/Users/christian/Dropbox/storage/bruker/data'
+    name = 'RUB-17-2015'
+    user = 'anaP'
 
-    print(Plot1d())
-    path = os.path.join('..', '..', '..', 'doc', 'tutorial', 'exemples', 'user', 'nmr', 'SPEC1D', '10')
-    print(os.listdir(path))
-    source = Bruker(path)
+    s=[]
+    for expno in [1,2,3,60,62]:
+        s.append(Bruker(data_dir=DATADIR, user=user, name=name, expno=expno))
+        # print(s[-1].par.NS, s[-1].par.RG, s[-1].norm)
+        #    Process(s[-1],
+        #        transform='em 1; zf 3; ft; cl -105 -75; pk 337.167 1.938 --auto; ab --mode poly')
+        Process(s[-1],
+                transform='em 1; zf 3; ft; cl -110 -75; pk 337.167 1.938 --auto')
 
-    p = Plot1d(source)
-    print(p)
+    p = Plot1d(s, xlim=(-75,-100), display=False)
 
+    source = Bruker(data_dir=DATADIR, user = 'user', name = 'SPEC1D', expno = 10)
+    Process(source, transform="em 50; zf 1; ft; pk --auto --fit_phc1 --bound_phc1 360 --pivot 4.5")
+    p = Plot1d(source, hold=True, display=False)
+    Process(source, "ab --mode poly")
+    p = Plot1d(source.par.baseline, axe=p.axe, xlim=(30,-10), reverse=True, display=False)
 

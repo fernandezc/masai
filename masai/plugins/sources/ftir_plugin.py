@@ -22,7 +22,6 @@ import warnings
 # third-party
 import pandas as pd
 import numpy as np
-import addict
 from traits.api import *
 import traits.has_traits
 
@@ -32,7 +31,7 @@ import traits.has_traits
 
 from masai.core.source import (Source)
 from masai.core.database import Isotopes
-from masai.core.utils import htmldoc
+from masai.core.utils import htmldoc, addict
 from masai.plugins import IPlugin
 
 # constants

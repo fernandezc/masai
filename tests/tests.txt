@@ -1,0 +1,9 @@
+To run the tests, we use
+
+pytest:
+ (may require an installation using 'pip install -U pytest')
+
+and runipy
+ (may require an installation using 'pip install -U runipy')
+
+

@@ -16,7 +16,7 @@
 #
 
 import numpy as np
-from nmrglue.analysis.peakpick import pick
+from ..nmrglue.analysis.peakpick import pick
 import pandas as pd
 
 #
