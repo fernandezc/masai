@@ -668,7 +668,7 @@ class Bruker(Source):
         # remove last points * 2
         rp = 4 * (phase // 2)
 
-        print("removed",rp)
+        #print("removed",rp)
 
         ndata[..., -rp:]=0j
 

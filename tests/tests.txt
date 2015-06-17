@@ -7,3 +7,10 @@ and runipy
  (may require an installation using 'pip install -U runipy')
 
 
+Test can be run using:
+
+./commit.sh
+(must be executable:
+
+chmod +x commit.sh
+
