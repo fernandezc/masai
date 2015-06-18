@@ -1,0 +1,27 @@
+Installation instructions:
+
+Download and install Anaconda.  Anaconda is available at http://continuum.io/downloads.html.
+
+I use ANACONDA with python 2.7.9
+(as Traits are not yet compatible with python 3.4)
+
+To activate python 2.7:  source activate python2
+           (if python2 is the name of the python2.7 env.)
+
+
+Specific to the academic licence:
+
+License installation instructions:
+Linux/OS X:
+Put the license file attached to this email in the ~/.continuum folder.
+Windows:
+Copy the attached license file to the ".continuum" directory in your home directory
+
+Add-on installation instructions:
+At the command line or terminal prompt enter:
+   conda update conda
+   conda install accelerate
+   conda install iopro
+
+
+
