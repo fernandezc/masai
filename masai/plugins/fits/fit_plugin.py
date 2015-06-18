@@ -55,8 +55,8 @@ __plugin_main__ = 'Fit'
 @provides(IPlugin)
 class Fit(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Fit (type: fits), fit a source or a series of source with some models.")
-    type = Str("fits")
+    plugin_info = Str("Fit (type: fits), fit a source or a series of source with some models.")
+    plugin_type = Str("fits")
 
     # specific attributes ----------------------------------------------------------
     sources = List(Instance(Source))

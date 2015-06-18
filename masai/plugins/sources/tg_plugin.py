@@ -61,8 +61,8 @@ class Tg(Source):
     """Tg (type: source), return a source from a AGIR dataset."""
 
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Tg (type: source), return a source from a TG dataset.")
-    type = Str("source")
+    plugin_info = Str("Tg (type: source), return a source from a TG dataset.")
+    plugin_type = Str("source")
 
     # specific attributes ----------------------------------------------------------
 

@@ -2,7 +2,7 @@
 
 """
 Define basic source functionalities
-This is a container for the spectroscopic data or other,
+This is a container for the spectroscopic data or others,
 and the associated parameters
 
 """
@@ -41,9 +41,7 @@ class Source(HasTraits):
     Abstract Source class
 
     """
-
-    description = Str
-    type = Str
+    description = Property
 
     data_orig = Property
     _data_orig = Instance(pd.DataFrame)
@@ -56,8 +54,12 @@ class Source(HasTraits):
     imag = Property
 
     dims = Property
+    _dims = List
 
     ndims = Property
+
+    is_1d = Property
+
     is_2d = Property
 
     is_3d = Property
@@ -66,6 +68,10 @@ class Source(HasTraits):
     _xunits = Either(Str(), None)
     yunits = Property
     _yunits = Either(Str(), None)
+    zunits = Property
+    _zunits = Either(Str(), None)
+    units = Property
+    _units = Either(Str(), None)
 
     modeldata = Instance(pd.DataFrame)
 
@@ -159,9 +165,8 @@ class Source(HasTraits):
             A tuple with min and max limits
         """
         data = self.data
-        lim = \
-        ([data.index[0], data.index[-1]], [data.columns[0], data.columns[-1]])[
-            axis]
+        lim = ([data.index[0], data.index[-1]],
+               [data.columns[0], data.columns[-1]])[axis]
         return lim
 
     def get_index(self, pos, axis=-1):
@@ -224,39 +229,143 @@ class Source(HasTraits):
         y = self.data.index
         return pd.DataFrame(r, y, x)
 
-
     # *************************************************************************
     # Properties getter and setter
     # *************************************************************************
 
-    def _get_data_orig(self):
-        return self._data_orig.copy()
-
+    # data
     def _get_data(self):
+        """
+        property getter: read data
+        """
         if self._data is None:
             return self._data_orig
         return self._data
 
     def _set_data(self, value):
+        """
+        property setter: assign data
+        """
         if isinstance(value, pd.DataFrame):
             self._data = value
         else:
             # noinspection PyArgumentList
             self._data = self._make_dataframe(value)
 
+    # xunits
+    def _get_xunits(self):
+        """
+        property getter: read units for axe X
+        """
+        if not self._xunits:
+            self._xunits = 'a.u.'
+        return self._xunits
+
+    def _set_xunits(self, val):
+        """
+        property getter: set units for axe X
+        """
+        self._xunits = val
+
+    # yunits
+    def _get_yunits(self):
+        """
+        property getter: read units for axe Y
+        """
+        if self.is_1d:
+            return None
+
+        if not self._yunits:
+            self._yunits = 'a.u.'
+        return self._yunits
+
+    # zunits
+    def _get_zunits(self):
+        """
+        property getter: read units for axe Z
+        """
+        if not self.is_3d:
+            return None
+
+        if not self._zunits:
+            self._zunits = 'a.u.'
+        return self._zunits
+
+    # units
+    def _set_units(self, val):
+        """
+        property getter: set units for the data
+        """
+        self._units = val
+
+    # units
+    def _get_units(self):
+        """
+        property getter: read units of the data
+        """
+        if not self._units:
+            self._units = 'a.u.'
+        return self._units
+
+    # dims
+    def _get_dims(self):
+        """
+        Property getter: Return the name of dimensions
+        """
+        if len(self._dims)<1:
+            self._dims = ['Z', 'Y', 'X']
+
+        if self.is_1d:
+            return self._dims[-1]
+
+        elif self.is_2d:
+            return self._dims[-2:]
+
+        elif self.is_3d:
+            return self._dims[-3:]
+
+    def _set_dims(self, val):
+        """
+        Property setter: Set the name of dimensions
+        """
+        if self.is_1d:
+            self._dims = val
+
+        elif self.is_2d:
+            self._dims = val[-2:]
+
+        elif self.is_3d:
+            self._dims = val[-3:]
+
+    # Read-only properties
+    # ---------------------------------------------------------------------------
+
+    # data_orig
+    def _get_data_orig(self):
+        """
+        property getter: read the original data
+        """
+        return self._data_orig.copy()
+
+    # real
     def _get_real(self):
         """
         property getter: return the imaginary part of the original data
         """
         return self.get_real()
 
+    # imag
     def _get_imag(self):
         """
         property getter: return the imaginary part of the original data
         """
         return self.get_imag()
 
+    # ndims
     def _get_ndims(self):
+        """
+        property getter: get the number of dimensionw
+        """
         ndims = 1
         if self.is_2d:
             ndims = 2
@@ -264,68 +373,72 @@ class Source(HasTraits):
             ndims = 3
         return ndims
 
+    # is_1d
+    def _get_is_1d(self):
+        """
+        property getter: Check if the data are 1D or not
+        """
+        data = self.data
+        if data is not None:
+            return len(data.shape) == 2 and data.shape[-2] == 1
+        else:
+            print('No data')
+            return False
+
+    # is_2d
     def _get_is_2d(self):
         """
         property getter: Check if the data are 2D or not
         """
-        if self._data is not None:
-            return len(self._data.shape) == 2 and self._data.shape[-2] > 1
+        data = self.data
+        if data is not None:
+            return len(data.shape) == 2 and data.shape[-2] > 1
         else:
             print('No data')
             return False
 
+    # is_3d
     def _get_is_3d(self):
         """
         property getter: Check if the data are 2D or not
         """
-        if self.data is not None:
-            return len(self.data.shape) == 3 and self.data.shape[-3] > 1
+        data = self.data
+        if data is not None:
+            return len(data.shape) == 3 and data.shape[-3] > 1
         else:
             print('No data')
             return False
 
-    def _get_xunits(self):
-        if not self._xunits:
-            self._xunits = 'a.u.'
-        return self._xunits
-
-    def _set_xunits(self, val):
-        self._xunits = val
-
-    def _get_yunits(self):
-        if not self._yunits:
-            self._yunits = 'a.u.'
-        return self._yunits
-
-    def _set_yunits(self, val):
-        self._yunits = val
-
+    # X
     def _get_X(self):
+        """
+        property getter: read coords for axe X
+        """
         return self.data.columns
 
+    # Y
     def _get_Y(self):
+        """
+        property getter: read coords for axe Y
+        """
         return self.data.index
 
+    # Z
     def _get_Z(self):
         pass
         # not implemented
 
+    # loc
     def _get_loc(self):
-        """Attribute for location based indexing like pandas.
+        """
+        Property getter: for location based indexing like pandas.
         """
         return _LocIndexer(self)
-
-    def _get_dims(self):
-        dims = ['X', 'Y']
-        if self.ndims == 1:
-            dims = ['X']
-        return dims
 
     # *************************************************************************
     # Private functions
     # *************************************************************************
 
-    # -------------------------------------------------------------------------
     def _getsection(self, index, **kargs):
         """
         Extract a section by ppm (or Hz) position or by index
@@ -402,12 +515,13 @@ class Source(HasTraits):
 
     def __setitem__(self, key, value):
         """Add an array to this dataset."""
-        pass
-        # TODO
+        raise NotImplementedError
+        # TODO: setitem
 
     def __delitem__(self, key):
         """Remove a variable from this dataset."""
-        pass
+        raise NotImplementedError
+        # TODO: delitem
 
     def _get_slice_by_index(self, inputkey):
 
@@ -425,7 +539,7 @@ class Source(HasTraits):
             else:
                 keys[i] = slice(item, item + 1, None)
 
-        # just a correction
+        # need a correction
         # remember that 1D data are also represented by a 2D array with only
         # one row!
         if self.ndims == 1:
@@ -444,16 +558,10 @@ class Source(HasTraits):
         return newsource
 
     def __getattr__(self, item):
-        """ The item attribute was not found look for it in attrs
+        """ The item attribute was not found
+        (should be subclassed in derived classes)
         """
-        res = self.attrs.get(item, None)
-        # if not res:
-        #     # look coordinates
-        #     res = [getattr(self[k], item) for k in self.dims]
-        #     if len(res) == 1:
-        #         res = res[0]
-        return res
-
+        raise NotImplementedError
 
 #
 # Location Indexer

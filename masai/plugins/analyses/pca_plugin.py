@@ -51,8 +51,8 @@ class Pca(HasTraits):
     """ PCA (type: analyses), PCA analysis of a series of spectra.
     """
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Pca (type: analyses), PCA analysis of a series of spectra.")
-    type = Str("Pca")
+    plugin_info = Str("Pca (type: analyses), PCA analysis of a series of spectra.")
+    plugin_type = Str("Pca")
 
     # specific attributes ----------------------------------------------------------
     sources = Either(Source, List(Source))

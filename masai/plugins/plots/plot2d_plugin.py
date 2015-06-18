@@ -57,8 +57,8 @@ __plugin_main__ = 'Plot2d'
 @provides(IPlugin)
 class Plot2d(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Plot2d (type: plots), output a matplotlib 2D contour plot.")
-    type = Str("plot")
+    plugin_info = Str("Plot2d (type: plots), output a matplotlib 2D contour plot.")
+    plugin_type = Str("plot")
 
     # specific attributes ----------------------------------------------------------
 

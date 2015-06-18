@@ -66,9 +66,10 @@ FnMODE = ["undefined", "QF", "QSEQ", "TPPI", "STATES", "STATES-TPPI",
 class Bruker(Source):
     # minimal plugin attribute
     # -----------------------------------------------------
-    description = Str(
+    plugin_info = Str(
         "Bruker (type: source), return a source from a Bruker path.")
-    type = Str("source")
+    plugin_type = Str("source")
+
 
     # specific attributes
     # ----------------------------------------------------------
@@ -77,7 +78,7 @@ class Bruker(Source):
     par2 = Instance(addict.Dict)
 
     statesapplied = Bool
-    _ = Any
+
 
     # *******************************************************************************
     # public functions
@@ -706,6 +707,19 @@ class Bruker(Source):
 
         return ndata
 
+    def __getattr__(self, item):
+        """ The item attribute was not found look for it in pars
+        """
+        res = self.par.get(item)
+        if not res:
+            # may be specified with a dimension
+            d = eval(item[-1])
+            if d==2:
+                res = self.par.get(item[:-1])
+            elif d==1:
+                res = self.par2.get(item[:-1])
+        return res
+
     # -------------------------------------------------------------------------------
     def __repr__(self):
         """
@@ -839,6 +853,7 @@ if __name__ == '__main__':
     # print(os.listdir(path))
     source = Bruker(path, dgfilter=False)
     print(source)
+    sx = source[45:250]
     # p = Plot1d(source, display=False)
 
     print("index for pos: 5", source.get_index(5))
@@ -846,7 +861,7 @@ if __name__ == '__main__':
 
     # test copy method
     # s2 = source.copy()
-    Process(source, transform='ft')
+    Process(source, transform='zf 0; ft')
     print(source)
 
     # Plot1d(s2, display=True)
@@ -854,7 +869,9 @@ if __name__ == '__main__':
 
     sx = source[45:250]
 
-    Plot1d(sx, display=True)
+    #Plot1d(sx, display=True)
     # Plot1d(source, display=True)
 
     print(sx)
+
+    print("2 TD:", sx.TD2)

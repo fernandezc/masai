@@ -52,8 +52,8 @@ __plugin_main__ = 'Stackplot'
 @provides(IPlugin)
 class Stackplot(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Stackplot (type: plots), output several stacked matplotlib 1D plot.")
-    type = Str("plot")
+    plugin_info = Str("Stackplot (type: plots), output several stacked matplotlib 1D plot.")
+    plugin_type = Str("plot")
 
     # specific attributes ----------------------------------------------------------
 

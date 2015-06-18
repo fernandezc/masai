@@ -164,8 +164,7 @@ def read_multiplex(path, expno=None, procno=1, coherence=3, acqus_files=None, de
 @provides(IPlugin)
 class Multiplex(Bruker):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Multiplex (type: source), return a Multiplex source.")
-    type = Str("source")
+    plugin_info = Str("Multiplex (type: source), return a Multiplex source.")
 
     # specific attributes ----------------------------------------------------------
 

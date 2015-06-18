@@ -46,8 +46,8 @@ __plugin_main__ = 'Process'
 @provides(IPlugin)
 class Process(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Process (type: processes), output a transformed 1D source.")
-    type = Str("processes")
+    plugin_info = Str("Process (type: processes), output a transformed 1D source.")
+    plugin_type = Str("processes")
 
     # specific attributes ----------------------------------------------------------
     nooutput = Bool

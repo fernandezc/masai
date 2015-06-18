@@ -50,8 +50,8 @@ __plugin_main__ = 'Plot1d'
 @provides(IPlugin)
 class Plot1d(HasTraits):
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Plot1d (type: plots), output a matplotlib 1D plot.")
-    type = Str("plot")
+    plugin_info = Str("Plot1d (type: plots), output a matplotlib 1D plot.")
+    plugin_type = Str("plot")
 
     # specific attributes ----------------------------------------------------------
 

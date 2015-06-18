@@ -61,8 +61,8 @@ class Ftir(Source):
     """Ftir (type: source), return a source from a AGIR dataset."""
 
     # minimal plugin attribute -----------------------------------------------------
-    description = Str("Ftir (type: source), return a source from a FTIR dataset.")
-    type = Str("source")
+    plugin_info = Str("Ftir (type: source), return a source from a FTIR dataset.")
+    plugin_type = Str("source")
 
     # specific attributes ----------------------------------------------------------
 

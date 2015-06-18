@@ -39,5 +39,5 @@ class IPlugin(Interface):
     #===============================================================================
     # minimal arguments
     #===============================================================================
-    description = Str
-    type = Str
+    plugin_info = Str
+    plugin_type = Str
