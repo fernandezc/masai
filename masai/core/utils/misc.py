@@ -20,7 +20,7 @@ Various methods used in other part of the program
 """
 import re
 
-import pandas as pd
+from pandas import DataFrame
 
 # import string
 
@@ -40,7 +40,7 @@ def position2index(data, pos):
             the index of the position
 
     """
-    if isinstance(data, pd.DataFrame):
+    if isinstance(data, DataFrame):
         a = data.columns
     else:
         a = data
@@ -90,7 +90,34 @@ def htmldoc(text):
     return html
 
 
+def is_sequence(arg):
+    """
+    Determine if an object is iterable but is not a string
+    """
+    return not hasattr(arg, 'strip') and  hasattr(arg, "__iter__")
+
+def srepr(arg):
+    if is_sequence(arg):
+        return '<' + ", ".join(srepr(x) for x in arg) + '>'
+    return repr(arg)
+
+
+def makestr(l):
+    """
+    make a string from a list of string
+    """
+
+    if is_sequence(l):
+        l = " ".join(map(str,l))
+    l = l.replace('$','')
+    l = l.replace(' ','\ ')
+    l = r'$%s$' % l
+    return l
+
 if __name__ == '__main__':
+
+
+    # Test html_doc
     text = """
     Fit a 1D, 2D or a list of sources
 
@@ -122,26 +149,3 @@ if __name__ == '__main__':
 
     html = htmldoc(text)
     print(html)
-
-def is_sequence(arg):
-    return (not hasattr(arg, "strip") and
-            hasattr(arg, "__getitem__") or
-            hasattr(arg, "__iter__"))
-
-def srepr(arg):
-    if is_sequence(arg):
-        return '<' + ", ".join(srepr(x) for x in arg) + '>'
-    return repr(arg)
-
-
-def makestr(l):
-    """
-    make a string from a list of string
-    """
-
-    if is_sequence(l):
-        l = " ".join(map(str,l))
-    l = l.replace('$','')
-    l = l.replace(' ','\ ')
-    l = r'$%s$' % l
-    return l

@@ -869,7 +869,7 @@ if __name__ == '__main__':
 
     sx = source[45:250]
 
-    #Plot1d(sx, display=True)
+    Plot1d(source, display=True)
     # Plot1d(source, display=True)
 
     print(sx)
