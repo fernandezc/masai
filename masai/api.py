@@ -20,14 +20,19 @@ import warnings
 from functools import partial
 
 # third-party
-from IPython.core.magic import (Magics, magics_class, line_magic, cell_magic, line_cell_magic)
+from IPython.core.magic import UsageError
+     #(Magics, magics_class, line_magic, cell_magic, line_cell_magic)
 from IPython import get_ipython
 
 # setup backend for ipython
 ip = get_ipython()
 if ip:
     # if were are running this under ipython
-    ip.magic(u'matplotlib nbagg')
+    try:
+        ip.magic('matplotlib nbagg')
+    except UsageError:
+        ip.magic('matplotlib qt')
+
 
 
     #print("matplotlib and numpy namespaces are available under the name 'plt' and 'np' respectively")

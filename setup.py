@@ -8,11 +8,11 @@ setup(
     version=get_version(),
     packages=['masai', 'masai.core', 'masai.plugins'],
     install_requires=['numpy', 'scipy', 'matplotlib', 
-					  'traits', 'traitsui', 'apptools',
+					  'traits', 'apptools',
                       'pandas'],
     url='',
     license='',
     author='Christian Fernandez',
     author_email='christian.fernandez0@ensicaen.fr',
-    description=''
+    description='MASAI library for IPython'
 )

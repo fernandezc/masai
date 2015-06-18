@@ -26,7 +26,6 @@ necessary features of NMR nuclei, such as their spin, larmor frequency and so on
 # Enthought imports.
 #===============================================================================
 from traits.api import (HasTraits, Property, Str, Float, Enum, Instance)
-from traitsui.api import (Item, View, VGroup)
 
 #===============================================================================
 # Numpy 
@@ -918,7 +917,6 @@ class Isotopes(HasTraits):
     def __str__(self):
         return self.nucleus
 
-    View = View('name', 'spin', 'A', 'Z', 'abundance', 'gamma', 'Q', )
     #===========================================================================
     # __init__
     #===========================================================================
@@ -944,22 +942,6 @@ class NmrProperties(HasTraits):
         self._current = Isotopes(self.isotope)
         return self._current
 
-    # view for a standalone usage of this class
-    def default_traits_view(self):
-        """View nmr properties
-        
-        """
-        return View(
-            VGroup(
-                Item(name='isotope'),
-                VGroup(
-                    Item('current', label='Properties', style='custom'),
-                ),
-            ),
-        )
-
-
 if __name__ == '__main__':
     nmr = NmrProperties(isotope='27Al')
-    nmr.configure_traits()
     

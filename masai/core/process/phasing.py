@@ -29,8 +29,6 @@ from masai.core.fit.optimize import optimize
 from masai.core.process.baseline import basecorr
 from masai.core.analysis.picking import picking
 
-from traitsui.message import auto_close_message
-
 __all__ = ["pk", ]
 
 DEBUG = False

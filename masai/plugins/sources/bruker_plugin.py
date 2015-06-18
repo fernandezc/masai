@@ -713,11 +713,14 @@ class Bruker(Source):
         res = self.par.get(item)
         if not res:
             # may be specified with a dimension
-            d = eval(item[-1])
-            if d==2:
-                res = self.par.get(item[:-1])
-            elif d==1:
-                res = self.par2.get(item[:-1])
+            try:
+                d = eval(item[-1])
+                if d==2:
+                    res = self.par.get(item[:-1])
+                elif d==1:
+                    res = self.par2.get(item[:-1])
+            except NameError:
+                print("Error: Attribute '%s' not defined.", file=sys.stderr)
         return res
 
     # -------------------------------------------------------------------------------

@@ -36,6 +36,19 @@ DEBUG = False
 _TITLE_ = u"MASAI"
 _COPYRIGHT_ = u"2015, C.Fernandez"
 
+# set or read the preference file
+_path = os.path.join(os.path.expanduser('~'), '.masai')
+if not os.path.exists(_path):
+    os.makedirs(_path)
+_filename = os.path.join(_path, "masai.ini")
+preferences = Preferences(filename=_filename)
+
+# get/set the current path of the application
+MASAI = preferences.get("api.masai", None)
+if not MASAI:
+    preferences.set("api.masai", os.getcwd())
+    preferences.flush()
+
 #===============================================================================
 # get_git_version
 #===============================================================================
@@ -81,6 +94,7 @@ def get_version():
         preferences.flush()
     else:
         verstr = preferences.get("api.version", "unknown")
+
     return verstr
 
 
@@ -100,20 +114,6 @@ def get_fullversion_string():
         _TITLE_, __version__, _COPYRIGHT_)
     txt += "\n" + "-" * 32 + "\n"
     return txt
-
-
-# set or read the preference file
-_path = os.path.join(os.path.expanduser('~'), '.masai')
-if not os.path.exists(_path):
-    os.makedirs(_path)
-_filename = os.path.join(_path, "masai.ini")
-preferences = Preferences(filename=_filename)
-
-# get/set the current path of the application
-MASAI = preferences.get("api.masai", None)
-
-if not MASAI or not os.path.exists(MASAI):
-    print("Masai not fully installed. \nPlease run 'python setup.py install [OR python setup.py develop]", file=sys.stderr)
 
 #===============================================================================
 # Main test
