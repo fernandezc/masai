@@ -22,44 +22,47 @@ import re
 
 from pandas import DataFrame
 
-# import string
-
-def position2index(data, pos):
+def loc2index(data, loc, axis=-1):
     """
-    Return the index of a position along the last axis (columns) of a DataFrame
+    Return the index of a location along the last axis (columns) of a DataFrame
 
     Parameters
     ----------
         data: DataFrame
-        pos: float
-            a column position in the column units
+        loc: float
+            a column location in the column units
+        axis: integer, default=-1
 
     Returns
     -------
         index: int
-            the index of the position
+            the index of the location
 
     """
     if isinstance(data, DataFrame):
-        a = data.columns
+        if axis == -1:
+            a = data.columns
+        else:
+            a = data.index
     else:
+        # should be a 1d array
         a = data
 
     if a[0] < a[-1]:
-        id = a[a <= pos].size
+        id = a[a <= loc].size
     else:
-        id = a[a >= pos].size
+        id = a[a >= loc].size
 
     # check closest
-    dpos0 = 1.e15
+    dloc0 = 1.e15
     idx = 0
     id0 = id
     for i in [-1, 0, +1]:
         id = max(min(id0 + i, a.size - 1), 0)
-        dpos = abs(pos - a[id])
-        if dpos < dpos0:
+        dloc = abs(loc - a[id])
+        if dloc < dloc0:
             idx = id
-            dpos0 = dpos
+            dloc0 = dloc
     return idx
 
 
