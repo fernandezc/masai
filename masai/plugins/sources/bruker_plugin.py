@@ -710,17 +710,21 @@ class Bruker(Source):
     def __getattr__(self, item):
         """ The item attribute was not found look for it in pars
         """
+
+        # we must no check some attributes
+        if item[:5] in ['strip','_repr', '_ipyt']:
+            return
+
         res = self.par.get(item)
         if not res:
             # may be specified with a dimension
-            try:
-                d = eval(item[-1])
-                if d==2:
-                    res = self.par.get(item[:-1])
-                elif d==1:
-                    res = self.par2.get(item[:-1])
-            except NameError:
-                print("Error: Attribute '%s' not defined.", file=sys.stderr)
+            d = str(item[-1])
+            if d=='2':
+                res = self.par.get(item[:-1])
+            elif d=='1':
+                res = self.par2.get(item[:-1])
+            else:
+                print("Attribute '%s' is not defined."%item, file=sys.stderr)
         return res
 
     # -------------------------------------------------------------------------------

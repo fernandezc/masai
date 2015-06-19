@@ -11,11 +11,12 @@ from traits.api import Any, Callable, Dict, HasTraits, Instance, List
 from traits.api import Property, Str, Undefined, provides
 
 # Local imports.
-from apptools.preferences.i_preferences import IPreferences
+from .i_preferences import IPreferences
 
 
 # Logging.
 logger = logging.getLogger(__name__)
+
 
 @provides(IPreferences)
 class Preferences(HasTraits):

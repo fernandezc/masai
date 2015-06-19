@@ -1,8 +1,8 @@
-Installation instructions:
+#----- Installation instructions -----
 
 Download and install Anaconda.  Anaconda is available at http://continuum.io/downloads.html.
 
-I use ANACONDA with python 2.7.9
+I use ANACONDA with python 2.7
 (as Traits are not yet compatible with python 3.4)
 
 To activate python 2.7:  source activate python2
@@ -23,5 +23,20 @@ At the command line or terminal prompt enter:
    conda install accelerate
    conda install iopro
 
+At the moment Masai use Traits, so we need to install
+these two packages which are not preinstalled with anaconda
 
+conda install traits
 
+# TODO we should probably try to use the ipython traitlets module instead.
+
+we also need to install pyside
+
+conda install pyside
+
+#--- running masai ----
+
+We need to install the masai package first
+
+cd <installation-dir>/masai
+python setup.py develop (or install)
