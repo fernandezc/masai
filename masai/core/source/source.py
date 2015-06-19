@@ -4,7 +4,6 @@
 Define basic source functionalities
 This is a container for the spectroscopic data or others,
 and the associated parameters
-
 """
 
 # Copyright (c) C. Fernandez' group @ LCS.
@@ -31,7 +30,6 @@ from masai.core.utils.misc import position2index, is_sequence
 
 # constants
 DEBUG = True
-
 
 # =============================================================================
 # Source class definition
@@ -542,7 +540,7 @@ class Source(HasTraits):
         # need a correction
         # remember that 1D data are also represented by a 2D array with only
         # one row!
-        if self.ndims == 1:
+        if self.is_1d:
             keys = slice(0, 1, None), keys[0]
 
         # slice the data
@@ -561,27 +559,35 @@ class Source(HasTraits):
         """ The item attribute was not found
         (should be subclassed in derived classes)
         """
-        raise NotImplementedError
+        raise NotImplementedError('should be implemented by subclass')
 
+    def __repr__(self):
+        """
+        private function: Create a representation of some data in the
+        Source traits
+
+        """
+        txt = '*Source*\n'
+        if self.data is not None:
+            txt+= repr(self.data) + "\n"
+        return txt
 #
 # Location Indexer
 #
 class _LocIndexer(object):
-    def __init__(self, data):
 
-        self.data = data
+    def __init__(self, source):
+        self.source = source
 
     def loc2index(self, loc, axis=-1):
 
         # we determine the axe from the dim key
-        if axis == -1 and self.data.is_2d:
-            axe = self.data.data.columns
+        if (axis == -1 and self.source.is_2d) or self.source.is_1d:
+            # also for 1D as
+            axe = self.source.data.columns
         else:
-            axe = self.data.data.index
+            axe = self.source.data.index
 
-        # if axe is a quantity but not the loc,
-        # we need to work on the magnitude to assuming the index are in the
-        # units
         x0, x1 = axe[0], axe[-1]
         if x0 < x1:
             return axe[axe <= loc].size
@@ -614,7 +620,7 @@ class _LocIndexer(object):
         def _get_slice_by_label(key, slices):
             # we have a label giving the dimension
 
-            for axis, dim in enumerate(self.data.dims):
+            for axis, dim in enumerate(self.source.dims):
 
                 if dim == key.start:
 
@@ -634,7 +640,7 @@ class _LocIndexer(object):
         #  acting on the axis=0
         # the given key can be a single argument or a single slice:
 
-        slices = [slice(None, None, None) for axis in self.data.dims]
+        slices = [slice(None, None, None) for axis in self.source.dims]
 
         if not is_sequence(key):
             keys = [key, ]
@@ -654,10 +660,10 @@ class _LocIndexer(object):
                     # a classical slice
                     slices[axis] = _get_slice(key, axis)
                 else:
-                    if key.start not in self.data.dims:
+                    if key.start not in self.source.dims:
                         print("Error: the key '%s' doesn't exist" % key.start,
                               file=sys.stderr)
-                        slices = [slice(0, 0, None) for axis in self.data.dims]
+                        slices = [slice(0, 0, None) for axis in self.source.dims]
                         return slices
                     # a labelled  dimension is specified
                     # we need to cycle on all dimension
@@ -668,15 +674,42 @@ class _LocIndexer(object):
     def __getitem__(self, key):
         newkey = self.select(key)
         if len(newkey) == 1:
-            return self.data.data.iloc[newkey[0]]
+            return self.source[newkey[0]]
         else:
-            return self.data.data.iloc[newkey[0], newkey[1]]
+            return self.source[newkey[0], newkey[1]]
 
     def __setitem__(self, key, value):
         newkey = self.select(key)
-        self.data.data.iloc[newkey] = value
+        self.source[newkey] = value
         # TODO: check if shape has changed
 
 
 if __name__ == '__main__':
-    pass
+
+    # Test
+    # ----
+    import numpy as np
+
+    source = Source()
+
+    # source
+
+    # create a simple 1D source
+    x = np.arange(100.)*np.pi/50.
+    y = np.sin(x)
+    source.data = pd.DataFrame([y], index=[0], columns=x )
+
+    # original
+    print(source)
+
+    # slicing on index
+    print(source[10:14])
+
+    # slicing on position
+    print(source.loc[0.58:0.72])
+
+    # get  a single item by index
+    print(source[10])
+
+    # get  a single item by position (the closest)
+    print(source.loc[0.69])
