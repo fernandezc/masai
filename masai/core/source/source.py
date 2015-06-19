@@ -26,7 +26,7 @@ from traits.api import HasTraits, Property, Instance, List, Str, Either
 # -----------------------------------------------------------------------------
 # Local utilities and constants
 # -----------------------------------------------------------------------------
-from masai.core.utils.misc import position2index, is_sequence
+from masai.core.utils.misc import is_sequence
 
 # constants
 DEBUG = True
@@ -440,7 +440,7 @@ class Source(HasTraits):
     def _getsection(self, index, **kargs):
         """
         Extract a section by ppm (or Hz) position or by index
-
+        #TODO: Can be simplified by using the new slicing method below
         """
         if not self.is_2d:
             print("1D data, so we return the input data itself!")
@@ -545,7 +545,7 @@ class Source(HasTraits):
 
         # slice the data
 
-        newdata = self.data.iloc[keys]
+        newdata = self.data.iloc[tuple(keys)]
 
         # create a new source with the new data
         newsource = self.copy()
@@ -713,3 +713,27 @@ if __name__ == '__main__':
 
     # get  a single item by position (the closest)
     print(source.loc[0.69])
+
+    # create a simple 2D source
+    y = np.arange(20.)*np.pi/20.
+
+    z = np.array([[np.sin(xi)*np.sin(yi) for xi in x] for yi in y])
+    print(z.shape)
+
+    source.data = pd.DataFrame(z, index=y, columns=x )
+
+    # on the last dimension should work as for 1d
+    # original
+    print(source)
+
+    # slicing on index
+    print(source[:,10:14])
+
+    # slicing on position
+    print(source.loc[:,0.58:0.72])
+
+    # get  a single item by index
+    print(source[:,10])
+
+    # get  a single item by position (the closest)
+    print(source.loc[0.15,0.69])
