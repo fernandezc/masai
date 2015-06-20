@@ -131,12 +131,7 @@ class Source(HasTraits):
         if kargs:
             super(Source, self).set(**kargs)
 
-    # deprecated function
-    def row(self, *args, **kargs):
-        print("'row' is deprecated, use 'get_row' instead.", file=sys.stderr)
-        return self.get_row(*args, **kargs)
-
-    def get_row(self, value, byindex=False, width=0):
+    def get_row(self, value, byindex=False, width=0, mean=True):
         """
         Extract a row from a two dimensional spectra
 
@@ -153,6 +148,9 @@ class Source(HasTraits):
             else the specified width is taken into account, the returned data
             correspond to the integration either of a number of row
             or of a range of location depending on the byindex keyword
+        mean: boolean, default=True
+            if True an average of all col of the section will be performed
+            else the sum is done.
 
         Returns
         -------
@@ -160,14 +158,14 @@ class Source(HasTraits):
             return a pandas Dataframe with the row
 
         """
-        return self._getsection(value, axis=-1, byindex=byindex, width=width)
+        row = self.get_section(value, axis=0, byindex=byindex, width=width)
+        #if mean:
+        #    row = row.mean(axis=-1)
+        #else:
+        #    row = row.sum(axis=-1)
+        return row
 
-    # deprecated function
-    def col(self, *args, **kargs):
-        print("'col' is deprecated, use 'get_col' instead.", file=sys.stderr)
-        return self.get_col(*args, **kargs)
-
-    def get_col(self, value, byindex=False, width=0):
+    def get_col(self, value, byindex=False, width=0, mean=True):
         """
         Extract a column from a two dimensional spectra
 
@@ -184,14 +182,59 @@ class Source(HasTraits):
             else the specified width is taken into account, the returned data
             correspond to the integration either of a number of row
             or of a range of location depending on the byindex keyword
-
+        mean: boolean, default=True
+            if True an average of all col of the section will be performed
+            else the sum is done.
         Returns
         -------
         data: DataFrame
             return a pandas Dataframe with the col selected
         """
 
-        return self._getsection(value, axis=0, byindex=byindex, width=width)
+        col = self.get_section(value, axis=-1, byindex=byindex, width=width)
+        #if mean:
+        #    col = col.mean(axis=-1)
+        #else:
+        #    col = col.sum(axis=-1)
+        return col
+
+    def get_section(self, index, **kargs):
+        """
+        Extract a section by location or by index
+
+        """
+        if not self.is_2d:
+            print("1D data, so we return a copy of the input data itself!")
+            return self.copy()
+
+        axis = kargs.get('axis', -1)
+        byindex = kargs.get('byindex', False)
+        width = kargs.get('width', 0)
+
+        if not byindex:
+            w2 = width / 2.0
+            lb = index - w2
+            ub = index + w2
+        else:
+            w2 = int(width / 2)
+            lb = index - w2
+            ub = index + w2 + 1
+
+        if abs(ub-lb) > 0:
+            s = slice(lb,ub,None)
+        else:
+            s = index
+
+        if not byindex:
+            if axis==0:
+                return self.loc[s]
+            else:
+                return self.loc[:,s]
+        else:
+            if axis==0:
+                return self[s]
+            else:
+                return self[:,s]
 
     def get_limits(self, axis=-1):
         """
@@ -211,6 +254,9 @@ class Source(HasTraits):
         lim = ([data.index[0], data.index[-1]],
                [data.columns[0], data.columns[-1]])[axis]
         return lim
+
+        mean = kargs.get('mean', False)
+        sum = kargs.get('sum', False)
 
     def get_index(self, loc, axis=-1):
         """
@@ -272,24 +318,6 @@ class Source(HasTraits):
         y = self.data.index
         return pd.DataFrame(r, y, x)
 
-    #def copy(self, deepcopy=True):
-        """
-        Make a copy of the source
-
-        Parameters
-        ----------
-        deepcopy: boolean, default=True
-            make a deep recursive copy
-
-        Returns
-        -------
-        source: Source
-        """
-    #    if not deepcopy:
-    #        return copy.copy(self)  # shallow copy
-    #    else:
-    #        return copy.deepcopy(self)  # deep (recursive) copy
-
     def copy(self):
         cls = type(self)
         new = cls()
@@ -313,6 +341,28 @@ class Source(HasTraits):
         else:
             print('Warning: can not transpose 1D data!', file=sys.stderr)
             return self
+
+    #def argmax(self, axis=-1):
+        """
+        Indices of the maximum values along an axis.
+
+        Parameters
+        ----------
+        axis : int, optional
+            By default, the index is into columns axis
+
+        Returns
+        -------
+        index_array : ndarray of ints
+            Array of indices into the array. It has the same shape as `a.shape`
+            with the dimension along `axis` removed.
+
+        Notes
+        -----
+        In case of multiple occurrences of the maximum values, the indices
+        corresponding to the first occurrence are returned.
+        """
+     #   return self.data.argmax
 
     # *************************************************************************
     # Properties getter and setter
@@ -552,72 +602,6 @@ class Source(HasTraits):
     # Private functions
     # *************************************************************************
 
-    def _getsection(self, index, **kargs):
-        """
-        Extract a section by location or by index
-
-        """
-        if not self.is_2d:
-            print("1D data, so we return the input data itself!")
-            return self.data
-
-        data = self.data.copy()
-
-        axis = kargs.get('axis', -1)
-        axis = range(data.ndim)[axis]
-
-        # print(data.ndim-1)
-        if axis == data.ndim - 1:
-            txt1 = 'taking horizontal (axis=%d) section' % axis
-        else:
-            data = data.T
-            txt1 = 'taking vertical (axis=%d) section' % axis
-
-        x = data.index
-        y = data.columns
-
-        byindex = kargs.get('byindex', False)
-        width = kargs.get('width', 0)
-
-        if not byindex:
-            txt2 = ' by location'
-            w2 = width / 2.0
-            lb = loc2index(x, index - w2)
-            ub = loc2index(x, index + w2)
-            x0 = x[lb]
-            x1 = x[ub]
-            if width != 0:
-                txt3 = ' from %.2f to %.2f' % (x0, x1)
-            else:
-                txt3 = ' at %.2f' % x0
-            print(txt1 + txt2 + txt3)
-
-        else:
-            txt2 = ' by index'
-            w2 = int(width / 2)
-            lb = max(index - w2, 0)
-            ub = min(lb + width, x.size - 1)
-            ub -= width
-            if width != 0:
-                txt3 = ' from index %d to %d' % (lb, ub)
-            else:
-                txt3 = ' at index %d' % lb
-            print(txt1 + txt2 + txt3)
-
-        if lb > ub:
-            lb, ub = ub, lb
-        section = data.iloc[lb:ub + 1].sum(axis=0)
-
-        assert section.size == y.size
-
-        newdata = pd.DataFrame(section, index=y).T
-
-        # create a new source with the new data
-        newsource = self.copy()
-        newsource._data_orig = newdata
-        newsource.data = newdata
-        return newsource
-
     def __nonzero__(self):
         return not (self.data.size == 0)
 
@@ -692,12 +676,12 @@ class Source(HasTraits):
 
     def _print_info_(self, format="str"):
         if self:
+            row, col = self.shape
             tdims = ""
-            for i, dim in enumerate(self.dims[-self.ndims:]):
-                if i<self.ndims-1:
-                    tdims += "rows: '%s'|"%dim
-                else:
-                    tdims += "columns: '%s'"%dim
+            if row>1:
+                    tdims += "rows: '%s'|"%self.dims[0]
+            if col>1:
+                    tdims += "columns: '%s'"%self.dims[-1]
             tshape = '%d rows x %d columns'%self.shape
             txt = "<< Source >>\n|| name: '%s' | %s | shape: %s ||\n" % (
             self.name, tdims, tshape)
@@ -761,6 +745,7 @@ class Source(HasTraits):
                        edgeitems=4, suppress=True,
                        formatter={
                     'all':lambda x: '%.3g' % x.real,
+                    'str_kind':lambda x: '%s'%x,
                     'complex_kind':lambda x: '%.3g%+.3gj' % (x.real, x.imag)}):
         """
         Set options fotr numpy array printing
@@ -782,9 +767,12 @@ class Source(HasTraits):
             return 'None'
 
         txt += self._print_data_()
-        txt += self._print_data_(dim=self.dims[-1],
+
+        row, col = self.shape
+        if col>1 or self.size==1:
+            txt += self._print_data_(dim=self.dims[-1],
                                  val=self.data.columns.values)
-        if self.ndims>1:
+        if row>1:
             txt += self._print_data_(dim=self.dims[0],
                                      val=self.data.index.values)
         txt = txt.replace(';', ' ')
@@ -801,12 +789,13 @@ class Source(HasTraits):
         if not txt:
             return 'None'
         txt += self._print_data_('html')
-        txt += self._print_data_('html', dim=self.dims[-1],
-                                 val=self.data.columns.values)
-        if self.ndims>1:
+        row, col = self.shape
+        if row>1:
             txt += self._print_data_('html', dim=self.dims[0],
                                      val=self.data.index.values)
-
+        if col>1 or self.size==1:
+            txt += self._print_data_('html', dim=self.dims[-1],
+                                 val=self.data.columns.values)
         return txt
 
 
@@ -874,6 +863,52 @@ class Source(HasTraits):
             print ("Unexpected error:", sys.exc_info()[0])
             raise
         return self._op_result(data)
+
+    @classmethod
+    def _reduce_method(self, func):
+        def wrapped_func(self, axis=None, **kwargs):
+            return self._reduce(func, axis=axis, **kwargs)
+        return wrapped_func
+
+    def _reduce(self, func, axis=None, **kwargs):
+        """Reduce this dataset by applying `func` along some dimension(s).
+        Parameters
+        ----------
+        func : function
+            Function which can be called in the form
+            `f(x, axis=axis, **kwargs)` to return the result of reducing an
+            np.ndarray over an integer valued axis.
+        axis : int or sequence of int, optional
+            Dimension(s) over which to apply `func`.  By default `func` is
+            applied over all dimensions.
+        **kwargs : dict
+            Additional keyword arguments passed on to ``func``.
+        Returns
+        -------
+        reduced : Dataset
+            Dataset with this object's Source replaced with new Source
+            of summarized data and the indicated dimension(s) removed.
+        """
+
+        #if dim is not None:
+        #    axis = self.get_axis_num(dim)
+
+        newdata = func(self.data.values, axis=axis, **kwargs)
+        newdata = np.array([newdata])
+
+        newsource = Source()
+        newsource.data = pd.DataFrame(newdata)
+        if (axis == -1 or axis == 1) and not self.is_1d:
+            newsource.data = pd.DataFrame(newdata.T)
+            newsource.data.index = self.data.index.copy()
+            newsource.data.columns = [func.__name__]
+        elif axis == 0:
+            newsource.data = pd.DataFrame(newdata)
+            newsource.data.columns = self.data.columns.copy()
+            newsource.data.index = [func.__name__]
+        else:
+            newsource.data = pd.DataFrame(newdata)
+        return newsource
 
 # *****************************************************************************
 # Set array operators
@@ -1003,12 +1038,8 @@ _BINARY_OPS = ['add', 'sub', 'mul', 'div', 'truediv',
 _METHODS = ['item', 'searchsorted']
 _UNARY_METHODS = ['astype', 'clip', 'conj', 'conjugate', 'round']
 
-# TODO: implement some of the following method directly in the class
-# NUMPY_REDUCE_METHODS = ['all', 'any']
-# NAN_REDUCE_METHODS = ['argmax', 'argmin', 'max', 'min', 'mean',
-#                                                'sum', 'std', 'var', 'median']
-
 def _inject_ops(cls):
+
     def op_str(name):
         return '__%s__' % name
 
@@ -1047,6 +1078,21 @@ def _inject_ops(cls):
 
 _inject_ops(Source)
 
+
+# TODO: implement some of the following method directly in the class
+NUMPY_REDUCE_METHODS = ['all', 'any']
+NAN_REDUCE_METHODS = ['argmax', 'argmin', 'max', 'min', 'mean',
+                                               'sum', 'std', 'var', 'median']
+
+def _inject_reduce_methods(cls):
+    methods = ([(name, getattr(np, name)) for name
+               in NUMPY_REDUCE_METHODS + NAN_REDUCE_METHODS])
+    for name, f in methods:
+        func = cls._reduce_method(f)
+        func.__name__ = name
+        setattr(cls, name, func)
+
+_inject_reduce_methods(Source)
 
 # TESTING ####################################################################
 if __name__ == '__main__':
@@ -1112,7 +1158,7 @@ if __name__ == '__main__':
     # slicing on location
     print(source2.loc[:,0.58:0.72])
     assert(np.all(source1.loc[0.58:0.72].data.columns \
-                  == source2.loc[:,0.58:0.72].data.columns))
+                   == source2.loc[:,0.58:0.72].data.columns))
 
     # get  a single item by index
     print(source2[:,10])
@@ -1122,7 +1168,7 @@ if __name__ == '__main__':
 
     # get row by index (same as direct indexing)
     row = source2.get_row(0, byindex=True)
-    print(row)
+    print("row = source2.get_row(0, byindex=True)", row)
     assert(row == source2[0])
 
     # get a row with some width
@@ -1141,14 +1187,14 @@ if __name__ == '__main__':
     print(source2.T)
 
     #2D not in place (we can not use the property T in this case
-    print('NOT IN PLACE')
+    print('NOT IN PLACE\n------------------')
     print(source2)
     source3 = source2.transpose(inplace=False)
     source3.data *= 3
     print(source3)
     assert source3 != source2
 
-    print('\nUNARY FUNCTION')
+    print('\nUNARY FUNCTION\n------------------')
     a = source3
 
     for f in _UNARY_MATH:
@@ -1162,7 +1208,7 @@ if __name__ == '__main__':
             "%s(b) is not Source (type(b): %s)" % (f,type(b))
         assert b is not a
 
-    print('\nUNARY MATH nd')
+    print('\nUNARY MATH nd\n------------------')
     for f in _UNARY_MATH_nd:
         try:
             b = getattr(np, f)(a)
@@ -1174,7 +1220,7 @@ if __name__ == '__main__':
             "%s(b) is not nd.array (type(b): %s)" % (f,type(b))
         assert b is not a
 
-    print('\nUNARY BOOL')
+    print('\nUNARY BOOL\n------------------')
     for f in _UNARY_BOOL:
         try:
             b = getattr(np, f)(a)
@@ -1187,6 +1233,7 @@ if __name__ == '__main__':
         assert b is not a
 
     # Binary ufuncs
+    print("BINARY MATH\n------------------")
     b = source3.copy()/2.5
     for f in _BINARY_MATH:
         try:
@@ -1197,7 +1244,20 @@ if __name__ == '__main__':
         assert isinstance(b, Source), \
             "%s(b) is not Source (type(b): %s)" % (f,type(c))
 
+    # Binary logical ufuncs
+    b = source3.copy()/2.5
+    print("BINARY BOOL\n------------------")
+    for f in _BINARY_BOOL:
+        try:
+            c = getattr(np, f)(a, b)
+            if DEBUG : print(f, c)
+        except TypeError as e:
+            print("ERROR: ",e.message, file=sys.stderr)
+        assert isinstance(b, Source), \
+            "%s(b) is not Source (type(b): %s)" % (f,type(c))
+
     # basic ops
+    print("BASIC OPS\n------------------")
     assert (a+b)[4] == a[4] + b[4]
     assert (a-b)[4] == a[4] - b[4]
     assert (a/b)[4] == a[4] / b[4]
@@ -1206,12 +1266,14 @@ if __name__ == '__main__':
     print("a+b")
     print (a+b)
 
+
     a = (a+b).copy()
+    print("UNARY OPS\n------------------")
     for f in _UNARY_OPS:
-        print("try ",f)
         b = getattr(a, "__%s__" % f)()
         if DEBUG: print ('__%s__' %f, b)
 
+    print("BINARY OPS\n------------------")
     for f in _BINARY_OPS:
         try:
             c = getattr(a, "__%s__" % f)(b)
@@ -1220,20 +1282,18 @@ if __name__ == '__main__':
             print('__%s__' % f, e.message)
 
     #_UNARY_METHODS test ['astype', 'clip', 'conj', 'conjugate', 'round']
-
+    print("UNARY METHODS\n------------------")
     b = a.astype(complex)
     b = b.clip(2,8)
     b = b.conj()
     b = b.conjugate()
     b = b.round(1)
-    print("OK ", b)
 
     b = a.copy()
     b = b.T
     print(b)
     print(a)
     assert b.shape == a.shape[::-1]
-
 
     a = source1[0:10]
     b = source1[10:20]
@@ -1245,3 +1305,14 @@ if __name__ == '__main__':
 
     print("source", a)
     print("square of source", a**2)
+
+    a = source2.T.copy()
+
+    print("NAN_REDUCE_METHODS+NUMPY_REDUCE_METHODS\n------------------")
+    for f in NAN_REDUCE_METHODS+NUMPY_REDUCE_METHODS:
+        b = getattr(np, "%s" % f)(a, axis=-1)
+        if DEBUG: print ('axis=-1 %s' %f, b)
+        b = getattr(np, "%s" % f)(a, axis=0)
+        if DEBUG: print ('axis=0 %s' %f, b)
+        b = getattr(np, "%s" % f)(a)
+        if DEBUG: print ('axis:None %s' %f, b)
