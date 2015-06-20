@@ -870,6 +870,12 @@ class Source(HasTraits):
             return self._reduce(func, axis=axis, **kwargs)
         return wrapped_func
 
+    @classmethod
+    def _pandas_reduce_method(self, func):
+        def wrapped_func(self, axis=None, **kwargs):
+            return self._pandas_reduce(func, axis=axis, **kwargs)
+        return wrapped_func
+
     def _reduce(self, func, axis=None, **kwargs):
         """Reduce this dataset by applying `func` along some dimension(s).
         Parameters
@@ -892,7 +898,7 @@ class Source(HasTraits):
 
         #if dim is not None:
         #    axis = self.get_axis_num(dim)
-        
+
         newdata = func(self.data.values, axis=axis, **kwargs)
         newdata = np.array([newdata])
 
@@ -910,6 +916,55 @@ class Source(HasTraits):
             newsource.data = pd.DataFrame(newdata)
         return newsource
 
+    def _pandas_reduce(self, func, axis=None, **kwargs):
+        """Reduce this dataset by applying `func` along some dimension(s).
+        Parameters
+        ----------
+        func : function
+            Function which can be called in the form
+            `f(x, axis=axis, **kwargs)` to return the result of reducing an
+            np.ndarray over an integer valued axis.
+        axis : int or sequence of int, optional
+            Dimension(s) over which to apply `func`.  By default `func` is
+            applied over all dimensions.
+        **kwargs : dict
+            Additional keyword arguments passed on to ``func``.
+        Returns
+        -------
+        reduced : Dataset
+            Dataset with this object's Source replaced with new Source
+            of summarized data and the indicated dimension(s) removed.
+        """
+
+        #if dim is not None:
+        #    axis = self.get_axis_num(dim)
+        if axis==-1:
+            axis = self.ndims-1
+
+        try:
+            newdata = getattr(self.data, func)(axis=axis, **kwargs)
+        except:
+            axis = self.ndims-1
+            newdata = getattr(self.data, func)(axis=axis, **kwargs)
+        if axis is None:
+            newdata = getattr(newdata, func)(axis=0, **kwargs)
+            return newdata
+
+        newsource = Source()
+        newdata = pd.DataFrame(newdata)
+
+        if axis == 1:
+            newsource.data = newdata
+            newsource.data.index = self.data.index.copy()
+            newsource.data.columns = [func]
+        elif axis == 0:
+            newsource.data = newdata.T
+            newsource.data.columns = self.data.columns.copy()
+            newsource.data.index = [func]
+        else:
+            newsource.data = newdata
+        return newsource
+
 # *****************************************************************************
 # Set array operators
 # borrowed and modified from XRAY.
@@ -917,7 +972,7 @@ class Source(HasTraits):
 #
 # UFUNCS
 #
-_UNARY_MATH =[
+UNARY_MATH =[
     'negative', #(x[, out])
     # Numerical negative, element-wise.
     'absolute', #(x[, out])
@@ -974,14 +1029,14 @@ _UNARY_MATH =[
     # Inverse hyperbolic tangent element-wise.
 ]
 
-_UNARY_BOOL = [  # return ndarrays
+UNARY_BOOL = [  # return ndarrays
     'isreal', #(x)
     # Returns a bool array, where True if input element is real.
     'iscomplex', #(x)
     # Returns a bool array, where True if input element is complex.
 ]
 
-_BINARY_MATH = [
+BINARY_MATH = [
     'add', #(x1, x2[, out])
     # Add arguments element-wise.
     'subtract', #(x1, x2[, out])
@@ -1006,7 +1061,7 @@ _BINARY_MATH = [
     # Element-wise minimum of array elements.
 ]
 
-_BINARY_BOOL =[
+BINARY_BOOL =[
     'logical_and', # (x1, x2[, out])
     # Compute the truth value of x1 AND x2 element-wise.
     'logical_or', #(x1, x2[, out])
@@ -1027,16 +1082,16 @@ _BINARY_BOOL =[
     # Return (x1 == x2) element-wise.
 ]
 
-_UNARY_MATH_nd = [  # return nd array not source
+UNARY_MATH_nd = [  # return nd array not source
     'zeros_like',
     'ones_like',
 ]
 
-_UNARY_OPS = ['neg', 'pos', 'abs']
-_BINARY_OPS = ['add', 'sub', 'mul', 'div', 'truediv',
+UNARY_OPS = ['neg', 'pos', 'abs']
+BINARY_OPS = ['add', 'sub', 'mul', 'div', 'truediv',
                 'floordiv', 'mod', 'pow', 'and', 'xor', 'or']
-_METHODS = ['item', 'searchsorted']
-_UNARY_METHODS = ['astype', 'clip', 'conj', 'conjugate', 'round']
+METHODS = ['item', 'searchsorted']
+UNARY_METHODS = ['astype', 'clip', 'conj', 'conjugate', 'round']
 
 def _inject_ops(cls):
 
@@ -1061,38 +1116,42 @@ def _inject_ops(cls):
         func.__doc__ = getattr(np.ndarray, name).__doc__
         return func
 
-    for name in _UNARY_OPS:
+    for name in UNARY_OPS:
         setattr(cls, op_str(name), cls._unary_op(op(name)))
 
-    for name in _BINARY_OPS:  #in place and reflexive variants
+    for name in BINARY_OPS:  #in place and reflexive variants
         setattr(cls, op_str(name), cls._binary_op(op(name)))
         setattr(cls, op_str('r' + name), cls._binary_op(op(name),
                                                                 reflexive=True))
         setattr(cls, op_str('i' + name), cls._inplace_binary_op(op('i' + name)))
 
-    for name in _UNARY_METHODS:
+    for name in UNARY_METHODS:
         setattr(cls, name, cls._unary_op(_method_wrapper(name)))
 
-    for name in _METHODS:
+    for name in METHODS:
         setattr(cls, name, _values_method_wrapper(name))
 
 _inject_ops(Source)
 
-
-# TODO: implement some of the following method directly in the class
-NUMPY_REDUCE_METHODS = ['all', 'any']
-NAN_REDUCE_METHODS = ['argmax', 'argmin', 'max', 'min', 'mean',
-                                               'sum', 'std', 'var', 'median']
+PANDAS_REDUCE_METHODS = ['all', 'any',
+                         'idxmax', 'idxmin',
+                         'max', 'min', 'mean',
+                         'sum', 'std', 'var', 'median']
 
 def _inject_reduce_methods(cls):
     methods = ([(name, getattr(np, name)) for name
-               in NUMPY_REDUCE_METHODS + NAN_REDUCE_METHODS])
+               in PANDAS_REDUCE_METHODS])
     for name, f in methods:
         func = cls._reduce_method(f)
         func.__name__ = name
         setattr(cls, name, func)
 
-_inject_reduce_methods(Source)
+def _inject_pandas_reduce_methods(cls):
+    for name in PANDAS_REDUCE_METHODS:
+        func = cls._pandas_reduce_method(name)
+        setattr(cls, name, func)
+
+_inject_pandas_reduce_methods(Source)
 
 # TESTING ####################################################################
 if __name__ == '__main__':
@@ -1197,7 +1256,7 @@ if __name__ == '__main__':
     print('\nUNARY FUNCTION\n------------------')
     a = source3
 
-    for f in _UNARY_MATH:
+    for f in UNARY_MATH:
         try:
             b = getattr(np, f)(a)
             if DEBUG : print(f, b)
@@ -1209,7 +1268,7 @@ if __name__ == '__main__':
         assert b is not a
 
     print('\nUNARY MATH nd\n------------------')
-    for f in _UNARY_MATH_nd:
+    for f in UNARY_MATH_nd:
         try:
             b = getattr(np, f)(a)
             if DEBUG : print(f, b)
@@ -1221,7 +1280,7 @@ if __name__ == '__main__':
         assert b is not a
 
     print('\nUNARY BOOL\n------------------')
-    for f in _UNARY_BOOL:
+    for f in UNARY_BOOL:
         try:
             b = getattr(np, f)(a)
             if DEBUG : print(f, b)
@@ -1235,7 +1294,7 @@ if __name__ == '__main__':
     # Binary ufuncs
     print("BINARY MATH\n------------------")
     b = source3.copy()/2.5
-    for f in _BINARY_MATH:
+    for f in BINARY_MATH:
         try:
             c = getattr(np, f)(a, b)
             if DEBUG : print(f, c)
@@ -1247,7 +1306,7 @@ if __name__ == '__main__':
     # Binary logical ufuncs
     b = source3.copy()/2.5
     print("BINARY BOOL\n------------------")
-    for f in _BINARY_BOOL:
+    for f in BINARY_BOOL:
         try:
             c = getattr(np, f)(a, b)
             if DEBUG : print(f, c)
@@ -1269,12 +1328,12 @@ if __name__ == '__main__':
 
     a = (a+b).copy()
     print("UNARY OPS\n------------------")
-    for f in _UNARY_OPS:
+    for f in UNARY_OPS:
         b = getattr(a, "__%s__" % f)()
         if DEBUG: print ('__%s__' %f, b)
 
     print("BINARY OPS\n------------------")
-    for f in _BINARY_OPS:
+    for f in BINARY_OPS:
         try:
             c = getattr(a, "__%s__" % f)(b)
             if DEBUG: print ('__%s__' %f, c)
@@ -1309,12 +1368,18 @@ if __name__ == '__main__':
     a = source2.T.copy()
 
     print("NAN_REDUCE_METHODS+NUMPY_REDUCE_METHODS\n------------------")
-    for f in NAN_REDUCE_METHODS+NUMPY_REDUCE_METHODS:
-        b = getattr(a, "%s" % f)(axis=-1)
-        if DEBUG: print ('axis=-1 %s' %f, b)
-        b = getattr(a, "%s" % f)(axis=0)
-        if DEBUG: print ('axis=0 %s' %f, b)
+    #for f in NAN_REDUCE_METHODS+NUMPY_REDUCE_METHODS:
+    #    b = getattr(a, "%s" % f)(axis=-1)
+    #    if DEBUG: print ('axis=-1 %s' %f, b)
+    #    b = getattr(a, "%s" % f)(axis=0)
+    #    if DEBUG: print ('axis=0 %s' %f, b)
+    #    b = getattr(a, "%s" % f)()
+    #    if DEBUG: print ('axis:None %s' %f, b)
+    for f in PANDAS_REDUCE_METHODS:
+        print('try %s'%f)
         b = getattr(a, "%s" % f)()
-        if DEBUG: print ('axis:None %s' %f, b)
-
-    print(a.median())
+        print ('axis=None %s' %f, b)
+        b = getattr(a, "%s" % f)(axis=0)
+        print ('axis=0 %s' %f, b)
+        b = getattr(a, "%s" % f)(axis=1)
+        print ('axis=1 %s' %f, b)
