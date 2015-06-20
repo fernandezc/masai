@@ -20,52 +20,6 @@ Various methods used in other part of the program
 """
 import re
 
-from pandas import DataFrame
-
-def loc2index(data, loc, axis=-1):
-    """
-    Return the index of a location along the last axis (columns) of a DataFrame
-
-    Parameters
-    ----------
-        data: DataFrame
-        loc: float
-            a column location in the column units
-        axis: integer, default=-1
-
-    Returns
-    -------
-        index: int
-            the index of the location
-
-    """
-    if isinstance(data, DataFrame):
-        if axis == -1:
-            a = data.columns
-        else:
-            a = data.index
-    else:
-        # should be a 1d array
-        a = data
-
-    if a[0] < a[-1]:
-        id = a[a <= loc].size
-    else:
-        id = a[a >= loc].size
-
-    # check closest
-    dloc0 = 1.e15
-    idx = 0
-    id0 = id
-    for i in [-1, 0, +1]:
-        id = max(min(id0 + i, a.size - 1), 0)
-        dloc = abs(loc - a[id])
-        if dloc < dloc0:
-            idx = id
-            dloc0 = dloc
-    return idx
-
-
 ##### Formating #####
 
 def htmldoc(text):
@@ -151,4 +105,5 @@ if __name__ == '__main__':
         """
 
     html = htmldoc(text)
-    print(html)
+    assert(html=="<h3>Fit a 1D, 2D or a list of sources</h3><b>        Usage:</b> Fit([[]source[, ]], **kargs)<br/><h4>Parameters</h4><b>        source:</b> Source instance<br/>&nbsp;&nbsp;&nbsp;&nbsp;The data to fit (may be a list of sources)<br/><b>        mode:</b> Str, optional<br/>&nbsp;&nbsp;&nbsp;&nbsp;Reserved  not used for now<br/><b>        kind:</b> Str, optional<br/>&nbsp;&nbsp;&nbsp;&nbsp;Contain information about the specific kind of experiment<br/>&nbsp;&nbsp;&nbsp;&nbsp;for now, only 'DQSQ' is implemented<br/><h4>Properties</h4><b>        fp:</b> Dict<br/>&nbsp;&nbsp;&nbsp;&nbsp;Fit parameters dictionary (readonly, but individual elements of the dict can be changed)<br/><b>        script:</b> Str<br/>&nbsp;&nbsp;&nbsp;&nbsp;A string representation of the fp dict, which can be used as input for other a fit<br/><h4>Methods</h4><b>        run:</b> Method<br/>&nbsp;&nbsp;&nbsp;&nbsp;Run a fit, use run() without arguments to get help on this method<br/>")
+

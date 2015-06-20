@@ -2,14 +2,19 @@
 
 """
 Define basic source functionalities
+
 This is a container for the spectroscopic data or others,
 and the associated parameters
+
+Rich slicing is provided either by
+
+
 """
 
 # Copyright (c) C. Fernandez' group @ LCS.
 # Distributed under the terms of the CeCILL-B License.
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 # -----------------------------------------------------------------------------
 # Globals
@@ -30,195 +35,11 @@ from traits.api import HasTraits, Property, Instance, List, Str, Either
 # -----------------------------------------------------------------------------
 # Local utilities and constants
 # -----------------------------------------------------------------------------
-from masai.core.utils.misc import is_sequence, loc2index
+from masai.core.utils.misc import is_sequence
+from masai.core.source.locindexer import loc2index, LocIndexer
 
 # constants
 DEBUG = True
-
-#
-# UFUNCS
-#
-_UNARY_MATH =[
-    'negative', #(x[, out])	Numerical negative, element-wise.
-    'absolute', #(x[, out])	Calculate the absolute value element-wise.
-    'rint', #(x[, out])	Round elements of the array to the nearest integer.
-    'sign', #(x[, out])	Returns an element-wise indication of the sign of a number.
-    'conj', #(x[, out])	Return the complex conjugate, element-wise.
-    'exp', #(x[, out])	Calculate the exponential of all elements in the input array.
-    'exp2', #(x[, out])	Calculate 2**p for all p in the input array.
-    'log', #(x[, out])	Natural logarithm, element-wise.
-    'log2', #(x[, out])	Base-2 logarithm of x.
-    'log10', #(x[, out])	Return the base 10 logarithm of the input array, element-wise.
-    'expm1', #(x[, out])	Calculate exp(x) - 1 for all elements in the array.
-    'log1p', #(x[, out])	Return the natural logarithm of one plus the input array, element-wise.
-    'sqrt', #(x[, out])	Return the positive square-root of an array, element-wise.
-    'square', #(x[, out])	Return the element-wise square of the input.
-    'reciprocal', #(x[, out])	Return the reciprocal of the argument, element-wise.
-    'sin', #(x[, out])	Trigonometric sine, element-wise.
-    'cos', #(x[, out])	Cosine element-wise.
-    'tan', #(x[, out])	Compute tangent element-wise.
-    'arcsin', #(x[, out])	Inverse sine, element-wise.
-    'arccos', #(x[, out])	Trigonometric inverse cosine, element-wise.
-    'arctan', #(x[, out])	Trigonometric inverse tangent, element-wise.
-    'sinh', #(x[, out])	Hyperbolic sine, element-wise.
-    'cosh', #(x[, out])	Hyperbolic cosine, element-wise.
-    'tanh', #(x[, out])	Compute hyperbolic tangent element-wise.
-    'arcsinh', #(x[, out])	Inverse hyperbolic sine element-wise.
-    'arccosh', #(x[, out])	Inverse hyperbolic cosine, element-wise.
-    'arctanh', #(x[, out])	Inverse hyperbolic tangent element-wise.
-]
-
-_UNARY_BOOL = [  # return ndarrays
-    'isreal', #(x)	Returns a bool array, where True if input element is real.
-    'iscomplex', #(x)	Returns a bool array, where True if input element is complex.
-]
-
-_BINARY_MATH = [
-    'add', #(x1, x2[, out])	Add arguments element-wise.
-    'subtract', #(x1, x2[, out])	Subtract arguments, element-wise.
-    'multiply', #(x1, x2[, out])	Multiply arguments element-wise.
-    'divide', #(x1, x2[, out])	Divide arguments element-wise.
-    #'logaddexp', #(x1, x2[, out])	Logarithm of the sum of exponentiations of the inputs.   # work only for real
-    #'logaddexp2', #(x1, x2[, out])	Logarithm of the sum of exponentiations of the inputs in base-2. # work only for real
-    'true_divide', #(x1, x2[, out])	Returns a true division of the inputs, element-wise.
-    'floor_divide', #(x1, x2[, out])	Return the largest integer smaller or equal to the division of the inputs.
-    'power', #(x1, x2[, out])	First array elements raised to powers from second array, element-wise.
-    'fmax', #(x1, x2[, out])	Element-wise maximum of array elements.
-    'fmin', #(x1, x2[, out])	Element-wise minimum of array elements.
-    #'ldexp', #(x1, x2[, out])	Returns x1 * 2**x2, element-wise.
-    'maximum', #(x1, x2[, out])	Element-wise maximum of array elements.
-    'minimum', #(x1, x2[, out])	Element-wise minimum of array elements.
-]
-
-_BINARY_BOOL =[
-    'logical_and', # (x1, x2[, out])	Compute the truth value of x1 AND x2 element-wise.
-    'logical_or', #(x1, x2[, out])	Compute the truth value of x1 OR x2 element-wise.
-    'logical_xor', #(x1, x2[, out])	Compute the truth value of x1 XOR x2, element-wise.
-    'greater', #(x1, x2[, out])	Return the truth value of (x1 > x2) element-wise.
-    'greater_equal', #(x1, x2[, out])	Return the truth value of (x1 >= x2) element-wise.
-    'less', #(x1, x2[, out])	Return the truth value of (x1 < x2) element-wise.
-    'less_equal', #(x1, x2[, out])	Return the truth value of (x1 =< x2) element-wise.
-    'not_equal', #(x1, x2[, out])	Return (x1 != x2) element-wise.
-    'equal', #(x1, x2[, out])	Return (x1 == x2) element-wise.
-]
-
-_UNARY_MATH_nd = [  # return nd array not source
-    'zeros_like',
-    'ones_like',
-]
-
-_UNARY_OPS = ['neg', 'pos', 'abs']
-_BINARY_OPS = ['add', 'sub', 'mul', 'div', 'truediv',
-                'floordiv', 'mod', 'pow', 'and', 'xor', 'or']
-_METHODS = ['item', 'searchsorted']
-_UNARY_METHODS = ['astype', 'clip', 'conj', 'conjugate', 'round']
-
-# TODO: implement some of the following method directly in the class
-# NUMPY_REDUCE_METHODS = ['all', 'any']
-# NAN_REDUCE_METHODS = ['argmax', 'argmin', 'max', 'min', 'mean', 'sum', 'std', 'var', 'median']
-
-
-# =============================================================================
-# Location Indexer
-# =============================================================================
-class _LocIndexer(object):
-
-    def __init__(self, source):
-        self.source = source
-
-    def loc2index(self, loc, axis=-1):
-        if self.source.is_1d:
-            axis = -1
-        return loc2index(self.source.data, loc, axis)
-
-    def select(self, key):
-        """ Here we need to transform from a slice made with location
-        arguments, to a locational slice that
-        can be used by a numpy.array
-
-        """
-        # helpers
-
-        def _get_slice(key, i):
-
-            if not isinstance(key, slice):
-                item = self.loc2index(key, i)
-                newkey = slice(item, item + 1, None)
-
-            else:
-                start, stop, step = key.start, key.stop, key.step
-                start = self.loc2index(start, i) if start is not None else start
-                stop = self.loc2index(stop, i) if stop is not None else stop
-                step = self.loc2index(step, i) if step is not None else step
-                newkey = slice(start, stop, step)
-
-            return newkey
-
-        def _get_slice_by_label(key, slices):
-            # we have a label giving the dimension
-
-            for axis, dim in enumerate(self.source.dims):
-
-                if dim == key.start:
-
-                    if not is_sequence(key.stop):
-                        newkey = key.stop
-
-                    else:
-                        s, e = key.stop  # get the element of the slice if
-                        newkey = slice(s, e, None)
-                    ns = _get_slice(newkey, axis)
-                    # we append this slice to slices
-                    slices[axis] = ns
-
-            return slices
-
-        # we need to have a list of slice for each argument or a single slice
-        #  acting on the axis=0
-        # the given key can be a single argument or a single slice:
-
-        slices = [slice(None, None, None) for axis in self.source.dims]
-
-        if not is_sequence(key):
-            keys = [key, ]
-        else:
-            keys = key
-
-        for axis, key in enumerate(keys):
-
-            if not isinstance(key, slice):
-                # probably something like arr[10.7]
-                slices[axis] = _get_slice(key, axis)
-
-            else:
-                # it's a slice (the labelled dimension can be in start argument
-                if not isinstance(key.start, basestring):  # key.start not in
-                    #  self.data.dims:
-                    # a classical slice
-                    slices[axis] = _get_slice(key, axis)
-                else:
-                    if key.start not in self.source.dims:
-                        print("Error: the key '%s' doesn't exist" % key.start,
-                              file=sys.stderr)
-                        slices = [slice(0, 0, None) for axis in self.source.dims]
-                        return slices
-                    # a labelled  dimension is specified
-                    # we need to cycle on all dimension
-                    slices = _get_slice_by_label(key, slices)
-
-        return slices
-
-    def __getitem__(self, key):
-        newkey = self.select(key)
-        if len(newkey) == 1:
-            return self.source[newkey[0]]
-        else:
-            return self.source[newkey[0], newkey[1]]
-
-    def __setitem__(self, key, value):
-        newkey = self.select(key)
-        self.source[newkey] = value
-        # TODO: check if shape has changed
 
 # =============================================================================
 # Source class definition
@@ -282,8 +103,33 @@ class Source(HasTraits):
     loc = Property
 
     # *************************************************************************
+    # Constructor
+    # *************************************************************************
+    def __init__(self, *args, **kargs):
+
+        ### TODO
+
+        super(Source, self).__init__(*args, **kargs)
+
+    # *************************************************************************
     # public functions
     # *************************************************************************
+
+    def set(self, *args, **kargs):
+        values = None
+        units = None
+        if len(args)>0:
+            values = args[0]
+        if len(args)>1:
+            self.units = args[1]
+        if values is None:
+            values = kargs.get('values',[])
+        if units is None:
+            units = kargs.get('units', None)
+        self.units = units
+        self.data = values
+        if kargs:
+            super(Source, self).set(**kargs)
 
     # deprecated function
     def row(self, *args, **kargs):
@@ -426,7 +272,7 @@ class Source(HasTraits):
         y = self.data.index
         return pd.DataFrame(r, y, x)
 
-    def copy(self, deepcopy=True):
+    #def copy(self, deepcopy=True):
         """
         Make a copy of the source
 
@@ -439,10 +285,16 @@ class Source(HasTraits):
         -------
         source: Source
         """
-        if not deepcopy:
-            return copy.copy(self)  # shallow copy
-        else:
-            return copy.deepcopy(self)  # deep (recursive) copy
+    #    if not deepcopy:
+    #        return copy.copy(self)  # shallow copy
+    #    else:
+    #        return copy.deepcopy(self)  # deep (recursive) copy
+
+    def copy(self):
+        cls = type(self)
+        new = cls()
+        new.__setstate__(self.__getstate__())
+        return new
 
     def transpose(self, inplace=True):
         if not self.is_1d:
@@ -480,10 +332,10 @@ class Source(HasTraits):
         property setter: assign data
         """
         if isinstance(value, pd.DataFrame):
-            self._data = value
+            self._data = value.copy()
         else:
-            # noinspection PyArgumentList
-            raise ValueError('Must be a DataFrame')
+            self._data = pd.DataFrame(value.copy(), index=self._data.index,
+                                      columns=self._data.columns)
 
     # xunits
     def _get_xunits(self):
@@ -564,7 +416,7 @@ class Source(HasTraits):
             self._dims = val[-3:]
 
     # Read-only properties
-    # ---------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
 
     # data_orig
     def _get_data_orig(self):
@@ -618,7 +470,6 @@ class Source(HasTraits):
         if data is not None:
             return len(data.shape) == 2 and data.shape[-2] == 1
         else:
-            print('No data')
             return False
 
     # is_2d
@@ -630,7 +481,6 @@ class Source(HasTraits):
         if data is not None:
             return len(data.shape) == 2 and data.shape[-2] > 1
         else:
-            print('No data')
             return False
 
     # is_3d
@@ -642,7 +492,6 @@ class Source(HasTraits):
         if data is not None:
             return len(data.shape) == 3 and data.shape[-3] > 1
         else:
-            print('No data')
             return False
 
     # X
@@ -669,7 +518,7 @@ class Source(HasTraits):
         """
         Property getter: for location based indexing like pandas.
         """
-        return _LocIndexer(self)
+        return LocIndexer(self)
 
     # shape
     def _get_shape(self):
@@ -841,51 +690,143 @@ class Source(HasTraits):
         """
         raise NotImplementedError('should be implemented by subclass')
 
-    def __str__(self):
-
-        np.set_printoptions(precision=3, threshold=5, edgeitems=3, suppress=True,
-                            formatter={'all':lambda x: '%.2g' % x,
-                                       'complex_kind':lambda x: '%.2g%+.2gj' % (x.real, x.imag)})
-
+    def _print_info_(self, format="str"):
         if self:
-            txt = "<< Source|name: '%s'|type: %dD|dims: %s|shape: %s >>" % (
-            self.name, self.ndims, str(tuple(self.dims)), str(self.data.shape))
+            tdims = ""
+            for i, dim in enumerate(self.dims[-self.ndims:]):
+                if i<self.ndims-1:
+                    tdims += "rows: '%s'|"%dim
+                else:
+                    tdims += "columns: '%s'"%dim
+            tshape = '%d rows x %d columns'%self.shape
+            txt = "<< Source >>\n|| name: '%s' | %s | shape: %s ||\n" % (
+            self.name, tdims, tshape)
         else:
-            txt = "<< Source >> None"
-            return txt
+            txt = "None"
+            return None
+        if format=='html':
+            txt = txt.replace('<<', '<tr><td><h3>')
+            txt = txt.replace('>>', '</h3></td></tr>')
+            txt = txt.replace('||\n', '</td></tr>')
+            txt = txt.replace('||', '</td></tr><tr><td><b>')
+            txt = txt.replace('|', '</td><td><b>')
+            txt = txt.replace(':', '</b></td><td>')
+            txt = txt.replace(':', '</b></td><td>')
+        return txt
 
-        txt += '\n- data:\n'
-        arr = '%s ' % self.data.values
-        arr = arr.split('\n')
-        arr = ["\t%s" % a for a in arr]
-        arr = "\n".join(arr)
-        txt += arr
-        txt += '\n- coordinates:'
-        for k in self.dims[::-1]:
-            if k==self.dims[-1]:
-                txt += "\n\t* %s : %s" % (k, self.data.columns.values)
-            elif k==self.dims[-2]:
-                txt += "\n\t* %s : %s" % (k, self.data.index.values)
-            else:
-                raise NotImplementedError('Z not implemented')
+    def _print_data_(self, format="str", dim=None, val=None):
+        e = np.get_printoptions()['edgeitems']
+        n = 2*e+1 # number of item on a column
+        n = min(self.shape[-1], n)
+        if dim is None:
+            txt = "|| data |"
+            arr = '%s ' % self.data.values
+            arr = arr.strip().split('\n')
+            arr = ["\t%s" % a for a in arr]
+            arr = "\n".join(arr)
+            arr += '||\n'
+            txt += arr.replace(' ',';')
+
+            txt = txt.replace('\t;...,;', '\t;[%s]'%str('...,;'*n)[:-1])
+        else:
+            txt = "|| %s |"%dim
+            arr = '%s ' % val
+            arr = arr.strip().split('\n')
+            arr = ["\t%s" % a for a in arr]
+            arr = "\n".join(arr)
+            arr += '||\n'
+            txt += arr.replace(' ',';')
+        txt = txt.replace(',', '')
+        txt = txt.replace(';;', ';')
+        if format=='html':
+            colspan = (7 if self.ndims>1 else 5)
+            txt = txt.replace('<<', '<tr><td><h3>')
+            txt = txt.replace('>>', '</h3></td></tr>')
+            txt = txt.replace('||\n', '</b></td></tr>')
+            txt = txt.replace('||', '</td></tr><tr><td><b>')
+            txt = txt.replace('|', '</td><td colspan=%d>'%colspan)
+            txt = txt.replace(']\n\t;[', '</td></tr><tr><td>')
+            txt = txt.replace(']\n\t;...,;\n\t\;[', '</td></tr><tr><td>')
+            txt = txt.replace(';', '</td><td>')
+            txt = txt.replace('[', '<table><tr><td>')
+            txt = txt.replace(']', '</td></tr></table>')
+            txt = txt.replace(';', '</td><td>')
+            txt = txt.replace('<tr>', '\n<tr>')
+            txt = txt.replace('<table>', '\n<table>')
+            txt = txt.replace('</table>', '</table>\n')
+
+        return txt
+
+    def _printoptions(self, precision=3, threshold=5,
+                       edgeitems=4, suppress=True,
+                       formatter={
+                    'all':lambda x: '%.3g' % x.real,
+                    'complex_kind':lambda x: '%.3g%+.3gj' % (x.real, x.imag)}):
+        """
+        Set options fotr numpy array printing
+        """
+        np.set_printoptions(precision=precision,
+                            threshold=threshold,
+                            edgeitems=edgeitems,
+                            suppress=suppress,
+                            formatter=formatter)
+
+    def __str__(self):
+        '''
+        representation of the object as a string for prionting
+        '''
+        self._printoptions()
+
+        txt = self._print_info_()
+        if not txt:
+            return 'None'
+
+        txt += self._print_data_()
+        txt += self._print_data_(dim=self.dims[-1],
+                                 val=self.data.columns.values)
+        if self.ndims>1:
+            txt += self._print_data_(dim=self.dims[0],
+                                     val=self.data.index.values)
+        txt = txt.replace(';', ' ')
         return txt + '\n'
 
-    #
-    # injected  methods partly copied from xray - see github:
-    #
+    def _repr_html_(self):
+        """
+        representation of the object as an HTML string to display in notebook
+        """
+
+        self._printoptions()
+
+        txt = self._print_info_('html')
+        if not txt:
+            return 'None'
+        txt += self._print_data_('html')
+        txt += self._print_data_('html', dim=self.dims[-1],
+                                 val=self.data.columns.values)
+        if self.ndims>1:
+            txt += self._print_data_('html', dim=self.dims[0],
+                                     val=self.data.index.values)
+
+        return txt
+
+
+    # =========================================================================
+    # injected  methods (borrowed and modified from XRAY.)
+    # =========================================================================
     def _op_result(self, data):
         """Create the returned values of functions
         should be a source with the same size and coordinates
         """
         new = self.copy()
-        new.data = pd.DataFrame(data.copy(), index=self.data.index, columns=self.data.columns)
+        new.data = pd.DataFrame(data, index=self.data.index,
+                                columns=self.data.columns)
         return new
 
     @staticmethod
     def _unary_op(f):
         @functools.wraps(f)
         def func(self, *args, **kwargs):
-            data = f(self._data.values, *args, **kwargs)
+            data = f(self._data.values.copy(), *args, **kwargs)
             return self._op_result(data)
         return func
 
@@ -894,30 +835,34 @@ class Source(HasTraits):
         @functools.wraps(f)
         def func(self, other):
             if isinstance(other, Source):
-                other = other.data.values
-            data = f(self._data.values, other) if not reflexive else f(other, self._data.values)
+                other = other.data.values.copy()
+            data = f(self._data.values.copy(), other) \
+                        if not reflexive else f(other, self._data.values.copy())
             return self._op_result(data)
-
         return func
 
     @staticmethod
     def _inplace_binary_op(f):
         @functools.wraps(f)
         def func(self, other):
-            self.data.values = f(self._data.values, other)
+            self.data = f(self._data.values, other)
             return self
         return func
 
     @property
-    def __array_struct__(self):  # to emulate a numpy array
+    def __array_struct__(self):
+        # to emulate a numpy array
         struc = self.data.values.__array_struct__
         return struc
 
-    def __array_prepare__(self, *args):  # called when ufuncs are applied to the array
+    def __array_prepare__(self, *args):
+        # called when ufuncs are applied to the array
         obj = self.data.values.__array_prepare__(*args)
         return obj
 
-    def __array_wrap__(self, *args):  # called when element-wise  ufuncs are applied to the array not changing dims
+    def __array_wrap__(self, *args):
+        # called when element-wise ufuncs are applied to the array
+        # not changing dims
         uf, objs, huh = args[1]
         nobjs = []
         for obj in objs:
@@ -930,8 +875,138 @@ class Source(HasTraits):
             raise
         return self._op_result(data)
 
-###### Set array operators ########
+# *****************************************************************************
+# Set array operators
 # borrowed and modified from XRAY.
+# *****************************************************************************
+#
+# UFUNCS
+#
+_UNARY_MATH =[
+    'negative', #(x[, out])
+    # Numerical negative, element-wise.
+    'absolute', #(x[, out])
+    # Calculate the absolute value element-wise.
+    'rint', #(x[, out])
+    # Round elements of the array to the nearest integer.
+    'sign', #(x[, out])
+    # Returns an element-wise indication of the sign of a number.
+    'conj', #(x[, out])
+    # Return the complex conjugate, element-wise.
+    'exp', #(x[, out])
+    # Calculate the exponential of all elements in the input array.
+    'exp2', #(x[, out])
+    # Calculate 2**p for all p in the input array.
+    'log', #(x[, out])
+    # Natural logarithm, element-wise.
+    'log2', #(x[, out])
+    # Base-2 logarithm of x.
+    'log10', #(x[, out])
+    # Return the base 10 logarithm of the input array, element-wise.
+    'expm1', #(x[, out])
+    # Calculate exp(x) - 1 for all elements in the array.
+    'log1p', #(x[, out])
+    # Return the natural logarithm of one plus the input array, element-wise.
+    'sqrt', #(x[, out])
+    # Return the positive square-root of an array, element-wise.
+    'square', #(x[, out])
+    # Return the element-wise square of the input.
+    'reciprocal', #(x[, out])
+    # Return the reciprocal of the argument, element-wise.
+    'sin', #(x[, out])
+    # Trigonometric sine, element-wise.
+    'cos', #(x[, out])
+    # Cosine element-wise.
+    'tan', #(x[, out])
+    # Compute tangent element-wise.
+    'arcsin', #(x[, out])
+    # Inverse sine, element-wise.
+    'arccos', #(x[, out])
+    # Trigonometric inverse cosine, element-wise.
+    'arctan', #(x[, out])
+    # Trigonometric inverse tangent, element-wise.
+    'sinh', #(x[, out])
+    # Hyperbolic sine, element-wise.
+    'cosh', #(x[, out])
+    # Hyperbolic cosine, element-wise.
+    'tanh', #(x[, out])
+    # Compute hyperbolic tangent element-wise.
+    'arcsinh', #(x[, out])
+    # Inverse hyperbolic sine element-wise.
+    'arccosh', #(x[, out])
+    # Inverse hyperbolic cosine, element-wise.
+    'arctanh', #(x[, out])
+    # Inverse hyperbolic tangent element-wise.
+]
+
+_UNARY_BOOL = [  # return ndarrays
+    'isreal', #(x)
+    # Returns a bool array, where True if input element is real.
+    'iscomplex', #(x)
+    # Returns a bool array, where True if input element is complex.
+]
+
+_BINARY_MATH = [
+    'add', #(x1, x2[, out])
+    # Add arguments element-wise.
+    'subtract', #(x1, x2[, out])
+    # Subtract arguments, element-wise.
+    'multiply', #(x1, x2[, out])
+    # Multiply arguments element-wise.
+    'divide', #(x1, x2[, out])
+    # Divide arguments element-wise.
+    'true_divide', #(x1, x2[, out])
+    # Returns a true division of the inputs, element-wise.
+    'floor_divide', #(x1, x2[, out])
+    # Return the largest integer smaller or equal to the division of the inputs.
+    'power', #(x1, x2[, out])
+    # First array elements raised to powers from second array, element-wise.
+    'fmax', #(x1, x2[, out])
+    # Element-wise maximum of array elements.
+    'fmin', #(x1, x2[, out])
+    # Element-wise minimum of array elements.
+    'maximum', #(x1, x2[, out])
+    # Element-wise maximum of array elements.
+    'minimum', #(x1, x2[, out])
+    # Element-wise minimum of array elements.
+]
+
+_BINARY_BOOL =[
+    'logical_and', # (x1, x2[, out])
+    # Compute the truth value of x1 AND x2 element-wise.
+    'logical_or', #(x1, x2[, out])
+    # Compute the truth value of x1 OR x2 element-wise.
+    'logical_xor', #(x1, x2[, out])
+    # Compute the truth value of x1 XOR x2, element-wise.
+    'greater', #(x1, x2[, out])
+    # Return the truth value of (x1 > x2) element-wise.
+    'greater_equal', #(x1, x2[, out])
+    # Return the truth value of (x1 >= x2) element-wise.
+    'less', #(x1, x2[, out])
+    # Return the truth value of (x1 < x2) element-wise.
+    'less_equal', #(x1, x2[, out])
+    # Return the truth value of (x1 =< x2) element-wise.
+    'not_equal', #(x1, x2[, out])
+    # Return (x1 != x2) element-wise.
+    'equal', #(x1, x2[, out])
+    # Return (x1 == x2) element-wise.
+]
+
+_UNARY_MATH_nd = [  # return nd array not source
+    'zeros_like',
+    'ones_like',
+]
+
+_UNARY_OPS = ['neg', 'pos', 'abs']
+_BINARY_OPS = ['add', 'sub', 'mul', 'div', 'truediv',
+                'floordiv', 'mod', 'pow', 'and', 'xor', 'or']
+_METHODS = ['item', 'searchsorted']
+_UNARY_METHODS = ['astype', 'clip', 'conj', 'conjugate', 'round']
+
+# TODO: implement some of the following method directly in the class
+# NUMPY_REDUCE_METHODS = ['all', 'any']
+# NAN_REDUCE_METHODS = ['argmax', 'argmin', 'max', 'min', 'mean',
+#                                                'sum', 'std', 'var', 'median']
 
 def _inject_ops(cls):
     def op_str(name):
@@ -960,7 +1035,8 @@ def _inject_ops(cls):
 
     for name in _BINARY_OPS:  #in place and reflexive variants
         setattr(cls, op_str(name), cls._binary_op(op(name)))
-        setattr(cls, op_str('r' + name), cls._binary_op(op(name), reflexive=True))
+        setattr(cls, op_str('r' + name), cls._binary_op(op(name),
+                                                                reflexive=True))
         setattr(cls, op_str('i' + name), cls._inplace_binary_op(op('i' + name)))
 
     for name in _UNARY_METHODS:
@@ -969,10 +1045,10 @@ def _inject_ops(cls):
     for name in _METHODS:
         setattr(cls, name, _values_method_wrapper(name))
 
-
 _inject_ops(Source)
 
 
+# TESTING ####################################################################
 if __name__ == '__main__':
 
     # Test
@@ -998,9 +1074,10 @@ if __name__ == '__main__':
     sourceb = source1.copy()
 
     # modify sourceb
-    sourceb.data /= 2
+    sourceb /= 2
 
     # compare source and source2: should be different, right?
+    print(sourceb != source1)
     assert(sourceb != source1)
 
     # slicing on index
@@ -1034,6 +1111,8 @@ if __name__ == '__main__':
 
     # slicing on location
     print(source2.loc[:,0.58:0.72])
+    assert(np.all(source1.loc[0.58:0.72].data.columns \
+                  == source2.loc[:,0.58:0.72].data.columns))
 
     # get  a single item by index
     print(source2[:,10])
@@ -1079,7 +1158,8 @@ if __name__ == '__main__':
         except TypeError as e:
             print("ERROR: ",e.message, file=sys.stderr)
 
-        assert isinstance(b, Source), "%s(b) is not Source (type(b): %s)" % (f,type(b))
+        assert isinstance(b, Source), \
+            "%s(b) is not Source (type(b): %s)" % (f,type(b))
         assert b is not a
 
     print('\nUNARY MATH nd')
@@ -1090,7 +1170,8 @@ if __name__ == '__main__':
         except TypeError as e:
             print("ERROR: ",e.message, file=sys.stderr)
 
-        assert isinstance(b, np.ndarray), "%s(b) is not nd.array (type(b): %s)" % (f,type(b))
+        assert isinstance(b, np.ndarray), \
+            "%s(b) is not nd.array (type(b): %s)" % (f,type(b))
         assert b is not a
 
     print('\nUNARY BOOL')
@@ -1101,7 +1182,8 @@ if __name__ == '__main__':
         except TypeError as e:
             print("ERROR: ",e.message, file=sys.stderr)
 
-        assert isinstance(b, np.ndarray), "%s(b) is not nd.array (type(b): %s)" % (f,type(b))
+        assert isinstance(b, np.ndarray),\
+            "%s(b) is not nd.array (type(b): %s)" % (f,type(b))
         assert b is not a
 
     # Binary ufuncs
@@ -1112,7 +1194,8 @@ if __name__ == '__main__':
             if DEBUG : print(f, c)
         except TypeError as e:
             print("ERROR: ",e.message, file=sys.stderr)
-        assert isinstance(b, Source), "%s(b) is not Source (type(b): %s)" % (f,type(c))
+        assert isinstance(b, Source), \
+            "%s(b) is not Source (type(b): %s)" % (f,type(c))
 
     # basic ops
     assert (a+b)[4] == a[4] + b[4]
@@ -1158,3 +1241,7 @@ if __name__ == '__main__':
     print("b", b)
     c = a + b / a
     print(c)
+
+
+    print("source", a)
+    print("square of source", a**2)
