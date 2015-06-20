@@ -18,11 +18,13 @@ from __future__ import print_function
 # stdlib
 import sys
 import copy
+import functools
+import operator
 
 # third-party
+import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-
 from traits.api import HasTraits, Property, Instance, List, Str, Either
 
 # -----------------------------------------------------------------------------
@@ -32,6 +34,88 @@ from masai.core.utils.misc import is_sequence, loc2index
 
 # constants
 DEBUG = True
+
+#
+# UFUNCS
+#
+_UNARY_MATH =[
+    'negative', #(x[, out])	Numerical negative, element-wise.
+    'absolute', #(x[, out])	Calculate the absolute value element-wise.
+    'rint', #(x[, out])	Round elements of the array to the nearest integer.
+    'sign', #(x[, out])	Returns an element-wise indication of the sign of a number.
+    'conj', #(x[, out])	Return the complex conjugate, element-wise.
+    'exp', #(x[, out])	Calculate the exponential of all elements in the input array.
+    'exp2', #(x[, out])	Calculate 2**p for all p in the input array.
+    'log', #(x[, out])	Natural logarithm, element-wise.
+    'log2', #(x[, out])	Base-2 logarithm of x.
+    'log10', #(x[, out])	Return the base 10 logarithm of the input array, element-wise.
+    'expm1', #(x[, out])	Calculate exp(x) - 1 for all elements in the array.
+    'log1p', #(x[, out])	Return the natural logarithm of one plus the input array, element-wise.
+    'sqrt', #(x[, out])	Return the positive square-root of an array, element-wise.
+    'square', #(x[, out])	Return the element-wise square of the input.
+    'reciprocal', #(x[, out])	Return the reciprocal of the argument, element-wise.
+    'sin', #(x[, out])	Trigonometric sine, element-wise.
+    'cos', #(x[, out])	Cosine element-wise.
+    'tan', #(x[, out])	Compute tangent element-wise.
+    'arcsin', #(x[, out])	Inverse sine, element-wise.
+    'arccos', #(x[, out])	Trigonometric inverse cosine, element-wise.
+    'arctan', #(x[, out])	Trigonometric inverse tangent, element-wise.
+    'sinh', #(x[, out])	Hyperbolic sine, element-wise.
+    'cosh', #(x[, out])	Hyperbolic cosine, element-wise.
+    'tanh', #(x[, out])	Compute hyperbolic tangent element-wise.
+    'arcsinh', #(x[, out])	Inverse hyperbolic sine element-wise.
+    'arccosh', #(x[, out])	Inverse hyperbolic cosine, element-wise.
+    'arctanh', #(x[, out])	Inverse hyperbolic tangent element-wise.
+]
+
+_UNARY_BOOL = [  # return ndarrays
+    'isreal', #(x)	Returns a bool array, where True if input element is real.
+    'iscomplex', #(x)	Returns a bool array, where True if input element is complex.
+]
+
+_BINARY_MATH = [
+    'add', #(x1, x2[, out])	Add arguments element-wise.
+    'subtract', #(x1, x2[, out])	Subtract arguments, element-wise.
+    'multiply', #(x1, x2[, out])	Multiply arguments element-wise.
+    'divide', #(x1, x2[, out])	Divide arguments element-wise.
+    #'logaddexp', #(x1, x2[, out])	Logarithm of the sum of exponentiations of the inputs.   # work only for real
+    #'logaddexp2', #(x1, x2[, out])	Logarithm of the sum of exponentiations of the inputs in base-2. # work only for real
+    'true_divide', #(x1, x2[, out])	Returns a true division of the inputs, element-wise.
+    'floor_divide', #(x1, x2[, out])	Return the largest integer smaller or equal to the division of the inputs.
+    'power', #(x1, x2[, out])	First array elements raised to powers from second array, element-wise.
+    'fmax', #(x1, x2[, out])	Element-wise maximum of array elements.
+    'fmin', #(x1, x2[, out])	Element-wise minimum of array elements.
+    #'ldexp', #(x1, x2[, out])	Returns x1 * 2**x2, element-wise.
+    'maximum', #(x1, x2[, out])	Element-wise maximum of array elements.
+    'minimum', #(x1, x2[, out])	Element-wise minimum of array elements.
+]
+
+_BINARY_BOOL =[
+    'logical_and', # (x1, x2[, out])	Compute the truth value of x1 AND x2 element-wise.
+    'logical_or', #(x1, x2[, out])	Compute the truth value of x1 OR x2 element-wise.
+    'logical_xor', #(x1, x2[, out])	Compute the truth value of x1 XOR x2, element-wise.
+    'greater', #(x1, x2[, out])	Return the truth value of (x1 > x2) element-wise.
+    'greater_equal', #(x1, x2[, out])	Return the truth value of (x1 >= x2) element-wise.
+    'less', #(x1, x2[, out])	Return the truth value of (x1 < x2) element-wise.
+    'less_equal', #(x1, x2[, out])	Return the truth value of (x1 =< x2) element-wise.
+    'not_equal', #(x1, x2[, out])	Return (x1 != x2) element-wise.
+    'equal', #(x1, x2[, out])	Return (x1 == x2) element-wise.
+]
+
+_UNARY_MATH_nd = [  # return nd array not source
+    'zeros_like',
+    'ones_like',
+]
+
+_UNARY_OPS = ['neg', 'pos', 'abs']
+_BINARY_OPS = ['add', 'sub', 'mul', 'div', 'truediv',
+                'floordiv', 'mod', 'pow', 'and', 'xor', 'or']
+_METHODS = ['item', 'searchsorted']
+_UNARY_METHODS = ['astype', 'clip', 'conj', 'conjugate', 'round']
+
+# TODO: implement some of the following method directly in the class
+# NUMPY_REDUCE_METHODS = ['all', 'any']
+# NAN_REDUCE_METHODS = ['argmax', 'argmin', 'max', 'min', 'mean', 'sum', 'std', 'var', 'median']
 
 
 # =============================================================================
@@ -144,8 +228,9 @@ class Source(HasTraits):
     Abstract Source class
 
     """
-    name = Str('Unnamed')
-    description = Property
+    name = Str
+    description = Str
+    author = Str
 
     data_orig = Property
     _data_orig = Instance(pd.DataFrame)
@@ -398,7 +483,7 @@ class Source(HasTraits):
             self._data = value
         else:
             # noinspection PyArgumentList
-            self._data = self._make_dataframe(value)
+            raise ValueError('Must be a DataFrame')
 
     # xunits
     def _get_xunits(self):
@@ -760,7 +845,7 @@ class Source(HasTraits):
 
         np.set_printoptions(precision=3, threshold=5, edgeitems=3, suppress=True,
                             formatter={'all':lambda x: '%.2g' % x,
-                                       'complex_kind':lambda x: '%.2g%+.2g' % (x.real, x.imag)})
+                                       'complex_kind':lambda x: '%.2g%+.2gj' % (x.real, x.imag)})
 
         if self:
             txt = "<< Source|name: '%s'|type: %dD|dims: %s|shape: %s >>" % (
@@ -785,7 +870,107 @@ class Source(HasTraits):
                 raise NotImplementedError('Z not implemented')
         return txt + '\n'
 
+    #
+    # injected  methods partly copied from xray - see github:
+    #
+    def _op_result(self, data):
+        """Create the returned values of functions
+        should be a source with the same size and coordinates
+        """
+        new = self.copy()
+        new.data = pd.DataFrame(data.copy(), index=self.data.index, columns=self.data.columns)
+        return new
 
+    @staticmethod
+    def _unary_op(f):
+        @functools.wraps(f)
+        def func(self, *args, **kwargs):
+            data = f(self._data.values, *args, **kwargs)
+            return self._op_result(data)
+        return func
+
+    @staticmethod
+    def _binary_op(f, reflexive=False):
+        @functools.wraps(f)
+        def func(self, other):
+            if isinstance(other, Source):
+                other = other.data.values
+            data = f(self._data.values, other) if not reflexive else f(other, self._data.values)
+            return self._op_result(data)
+
+        return func
+
+    @staticmethod
+    def _inplace_binary_op(f):
+        @functools.wraps(f)
+        def func(self, other):
+            self.data.values = f(self._data.values, other)
+            return self
+        return func
+
+    @property
+    def __array_struct__(self):  # to emulate a numpy array
+        struc = self.data.values.__array_struct__
+        return struc
+
+    def __array_prepare__(self, *args):  # called when ufuncs are applied to the array
+        obj = self.data.values.__array_prepare__(*args)
+        return obj
+
+    def __array_wrap__(self, *args):  # called when element-wise  ufuncs are applied to the array not changing dims
+        uf, objs, huh = args[1]
+        nobjs = []
+        for obj in objs:
+            nobjs.append(obj.data)
+        nargs = (args[0],(uf, tuple(nobjs), huh))
+        try:
+            data = self._data.values.__array_wrap__(*nargs)
+        except:
+            print ("Unexpected error:", sys.exc_info()[0])
+            raise
+        return self._op_result(data)
+
+###### Set array operators ########
+# borrowed and modified from XRAY.
+
+def _inject_ops(cls):
+    def op_str(name):
+        return '__%s__' % name
+
+    def op(name):
+        return getattr(operator, op_str(name))
+
+    def _values_method_wrapper(name):
+        def func(self, *args, **kwargs):
+            return getattr(self.data, name)(*args, **kwargs)
+        func.__name__ = name
+        func.__doc__ = getattr(np.ndarray, name).__doc__
+        return func
+
+    def _method_wrapper(name):
+        def func(self, *args, **kwargs):
+            f = getattr(self, name)(*args, **kwargs)
+            return f
+        func.__name__ = name
+        func.__doc__ = getattr(np.ndarray, name).__doc__
+        return func
+
+    for name in _UNARY_OPS:
+        setattr(cls, op_str(name), cls._unary_op(op(name)))
+
+    for name in _BINARY_OPS:  #in place and reflexive variants
+        setattr(cls, op_str(name), cls._binary_op(op(name)))
+        setattr(cls, op_str('r' + name), cls._binary_op(op(name), reflexive=True))
+        setattr(cls, op_str('i' + name), cls._inplace_binary_op(op('i' + name)))
+
+    for name in _UNARY_METHODS:
+        setattr(cls, name, cls._unary_op(_method_wrapper(name)))
+
+    for name in _METHODS:
+        setattr(cls, name, _values_method_wrapper(name))
+
+
+_inject_ops(Source)
 
 
 if __name__ == '__main__':
@@ -877,10 +1062,99 @@ if __name__ == '__main__':
     print(source2.T)
 
     #2D not in place (we can not use the property T in this case
-    print('not in place')
+    print('NOT IN PLACE')
     print(source2)
     source3 = source2.transpose(inplace=False)
     source3.data *= 3
     print(source3)
     assert source3 != source2
 
+    print('\nUNARY FUNCTION')
+    a = source3
+
+    for f in _UNARY_MATH:
+        try:
+            b = getattr(np, f)(a)
+            if DEBUG : print(f, b)
+        except TypeError as e:
+            print("ERROR: ",e.message, file=sys.stderr)
+
+        assert isinstance(b, Source), "%s(b) is not Source (type(b): %s)" % (f,type(b))
+        assert b is not a
+
+    print('\nUNARY MATH nd')
+    for f in _UNARY_MATH_nd:
+        try:
+            b = getattr(np, f)(a)
+            if DEBUG : print(f, b)
+        except TypeError as e:
+            print("ERROR: ",e.message, file=sys.stderr)
+
+        assert isinstance(b, np.ndarray), "%s(b) is not nd.array (type(b): %s)" % (f,type(b))
+        assert b is not a
+
+    print('\nUNARY BOOL')
+    for f in _UNARY_BOOL:
+        try:
+            b = getattr(np, f)(a)
+            if DEBUG : print(f, b)
+        except TypeError as e:
+            print("ERROR: ",e.message, file=sys.stderr)
+
+        assert isinstance(b, np.ndarray), "%s(b) is not nd.array (type(b): %s)" % (f,type(b))
+        assert b is not a
+
+    # Binary ufuncs
+    b = source3.copy()/2.5
+    for f in _BINARY_MATH:
+        try:
+            c = getattr(np, f)(a, b)
+            if DEBUG : print(f, c)
+        except TypeError as e:
+            print("ERROR: ",e.message, file=sys.stderr)
+        assert isinstance(b, Source), "%s(b) is not Source (type(b): %s)" % (f,type(c))
+
+    # basic ops
+    assert (a+b)[4] == a[4] + b[4]
+    assert (a-b)[4] == a[4] - b[4]
+    assert (a/b)[4] == a[4] / b[4]
+    assert (a*b)[4] == a[4] * b[4]
+    assert (a//b)[4] == a[4] // b[4]
+    print("a+b")
+    print (a+b)
+
+    a = (a+b).copy()
+    for f in _UNARY_OPS:
+        print("try ",f)
+        b = getattr(a, "__%s__" % f)()
+        if DEBUG: print ('__%s__' %f, b)
+
+    for f in _BINARY_OPS:
+        try:
+            c = getattr(a, "__%s__" % f)(b)
+            if DEBUG: print ('__%s__' %f, c)
+        except TypeError as e:
+            print('__%s__' % f, e.message)
+
+    #_UNARY_METHODS test ['astype', 'clip', 'conj', 'conjugate', 'round']
+
+    b = a.astype(complex)
+    b = b.clip(2,8)
+    b = b.conj()
+    b = b.conjugate()
+    b = b.round(1)
+    print("OK ", b)
+
+    b = a.copy()
+    b = b.T
+    print(b)
+    print(a)
+    assert b.shape == a.shape[::-1]
+
+
+    a = source1[0:10]
+    b = source1[10:20]
+    print("a", a)
+    print("b", b)
+    c = a + b / a
+    print(c)
