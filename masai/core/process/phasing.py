@@ -23,7 +23,7 @@ import numpy as np
 import argparse
 
 from masai.core.process.proc_base import ps
-from masai.core.utils.misc import position2index
+from masai.core.utils.misc import loc2index
 from masai.core.fit.parameters import FitParameters
 from masai.core.fit.optimize import optimize
 from masai.core.process.baseline import basecorr
@@ -114,7 +114,7 @@ def pk(source=None, options='', axis=-1):
     if ppivot:
         # if the pivot is not None, it is given in spectral units
         # we need to transform into index
-        pivot = position2index(data, ppivot)
+        pivot = loc2index(data, ppivot)
     else:
         pivot = 0
     args.pivot = pivot
