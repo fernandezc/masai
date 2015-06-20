@@ -892,7 +892,7 @@ class Source(HasTraits):
 
         #if dim is not None:
         #    axis = self.get_axis_num(dim)
-
+        
         newdata = func(self.data.values, axis=axis, **kwargs)
         newdata = np.array([newdata])
 
@@ -1310,9 +1310,11 @@ if __name__ == '__main__':
 
     print("NAN_REDUCE_METHODS+NUMPY_REDUCE_METHODS\n------------------")
     for f in NAN_REDUCE_METHODS+NUMPY_REDUCE_METHODS:
-        b = getattr(np, "%s" % f)(a, axis=-1)
+        b = getattr(a, "%s" % f)(axis=-1)
         if DEBUG: print ('axis=-1 %s' %f, b)
-        b = getattr(np, "%s" % f)(a, axis=0)
+        b = getattr(a, "%s" % f)(axis=0)
         if DEBUG: print ('axis=0 %s' %f, b)
-        b = getattr(np, "%s" % f)(a)
+        b = getattr(a, "%s" % f)()
         if DEBUG: print ('axis:None %s' %f, b)
+
+    print(a.median())
