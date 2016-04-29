@@ -312,17 +312,16 @@ class Plot2d(HasTraits):
             clevelc[clevelc.size / 2 - 1:clevelc.size / 2 + 1] = np.NaN
             return clevelc
 
-        maximum = data.max()
         ms = maximum / spacing
         for xi in range(100):
             if ms * exponent ** xi > maximum:
                 xl = xi
                 break
-        if start != 0:
-            clevelc = [float(start) * ms * exponent ** xi
-                       for xi in range(xl)] + [ms * exponent ** xi for xi in range(xl)]
-        else:
-            clevelc = [ms * exponent ** xi for xi in range(xl)]
+        clevelc = [ms * exponent ** xi for xi in range(xl)]
+        if int(start) != 0:
+            clevelc = [- ms * exponent ** xi for xi in range(xl)[::-1]] + \
+                      clevelc
+
         return clevelc
 
     def _repr_html_(self):
@@ -336,5 +335,4 @@ if __name__ == '__main__':
     test plugin
     """
     pass
-
 
