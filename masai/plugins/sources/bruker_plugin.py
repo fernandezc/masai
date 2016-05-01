@@ -568,7 +568,7 @@ class Bruker(Source):
         if isinstance(data, pd.DataFrame):
             data.columns = self._scale(self.par)
             if is2d:
-                data.index = self._scale(self.par2)
+                data.index = self._scale(self.par2)[:data.shape[0]]
             elif is3d:
                 raise NotImplementedError('3D dataframe not yet implemented')
                 # TODO: implement this with pd.Panels or multiindex DataFrame
@@ -579,7 +579,7 @@ class Bruker(Source):
             if self.datatype in ['FIDSER']:
                 y = self.par2.lvarpars
             else:
-                y = self._scale(self.par2)
+                y = self._scale(self.par2)[:data.shape[0]]
             df = pd.DataFrame(data.astype(np.complex128), index=y, columns=x)
         elif is3d:
             raise NotImplementedError('3D dataframe not yet implemented')
