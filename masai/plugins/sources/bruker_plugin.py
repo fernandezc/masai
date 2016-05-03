@@ -557,7 +557,7 @@ class Bruker(Source):
         # read_only
         self._data_orig = data
 
-    # --------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------
     def _make_dataframe(self, data):
         """
         private function: Transform an array of data to pandas dataframe
@@ -565,8 +565,11 @@ class Bruker(Source):
 
         is2d = self.is_2d
         is3d = self.is_3d
+
+        x = self._scale(self.par)[:data.shape[-1]]
+
         if isinstance(data, pd.DataFrame):
-            data.columns = self._scale(self.par)
+            data.columns = x
             if is2d:
                 data.index = self._scale(self.par2)[:data.shape[0]]
             elif is3d:
@@ -574,13 +577,13 @@ class Bruker(Source):
                 # TODO: implement this with pd.Panels or multiindex DataFrame
             return data
 
-        x = self._scale(self.par)
         if is2d:
             if self.datatype in ['FIDSER']:
                 y = self.par2.lvarpars
             else:
                 y = self._scale(self.par2)[:data.shape[0]]
             df = pd.DataFrame(data.astype(np.complex128), index=y, columns=x)
+
         elif is3d:
             raise NotImplementedError('3D dataframe not yet implemented')
             # TODO: implement this with pd.Panels or multiindex DataFrame
@@ -812,11 +815,11 @@ class Bruker(Source):
             if self.is_2d:
                 if self.par2.units in ['us', 'ms', 's']:
                     self.par2.label = r'$\mathrm{time\,(%s)}$' % self.par.units
-                    self.par2.TD = self.data.shape[-1]
+                    self.par2.TD = self.data.shape[-2]
                 elif self.par2.units in ['hz', 'ppm']:
                     self.par2.label = r'$\mathrm{\delta\,(%s)}$' % \
                                       self.par.units
-                    self.par2.SI = self.data.shape[-1]
+                    self.par2.SI = self.data.shape[-2]
 
             if self.is_3d:
                 pass

@@ -150,3 +150,5 @@ class Pca(HasTraits):
 
 if __name__ == '__main__':
     print(Pca()._repr_html_())
+
+

@@ -276,6 +276,8 @@ class Plot2d(HasTraits):
         if not kargs.get('hold', False):
             self.show()
 
+        self.axe = axe
+
         # should be after all plot commands
         savename = kargs.get('savename', None)
         if savename:
