@@ -65,9 +65,6 @@ class Ftir(Source):
     plugin_type = Str("source")
 
     # specific attributes ----------------------------------------------------------
-
-    silent = Bool(True)
-
     par = Instance(addict.Dict)
     par2 = Instance(addict.Dict)
 
@@ -660,10 +657,7 @@ class Ftir(Source):
     # -------------------------------------------------------------------------------
     def _anytrait_changed(self, name, old, new):
 
-        if 'history' in name:
-            print(self.history[-1])
-
-        elif '_data' in name:
+        if '_data' in name:
             if new is None:
                 return
             if name == '_data_orig':

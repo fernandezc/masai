@@ -795,10 +795,9 @@ class Bruker(Source):
     # -------------------------------------------------------------------------------
     def _anytrait_changed(self, name, old, new):
 
-        if 'history' in name and not self.silent:
-            print(self.history[-1])
+        super(Bruker, self)._anytrait_changed(name, old, new)
 
-        elif '_data' in name:
+        if '_data' in name:
             if new is None:
                 return
 

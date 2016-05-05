@@ -36,6 +36,7 @@ from matplotlib import pyplot as pl
 # from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import MaxNLocator
+import matplotlib.patches as mpatches
 
 # ===============================================================================
 # other imports
@@ -216,9 +217,7 @@ class Plot2d(HasTraits):
         if hasattr(source, 'par'):
             ppm = source.par.isfreq
         if not xlabel:
-            xlabel = r'$\mathrm{time\, (%s)}$' % source.par.units \
-                if source.datatype in ['FID', 'SER'] and not ppm \
-                else r'$\mathrm{\delta\, (%s)}$' % source.par.units
+            xlabel = r'$\mathrm{time\, (%s)}$' % source.par.units                 if source.datatype in ['FID', 'SER'] and not ppm                 else r'$\mathrm{\delta\, (%s)}$' % source.par.units
         axe.set_xlabel(xlabel)
 
         #
@@ -226,9 +225,7 @@ class Plot2d(HasTraits):
         if hasattr(source, 'par2'):
             ppm = source.par2.isfreq
         if not zlabel and hasattr(source, 'par2'):
-            zlabel = r'$\mathrm{time\, (%s)}$' % source.par2.units \
-                if source.datatype in ['SER'] and not ppm \
-                else r'$\mathrm{\delta\, (%s)}$' % source.par2.units
+            zlabel = r'$\mathrm{time\, (%s)}$' % source.par2.units                 if source.datatype in ['SER'] and not ppm                 else r'$\mathrm{\delta\, (%s)}$' % source.par2.units
         if kargs.get('showz', True):
             axe.set_ylabel(zlabel)
         else:
@@ -240,17 +237,21 @@ class Plot2d(HasTraits):
         if proj == 'sky' or xproj == 'sky':
             dxp = spec.values.max(axis=0)
             xproj, = axex.plot(x, dxp)
+            self.xproj = xproj
         if proj == 'sky' or yproj == 'sky':
             dyp = spec.values.max(axis=1)
             yproj, = axey.plot(dyp, y)
-        if proj == 'sum' or 'sum' == xproj:
+            self.yproj = yproj
+        if proj == 'sum' or xproj == 'sum':
             dxp = spec.values.sum(axis=0)
             dxp = dxp / (dxp.max() - dxp.min())
             xproj, = axex.plot(x, dxp)
-        if 'sum' == proj or 'sum' == yproj:
+            self.xproj = xproj
+        if proj == 'sum' or yproj == 'sum':
             dyp = spec.values.sum(axis=1)
             dyp = dyp / (dyp.max() - dyp.min())
             yproj, = axey.plot(dyp, y)
+            self.yproj = yproj
 
         # Layout
         pl.tight_layout()
@@ -273,10 +274,9 @@ class Plot2d(HasTraits):
                 print(kargs)
                 getattr(axe, com)(*args, **kargs)
 
-        if not kargs.get('hold', False):
-            self.show()
-
-        self.axe = axe
+        if kargs.get('display', True):
+            if not kargs.get('hold', False):
+                self.show()
 
         # should be after all plot commands
         savename = kargs.get('savename', None)
@@ -293,11 +293,41 @@ class Plot2d(HasTraits):
         self.fig.savefig(savename)
         self.savename = savename
 
-        #===========================================================================
+    def _repr_html_(self):
+        if not self.axe:
+            return htmldoc(self.__init__.__doc__)
+        else:
+            return
 
+    def add_zone(self, z1, z2):
+        rect = mpatches.Rectangle((z1[0], z2[0]),
+                                  z1[-1]-z1[0],
+                                  z2[-1]-z2[0],
+                                  ec="k",
+                                  alpha=.5)
+        self.axe.add_patch(rect)
+
+    def add_xproj_zone(self, z):
+        if hasattr(self, "xproj"):
+            xp = self.xproj.get_xdata()
+            yp = self.xproj.get_ydata()
+            z = sorted(z)
+            select = np.argwhere((xp>z[0]) & (xp<z[-1])).flatten()
+            self.axex.fill_between(xp[select], 0, yp[select], alpha=.2)
+
+    def add_yproj_zone(self, z):
+        if hasattr(self, "yproj"):
+            xp = self.yproj.get_xdata()
+            yp = self.yproj.get_ydata()
+            z = sorted(z)
+            select = np.argwhere((yp>z[0]) & (yp<z[-1])).flatten()
+            self.axey.fill_betweenx(yp[select], 0, xp[select], alpha=.2)
+
+    #===========================================================================
     # clevels
     #===========================================================================
-    def clevels(self, data, **kargs):
+    @staticmethod
+    def clevels(data, **kargs):
         """Utility function to determine contours levels
         """
         # contours
@@ -321,20 +351,7 @@ class Plot2d(HasTraits):
                 break
         clevelc = [ms * exponent ** xi for xi in range(xl)]
         if int(start) != 0:
-            clevelc = [- ms * exponent ** xi for xi in range(xl)[::-1]] + \
-                      clevelc
+            clevelc = [- ms * exponent ** xi for xi in range(xl)[::-1]] +                       clevelc
 
         return clevelc
-
-    def _repr_html_(self):
-        if not self.axe:
-            return htmldoc(self.__init__.__doc__)
-        else:
-            return
-
-if __name__ == '__main__':
-    """
-    test plugin
-    """
-    pass
 

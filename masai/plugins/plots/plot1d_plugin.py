@@ -139,7 +139,7 @@ class Plot1d(HasTraits):
         if args:
             # look in args
             source = args[0]
-            if isinstance(source, DataFrame):
+            if isinstance(source, (DataFrame, Series)):
                 multiplots = False
             elif is_sequence(source):
                 # we will draw subplots

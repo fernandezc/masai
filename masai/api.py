@@ -115,6 +115,8 @@ params = {
 }
 rcParams.update(params)
 
+import numpy as np
+import matplotlib.pyplot as pl
 
 # load plugins
 from masai.plugins.catalog import *

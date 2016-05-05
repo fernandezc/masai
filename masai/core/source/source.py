@@ -22,7 +22,7 @@ import copy
 
 # third-party
 import pandas as pd
-from traits.api import HasTraits, Property, Instance, List, Str, Either
+from traits.api import HasTraits, Property, Instance, List, Str, Either, Bool
 
 # -----------------------------------------------------------------------------
 # Local utilities and constants
@@ -77,12 +77,16 @@ class Source(HasTraits):
 
     history = List
 
+    silent = Bool(True)
+
     # generic attibutes to easy access to coordinates
     X = Property
     Y = Property  # for 2D data
     Z = Property  # for 3D data (max for the moment)
 
     loc = Property
+
+    sym = Property
 
     # *************************************************************************
     # public functions
@@ -149,6 +153,15 @@ class Source(HasTraits):
         """
 
         return self._getsection(value, axis=0, byindex=byindex, width=width)
+
+    def get_projection(self, mode='sky', axis=1):
+
+        data = self.data
+        if mode == 'sky':
+            proj = data.max(axis=axis)
+        if mode == 'sum':
+            proj = data.sum(axis=axis)
+        return proj
 
     def get_limits(self, axis=-1):
         """
@@ -361,6 +374,22 @@ class Source(HasTraits):
         """
         return self.get_imag()
 
+    def _get_sym(self):
+        w, h = self.data.shape
+        if w != h:
+            return "cannot symmetrize: width # height"
+
+        r = self.data.values
+        r = r + r.copy().T
+        x = self.data.columns
+        y = self.data.index
+        newdata = pd.DataFrame(r, y, x)
+        # create a new source with the new data
+        newsource = self.copy()
+        newsource._data_orig = newdata
+        newsource.data = newdata
+        return newsource
+
     # ndims
     def _get_ndims(self):
         """
@@ -563,6 +592,13 @@ class Source(HasTraits):
         """
         raise NotImplementedError
 
+    # events
+    def _anytrait_changed(self, name, old, new):
+
+        if 'history' in name and not self.silent:
+            print(self.history[-1])
+
+
 #
 # Location Indexer
 #
@@ -676,7 +712,6 @@ class _LocIndexer(object):
         newkey = self.select(key)
         self.data.data.iloc[newkey] = value
         # TODO: check if shape has changed
-
 
 if __name__ == '__main__':
     pass
