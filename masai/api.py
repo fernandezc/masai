@@ -19,6 +19,8 @@ import os
 import warnings
 from functools import partial
 
+warnings.simplefilter("ignore", UserWarning)
+
 # third-party
 from IPython.core.magic import UsageError
      #(Magics, magics_class, line_magic, cell_magic, line_cell_magic)
@@ -39,6 +41,7 @@ if ip:
     #print("matplotlib currently uses the 'nbagg' backend. \n\tYou can change it using e.g., plt.switch_backend('qt4agg') or %matplotlib inline")
 
 from matplotlib import rcParams
+warnings.simplefilter("once", UserWarning)
 
 # -----------------------------------------------------------------------------
 # Local utilities and constants
@@ -47,7 +50,21 @@ from matplotlib import rcParams
 import version as v
 
 # constants
-DEBUG = False
+DEBUG = True
+
+
+import logging
+if DEBUG:
+    level = logging.DEBUG
+
+logger = logging.getLogger('masai')
+handlers = logger.handlers
+if len(handlers) > 1:
+    h = handlers[0]
+s = logging.StreamHandler()
+py_warnings = logging.getLogger('py.warnings')
+logger.addHandler(s)
+py_warnings.addHandler(s)
 
 # settings
 warnings.simplefilter("ignore", DeprecationWarning)
@@ -55,15 +72,19 @@ warnings.simplefilter("ignore", FutureWarning)
 preferences = v.preferences
 version = v.get_version()
 
+# set logger level
+logger.setLevel(logging.DEBUG)
+
 # display the version number to the end user
-print("MASAI api loaded: version %s" % version)
+logger.info("MASAI api loaded: version %s" % version)
 
 # display the current directory
-print("\nThe current directory is <%s>" % os.getcwd())
+logger.info("\nThe current directory is <%s>" % os.getcwd())
 
 # set access to some other directories
 MASAI = preferences.get('api.masai')
-print('MASAI root directory is <%s>' % MASAI)
+logger.info('MASAI root directory is <%s>' % MASAI)
+
 myexemples = partial(os.path.join, MASAI, 'doc', 'tutorial', 'exemples')
 myfigures = partial(os.path.join, MASAI, 'doc', 'tutorial', 'figures')
 

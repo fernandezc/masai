@@ -27,9 +27,9 @@ import os
 from masai.api import *
 
 
-def read_fid(DATADIR, name, expno):
+def read_fid(DATADIR, name, expno, sr2=None, sr1=None):
     path = os.path.join(DATADIR, 'user', 'nmr', name, str(expno))
-    source = Bruker(path)
+    source = Bruker(path, sr2 = sr2, sr1= sr1)
     return source
 
 
@@ -66,6 +66,20 @@ class BasicTests(unittest.TestCase):
         f1d = read_fid(self.DATADIR, 'SPEC1D', 10)
         Process(f1d, transform="em 100; zf 0; ft")
         Process(f1d, transform="pk --fit_phc1")
+
+        SR = 1551.
+        source = read_fid(self.DATADIR, 'EXSY', 10, sr2 = SR, sr1= SR)
+        Process(source, transform='em 1 --k_shifted 1 0')
+        Process(source, transform='zf 0')
+        Process(source, transform='ft')
+        Process(source, transform='cl -4 13')
+        ph = 80
+        Process(source, transform='pk %.3f 0 --pivot 6.85' % ph)
+        Process(source, axis=0, transform='em 1')
+        Process(source, axis=0, transform='zf 2')
+        Process(source, axis=0, transform='ft')
+        Process(source, axis=0, transform='pk 2.5 0 --select cols --pivot 0')
+        Process(source, axis=0, transform='cl -4 13')
 
         f2d = read_fid(self.DATADIR, 'HMQC', 31)
         d6 = f2d.par.D[6] * 1.e3  # in ms

@@ -32,7 +32,6 @@ from masai.core.utils.misc import position2index, is_sequence
 # constants
 DEBUG = True
 
-
 # =============================================================================
 # Source class definition
 # =============================================================================
@@ -154,14 +153,14 @@ class Source(HasTraits):
 
         return self._getsection(value, axis=0, byindex=byindex, width=width)
 
-    def get_projection(self, mode='sky', axis=1):
+    def get_projection(self, proj='sky', axis=1):
 
         data = self.data
-        if mode == 'sky':
-            proj = data.max(axis=axis)
-        if mode == 'sum':
-            proj = data.sum(axis=axis)
-        return proj
+        if proj == 'sky':
+            d = data.max(axis=axis)
+        if proj == 'sum':
+            d = data.sum(axis=axis)
+        return d
 
     def get_limits(self, axis=-1):
         """
