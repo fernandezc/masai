@@ -505,7 +505,6 @@ class Source(HasTraits):
                 txt3 = ' from %.2f to %.2f' % (x0, x1)
             else:
                 txt3 = ' at %.2f' % x0
-            print(txt1 + txt2 + txt3)
 
         else:
             txt2 = ' by index'
@@ -517,6 +516,8 @@ class Source(HasTraits):
                 txt3 = ' from index %d to %d' % (lb, ub)
             else:
                 txt3 = ' at index %d' % lb
+
+        if not self.silent:
             print(txt1 + txt2 + txt3)
 
         if lb > ub:

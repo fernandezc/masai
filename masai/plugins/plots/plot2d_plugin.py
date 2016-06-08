@@ -115,6 +115,8 @@ class Plot2d(HasTraits):
             should we show the vertical axis
         hold: bool, optional, default is False
             if True, hold it until a new plot is performed
+        display:
+
         """
 
         if args:
@@ -205,7 +207,7 @@ class Plot2d(HasTraits):
         axe.set_ylim(ylim)
 
         # attribute
-        colormap = kargs.get('colormap', kargs.get('cmap', 'jet'))
+        colormap = kargs.get('colormap', kargs.get('cmap', 'viridis'))
         lw = kargs.get('linewidth', kargs.get('lw', 1.))
         alpha = kargs.get('alpha', kargs.get('alpha', .8))
 
@@ -276,16 +278,13 @@ class Plot2d(HasTraits):
 
         if kargs.get('display', True):
             if not kargs.get('hold', False):
-                self.show()
+                pl.show()
 
         # should be after all plot commands
         savename = kargs.get('savename', None)
         if savename:
             self.savename = savename
             self.fig.savefig(savename)
-
-    def show(self):
-        pl.show()
 
     def savefig(self, savename=None):
         if savename is None:

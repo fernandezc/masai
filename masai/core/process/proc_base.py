@@ -931,6 +931,7 @@ def ps(data, p0=0.0, p1=0.0, inv=False, pivot=0, is_exp=False):
         Pivot index
     is_exp: bool, optional
         True for exponential phase correction (in this case, p1 is the time constant tc)
+
     Returns
     -------
     ndata : ndarray

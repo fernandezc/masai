@@ -19,7 +19,7 @@ import os
 import warnings
 from functools import partial
 
-warnings.simplefilter("ignore", UserWarning)
+warnings.simplefilter('ignore', (DeprecationWarning, FutureWarning, UserWarning))
 
 # third-party
 from IPython.core.magic import UsageError
@@ -41,7 +41,6 @@ if ip:
     #print("matplotlib currently uses the 'nbagg' backend. \n\tYou can change it using e.g., plt.switch_backend('qt4agg') or %matplotlib inline")
 
 from matplotlib import rcParams
-warnings.simplefilter("once", UserWarning)
 
 # -----------------------------------------------------------------------------
 # Local utilities and constants

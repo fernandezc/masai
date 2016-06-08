@@ -66,17 +66,13 @@ def pk(source=None, options='', axis=-1):
     phc1 = 0
     if source:
 
-        if axis == -1:
+        if axis == -1 or axis==1:
             par = source.par
         else:
             par = source.par2
 
         if not par.isfreq:
             print('This source is not already transformed: are you sure this is what you want?')
-
-        # get the initial phase setting
-        phc0 = par.PHC0
-        phc1 = par.PHC1
 
     # positional arguments
     parser.add_argument('phases', default=(phc0, phc1), nargs='*', type=float, help='zero and first order phase')
@@ -97,6 +93,7 @@ def pk(source=None, options='', axis=-1):
     parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help="phc1 boundary")
     parser.add_argument('--byrow', '-br', action='store_true', help='to phase each row separately for series or 2D')
     parser.add_argument('--verbose', action='store_true', help='verbose flag')
+    parser.add_argument('--absolute', action='store_true', help='absolute flag: take the absolute value of phases')
 
     args = parser.parse_args(options.split())
     if not source:
@@ -109,6 +106,9 @@ def pk(source=None, options='', axis=-1):
         data = data.T
 
     # get initial phase and pivot
+    # get the initial phase setting
+    phc0_ = par.PHC0
+    phc1_ = par.PHC1
     phc0, phc1 = args.phases
     ppivot = args.pivot
     if ppivot:
@@ -125,6 +125,10 @@ def pk(source=None, options='', axis=-1):
     # if the correction is exponential we need a second parameter tc=phc1
     if args.exp:
         args.fit_phc1 = True
+
+    if not args.absolute:
+        phc0 =  phc0_ +  phc0
+        phc1 =  phc1_ +  phc1
 
     if not args.auto:
         # not automatic leaves here...
@@ -218,6 +222,7 @@ def autophase(data, args):
         dat = np.vstack(l)
 
     # apkmode
+    # --------
     if DEBUG:
         print('\nselect: ', select)
 
