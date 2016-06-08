@@ -40,12 +40,15 @@ def ft(source, options='', axis=-1):
         effective TD
     si: integer, optional
         size of the transformed spectrum
+    sr: float, optional
+        sample reference in Hz
+
     """
     # options evaluation
     parser = argparse.ArgumentParser(description='FT processing',
-                                     usage="""ft [--si [SI]] [--tdeff [TDEFF]]""")
+                           usage='ft [--si [SI]] [--tdeff [TDEFF]]')
     # positional arguments
-    parser.add_argument('--si', nargs='?', help='size of fourier transform')
+    parser.add_argument('--si', nargs=1, help='size of fourier transform')
     parser.add_argument('--tdeff', default=0, nargs='?', type=int, help='size of fourier transform')
     if axis == 0:
         parser.add_argument('--shear', default=None, type=int, nargs=2, help="p and q parameters for shearing")
@@ -108,23 +111,28 @@ def ft(source, options='', axis=-1):
     si = largest_power_of_2(max(si, par.TD))
     data = zf_size(data, si)
 
-    # shearing and shift
+    # SR
+    sfo12 = source.par.SFO1
+    bf12 = source.par.BF1
+    sf2 = source.par.SF
+    si2 = source.par.SI
+    sw2 = source.par.SW_h
+    O1 = (sfo12 - bf12) * 1.e6
+    SR = (sf2 - bf12) * 1.e6
+
     if axis == 0:
+        sfo11 = source.par2.SFO1
+        bf11 = source.par2.BF1
+        sf1 = source.par2.SF
+        sw1 = 1. / source.par.IN[0]
+        source.par2.SW_h = sw1
+
+        # shearing and shift
+
         shear = args.shear
         shift = args.shift
         if (shear is not None) or (shift is not None):
-            sfo12 = source.par.SFO1
-            sfo11 = source.par2.SFO1
-            bf12 = source.par.BF1
-            bf11 = source.par2.BF1
-            sf2 = source.par.SF
-            sf1 = source.par2.SF
-            si2 = source.par.SI
-            sw2 = source.par.SW_h
-            sw1 = 1. / source.par.IN[0]
-            source.par2.SW_h = sw1
-            O1 = (sfo12 - bf12) * 1.e6
-            SR = (sf2 - bf12) * 1.e6
+
 
             p0 = 0.
             p1 = 0.

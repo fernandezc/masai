@@ -18,7 +18,6 @@ class PCA(HasTraits):
     centered = Bool
     message = Str
 
-
     def __init__(self, specs,
                  threshold=99.9999, npc_min=2, npc_max=200,
                  centered=False):

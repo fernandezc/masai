@@ -508,7 +508,6 @@ def em(source=None, options='', axis=-1, **kargs):
     source.data = datv
     source.history.append('Exponential apodization lb:%.2f' % par.LB)
 
-
 #
 # apodization
 #

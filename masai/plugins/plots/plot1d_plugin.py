@@ -139,7 +139,7 @@ class Plot1d(HasTraits):
         if args:
             # look in args
             source = args[0]
-            if isinstance(source, DataFrame):
+            if isinstance(source, (DataFrame, Series)):
                 multiplots = False
             elif is_sequence(source):
                 # we will draw subplots
@@ -319,7 +319,7 @@ class Plot1d(HasTraits):
 
         if kargs.get('display', True):
             if not kargs.get('hold', False):
-                    self.show()
+                    pl.show()
 
         self.axe = axe
 
@@ -328,8 +328,6 @@ class Plot1d(HasTraits):
             self.savename = savename
             self.fig.savefig(savename)
 
-    def show(self):
-        pl.show()
 
     def savefig(self, savename=None):
         if savename is None:

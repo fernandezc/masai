@@ -19,6 +19,9 @@ import os
 import sys
 import glob
 import warnings
+import logging
+
+logger = logging.getLogger('masai')
 
 # third-party
 import pandas as pd
@@ -96,7 +99,7 @@ class Bruker(Source):
             par = self.par2
         unit = par.units
         if par.isfreq:
-            print('this axis is already processed: multiplicator set to 1')
+            logging.warning('this axis is already processed: multiplicator set to 1')
             return 1.
         elif unit == 'ms':
             return 1.e3
@@ -105,7 +108,7 @@ class Bruker(Source):
         elif unit == 'sec':
             return 1.
         else:
-            print('unknown unit scale')
+            logging.warning('unknown unit scale')
             return 1.
 
     # *******************************************************************************
@@ -167,8 +170,9 @@ class Bruker(Source):
         ----------
         path: str,
             path of the Bruker directory
+
         data_dir: str,
-            main strorage directory, optional
+            main storage directory, optional
         user: str, optional
             user name of the dataset
         name: str, optional
@@ -181,6 +185,8 @@ class Bruker(Source):
             processing number
         silent: bool
             should we output details
+        sr: float,
+            sample reference (in Hz) to change
 
         """
 
@@ -226,7 +232,7 @@ class Bruker(Source):
                 path = os.path.join(str(data_dir), str(user), 'nmr', str(name))
 
         if not os.path.exists(path):
-            print('Non existent path: ', path)
+            logging.error('Non existent path: ', path)
             # nothing else to try
             return
             # raise Exception('a valid path to an existing file is needed in
@@ -316,7 +322,7 @@ class Bruker(Source):
                 datatype = 'SER'
             else:
                 if not processed:
-                    print(
+                    logging.warning(
                         'No binary fid or ser found in %s.\nTry processed '
                         'files...' % path,
                         file=sys.stderr)
@@ -336,7 +342,7 @@ class Bruker(Source):
                     raise IOError(
                         "No Bruker binary file could be found in %s" % path)
                 elif processed:
-                    print(
+                    logging.warning(
                         "No processed Bruker binary file could be found in "
                         "%s. Use fid's." % path,
                         file=sys.stderr)
@@ -361,8 +367,7 @@ class Bruker(Source):
                             td = dic['acqu']['TD'] / 2
                             data = data.reshape(-1, td)
                         except ValueError:
-                            print("Inconsistency between TD's and data size")
-                            raise ValueError
+                            raise ValueError("Inconsistency between TD's and data size")
 
                 # reduce to td
                 ntd = dic['acqus']['TD'] / 2
@@ -478,6 +483,15 @@ class Bruker(Source):
             for key in adic.keys():
                 setattr(self, key, adic[key])
 
+            # case where SR was specified
+            SR = kargs.get('sr', kargs.get('sr2'))
+            if SR is not None:
+                self.par.SF = self.par.BF1 + SR * 1.e-6
+
+            SR1 = kargs.get('sr1')
+            if SR1 is not None and self.par.PARMODE>0:
+                self.par2.SF = self.par2.BF1 + SR1 * 1.e-6
+
             # we need to create a DataFrame with scales
             data = self._make_dataframe(data)
 
@@ -517,8 +531,7 @@ class Bruker(Source):
             # try to make a pseudo 2D.
             data = pd.concat(ldata)
             if data.shape[-1] != nc:
-                print('series of spectra not compatibles (scale different)',
-                      file=sys.stderr)
+                logger.error('series of spectra not compatibles (scale different)')
 
             # set the index using the provided list of varpar
             # or just take the dates
@@ -557,7 +570,7 @@ class Bruker(Source):
         # read_only
         self._data_orig = data
 
-    # --------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------
     def _make_dataframe(self, data):
         """
         private function: Transform an array of data to pandas dataframe
@@ -565,22 +578,25 @@ class Bruker(Source):
 
         is2d = self.is_2d
         is3d = self.is_3d
+
+        x = self._scale(self.par)[:data.shape[-1]]
+
         if isinstance(data, pd.DataFrame):
-            data.columns = self._scale(self.par)
+            data.columns = x
             if is2d:
-                data.index = self._scale(self.par2)
+                data.index = self._scale(self.par2)[:data.shape[0]]
             elif is3d:
                 raise NotImplementedError('3D dataframe not yet implemented')
                 # TODO: implement this with pd.Panels or multiindex DataFrame
             return data
 
-        x = self._scale(self.par)
         if is2d:
             if self.datatype in ['FIDSER']:
                 y = self.par2.lvarpars
             else:
-                y = self._scale(self.par2)
+                y = self._scale(self.par2)[:data.shape[0]]
             df = pd.DataFrame(data.astype(np.complex128), index=y, columns=x)
+
         elif is3d:
             raise NotImplementedError('3D dataframe not yet implemented')
             # TODO: implement this with pd.Panels or multiindex DataFrame
@@ -792,10 +808,9 @@ class Bruker(Source):
     # -------------------------------------------------------------------------------
     def _anytrait_changed(self, name, old, new):
 
-        if 'history' in name and not self.silent:
-            print(self.history[-1])
+        super(Bruker, self)._anytrait_changed(name, old, new)
 
-        elif '_data' in name:
+        if '_data' in name:
             if new is None:
                 return
 
@@ -812,11 +827,11 @@ class Bruker(Source):
             if self.is_2d:
                 if self.par2.units in ['us', 'ms', 's']:
                     self.par2.label = r'$\mathrm{time\,(%s)}$' % self.par.units
-                    self.par2.TD = self.data.shape[-1]
+                    self.par2.TD = self.data.shape[-2]
                 elif self.par2.units in ['hz', 'ppm']:
                     self.par2.label = r'$\mathrm{\delta\,(%s)}$' % \
                                       self.par.units
-                    self.par2.SI = self.data.shape[-1]
+                    self.par2.SI = self.data.shape[-2]
 
             if self.is_3d:
                 pass

@@ -71,6 +71,21 @@ def makestr(l):
     l = r'$%s$' % l
     return l
 
+def is_kernel():
+    """ Check if we are running from IPython
+
+    """
+    # from http://stackoverflow.com
+    # /questions/34091701/determine-if-were-in-an-ipython-notebook-session
+    import sys
+    if 'IPython' not in sys.modules:
+        # IPython hasn't been imported, definitely not
+        return False
+    from IPython import get_ipython
+    # check for `kernel` attribute on the IPython instance
+    return getattr(get_ipython(), 'kernel', None) is not None
+
+
 if __name__ == '__main__':
 
 
