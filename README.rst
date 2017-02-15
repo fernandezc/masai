@@ -63,6 +63,6 @@ When using Masaï for your own work, you are kindly requested to cite the progra
 
 	Christian Fernandez, 
 	Masaï: a framework for processing, analysing and modelling of solid state NMR spectra, 
-	http://www.numare.fr/masai, version 0.2, ENSICAEN/Université de Caen/CNRS, 2015
+	https://bitbucket.org/nmratlcs/masai, version 0.2, ENSICAEN/Université de Caen/CNRS, 2015
 
 .. |masai| replace:: **Masaï**
