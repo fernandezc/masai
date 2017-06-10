@@ -564,7 +564,7 @@ if __name__ == '__main__':
         source = Bruker(path)
         return source
 
-    def test_fitting():
+    def fitting():
         source = read_fid(DATADIR, 'SPEC1D', 10)
         print(source)
         Process(source, transform="em 50; zf 1; ft --tdeff 512")
@@ -612,5 +612,10 @@ if __name__ == '__main__':
             $ width: 6.0, 0, 10
         """
         f = Fit(source, script)
+        f.run(maxiter=200, every=200)
 
-    test_fitting()
+        p = Plot1d(source, lw=.5, modls='--',
+                   plot_model=True,
+                   offset=20, figsize=(4, 4))
+
+    fitting()

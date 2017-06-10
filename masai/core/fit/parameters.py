@@ -160,7 +160,7 @@ class FitParameters(UserDict):
                     upb = "none"
                 val = str(self.data[key])
 
-                return "%s: %s, %s, %s \n" % (keystring, val, lob, upb)
+                return "%s: %10.4f, %s, %s \n" % (keystring, float(val), lob, upb)
 
         #..............................................................
 
@@ -185,7 +185,7 @@ class FitParameters(UserDict):
         for model in models:
             message += "\nMODEL: %s\n" % model
             message += "shape: %s\n" % self.model[model]
-            for key in self.keys():
+            for key in sorted(self.keys()):
                 keyspl = key.split('_')
                 if not model in '_'.join(keyspl[1:]):
                     continue
