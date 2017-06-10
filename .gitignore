@@ -1,8 +1,7 @@
 # ipython, python and pycharm, eclipse
 
-org.eclipse.core.resources.prefs
 .ipynb_checkpoints
-.ipynb_checkpoints/
+
 *-test.ipynb
 .idea
 *.pyx
@@ -10,14 +9,13 @@ org.eclipse.core.resources.prefs
 *.egg-info/
 
 # masai
-masai.egg-info
 data/
 sandbox/
 biblio
 
 # images
 *.png
-*.eps
+*.jpg
 
 # OS junk files
 [Tt]humbs.db
@@ -51,6 +49,5 @@ shimvalues
 spnam0
 specpar
 
-applications/ephedrine
 applications
-.cache/v/cache
+.cache
