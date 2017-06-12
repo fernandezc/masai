@@ -1,0 +1,9 @@
+six
+ipython
+numpy >= 1.9
+scipy
+matplotlib
+setuptools
+traits
+apptools
+pandas

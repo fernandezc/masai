@@ -715,7 +715,7 @@ class Bruker(Source):
             si / 2)
 
         # remove last points * 2
-        rp = 4 * (phase // 2)
+        rp = int(4 * (phase // 2))
 
         # print("removed",rp)
 
