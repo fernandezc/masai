@@ -232,7 +232,7 @@ class Bruker(Source):
                 path = os.path.join(str(data_dir), str(user), 'nmr', str(name))
 
         if not os.path.exists(path):
-            logging.error('Non existent path: ', path)
+            logging.error('Non existent path: %s'% path)
             # nothing else to try
             return
             # raise Exception('a valid path to an existing file is needed in
