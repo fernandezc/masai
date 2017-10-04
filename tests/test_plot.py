@@ -41,7 +41,7 @@ import os
 from masai.api import *
 
 DATADIR = os.path.join(MASAI, 'doc','tutorial','exemples')
-assert DATADIR=="/Users/christian/Dropbox/PycharmProjects/masai/doc/tutorial/exemples"
+assert "/masai/doc/tutorial/exemples" in DATADIR
 
 def test_2Dbasics():
     user = 'user'
