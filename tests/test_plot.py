@@ -81,9 +81,33 @@ def test_2DEXCY():
     Process(source, axis=0, transform='pk -65 -200 --select cols --pivot 0.4') #manual phasinf first needed
     Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --pivot 0.4')
 
+#    p_2 = Plot2d(source, figsize=(3,2.7))
+
+#    row = source.get_col(80.88,width=1.)
+#    p_1 = Plot1d(row, reverse=True)
+
+def test_2DEXCY_TPPI():
+    user = 'user'
+    name = 'EXSY_TPPI'
+    expno = 45
+    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
+    source = Bruker(path)
+    Process(source, transform = 'em 5 --k_shifted 1 0')
+
+    Process(source, transform = 'zf 0')
+    Process(source, transform = 'ft')
+    Process(source, transform = 'cl -10 112')
+    Process(source, transform = 'pk --auto --fit_phc1')
+    Process(source, transform = 'pk -16 0')
+
+    Process(source, axis=0, transform='em 20')
+    Process(source, axis=0, transform='zf 0')
+    Process(source, axis=0, transform='ft')
+   # Process(source, axis=0, transform='pk -65 -200 --select cols --pivot 0.4') #manual phasinf first needed
+   # Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --pivot 0.4')
+
     p_2 = Plot2d(source, figsize=(3,2.7))
 
 #    row = source.get_col(80.88,width=1.)
 #    p_1 = Plot1d(row, reverse=True)
 
-test_2DEXCY()

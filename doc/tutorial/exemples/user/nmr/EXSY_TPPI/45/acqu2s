@@ -1,0 +1,22 @@
+##TITLE= Parameter file, TOPSPIN		Version 3.2
+##JCAMPDX= 5.0
+##DATATYPE= Parameter Values
+##NPOINTS= 110	$$ modification sequence number
+##ORIGIN= Bruker BioSpin GmbH
+##OWNER= nmr
+$$ 2016-03-11 14:52:08.339 +0100  nmr@lcs175n
+$$ /home/nmr/data/xenon-Husain Awala-275/nmr/HUS118 fully crystaline repeated275/45/acqu2s
+$$ process /opt/topspin3.2/prog/mod/go
+##$ACQT0= 0
+##$BF1= 110.732
+##$FnMODE= 3
+##$NUC1= <129Xe>
+##$NusJSP= 0
+##$NusT2= 1
+##$NusTD= 256
+##$O1= 8858.56
+##$SFO1= 110.74085856
+##$SW= 160.107991616249
+##$SW_h= 17730.4964539007
+##$TD= 109
+##END=
