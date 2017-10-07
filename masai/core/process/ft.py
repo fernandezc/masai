@@ -22,7 +22,7 @@ from __future__ import print_function, division
 # from traits.api import (HasTraits, Instance)
 import numpy as np
 import argparse
-from .proc_base import largest_power_of_2, zf_size, fft
+from .proc_base import largest_power_of_2, zf_size
 from .mqstmas import k_ratio
 
 __all__ = ["ft", ]
@@ -70,8 +70,11 @@ def ft(source, options='', axis=-1):
     # data on which we apply ft
     states = ('STATES' in par.encoding)
     tppi = ('TPPI' in par.encoding)
+
     if states:
         _makestates(source, tppi)
+    elif tppi:
+        _maketppi(source)
 
     data = source.data.values
 
@@ -81,7 +84,9 @@ def ft(source, options='', axis=-1):
 
 
     # read parameters TDeff and SI
-    tdeff = args.tdeff  #kargs.get('tdeff', par.TDeff)
+    # kargs.get('tdeff', par.TDeff)
+
+    tdeff = args.tdeff
     if tdeff > par.TD or tdeff < 4:
         tdeff = par.TD
 
@@ -198,7 +203,15 @@ def ft(source, options='', axis=-1):
                 data = data * phases
 
     # now perform the fft
-    data = fft(data)  #/float(si)
+    if axis == 0 and tppi:
+        tempr = np.fft.fft(zf_size(data.real, si*2))
+        #tempi = np.fft.fft(zf_size(data.imag, si*2))
+        data = tempr[:,0:si]
+        #datai = tempi[:,0:si]
+
+    else:
+        data = np.fft.fft(data)  #/float(si)
+        data = np.fft.fftshift(data, -1)
 
     # store the new pars
 
@@ -232,9 +245,18 @@ def _makestates(source, tppi=False):
     #data = ar.imag + ai.imag * 1.0j
 
     if tppi:
-        data[1::2] = -data[1::2]
+        data[1::2] = -data[1::2]  # not sure about this (case of the STATES-TPPI)
 
     source.par2.TD = data.shape[0]
 
     source.data = data
+    source.history.append('Data transform according to encoding %s' % source.par2.encoding)
+
+def _maketppi(source):
+    """
+    Transforms according to tppi procedure.
+
+    """
+    # ...
+    source.par2.TD = source.data.values.shape[0]
     source.history.append('Data transform according to encoding %s' % source.par2.encoding)

@@ -98,14 +98,14 @@ class Plot2d(HasTraits):
             line width
         colormap or cmap: str, optional
             color map definition
-        nc = int, default=20
+        nc: int, default=20
             number of contour levels (between -max and +max)
             where max is the maximum amplitude of the spectra.
             if there is no negative values,
             then at the maximum nc/2 contours will be displayed
-        exponent = float, default=1.2
+        exponent: float, default=1.2
             exponent
-        start = Integer, default=-1
+        start: Integer, default=-1
             start
         xlabel: str, optional
             label on the horizontal axis

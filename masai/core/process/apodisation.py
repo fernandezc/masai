@@ -562,6 +562,7 @@ class ApodModels(HasTraits):
         shifted = float(kargs.get('shifted'))
         states = kargs.get('states', True)
 
+
         x = self.data.columns.values
 
         f = np.exp(-np.pi * np.abs(x - shifted) * lb)
