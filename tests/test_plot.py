@@ -98,6 +98,27 @@ def test_2DEXCY():
 #    row = source.get_col(80.88,width=1.)
 #    p_1 = Plot1d(row, reverse=True)
 
+def test_2DEXCYSTATES():
+    user = 'user'
+    name = '160308'
+    expno = 29
+    path = os.path.join(DATADIR, user,'nmr',name, str(expno))
+    source = Bruker(path)
+    Process(source, transform='em 2 --k_shifted 1 0')
+    Process(source, transform='zf 0')
+    Process(source, transform='ft')
+    Process(source, transform='cl -1 12')
+    Process(source, transform = 'pk 88.2 -19.2 --pivot 9.2')
+    row = source.get_row(0, byindex=True)
+    #p_1 = Plot1d(row, reverse=True)
+    Process(source, axis=0, transform='em 10')
+    Process(source, axis=0, transform='zf 0')
+    Process(source, axis=0, transform='ft')
+    Process(source, axis=0,
+            transform='pk -65 -180 --pivot -0.4')  # manual phasinf first needed
+    row = source.get_col(9.25, width=0.)
+    p_1 = Plot1d(row, reverse=True)
+
 def test_2DEXCY_TPPI():
     user = 'user'
     name = 'EXSY_TPPI'

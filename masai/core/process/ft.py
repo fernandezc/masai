@@ -203,7 +203,7 @@ def ft(source, options='', axis=-1):
                 data = data * phases
 
     # now perform the fft
-    if axis == 0 and tppi:
+    if axis == 0 and tppi and not states:
         tempr = np.fft.fft(zf_size(data.real, si*2))
         #tempi = np.fft.fft(zf_size(data.imag, si*2))
         data = tempr[:,0:si]
