@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 from masai.core.process import proc_base
-from masai.core.utils.misc import loc2index
+from masai.core.utils.misc import position2index
 from masai.core.process.mqstmas import k_ratio
 
 __all__ = ["zf", "cs", "ls", "rs", "em", 'mc', 'pc', 'bc']
@@ -274,7 +274,7 @@ def cs(source=None, options='', axis=-1):
     ncs = args.ncs
     if args.time:
         sign = ncs / abs(ncs)
-        ncs = sign * loc2index(data, abs(ncs))
+        ncs = sign * position2index(data, abs(ncs))
     datv = data.values
     datv = proc_base.cs(datv, int(ncs))
     #if ncs<0:
@@ -340,7 +340,7 @@ def ls(source=None, options='', axis=-1):
 
     nls = args.nls
     if args.time:
-        nls = loc2index(data, nls)
+        nls = position2index(data, nls)
     datv = data.values
     datv = proc_base.ls(datv, int(nls))
 
@@ -405,7 +405,7 @@ def rs(source=None, options='', axis=-1):
 
     nrs = args.nrs
     if args.time:
-        nrs = loc2index(data, nrs)
+        nrs = position2index(data, nrs)
     datv = data.values
     datv = proc_base.rs(datv, int(nrs))
 

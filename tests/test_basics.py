@@ -109,13 +109,74 @@ class BasicTests(unittest.TestCase):
         Process(source, axis=0, transform='ft --shear 1 2 --shift 0')
         Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --verbose')
 
-    def test_2Dprocessing(self):
-        source = read_fid(self.DATADIR, 'HMQC', 31)
-        d6 = source.par.D[6]*1e3 # in ms
-        Process(source, transform = 'em 100 --shifted %.3f'%d6)
+        #TODO make tests also for plotting
 
 
+    def test_tutorial_basics(self):
 
+        # get the doc for a plugin
+        Bruker()
+
+        # specifications for the data to open
+        DATADIR = os.path.join(MASAI,'doc', 'tutorial', 'exemples')
+        user = 'user'
+        name = 'SPEC1D'
+        expno = 10
+
+        # load it
+        path = os.path.join(DATADIR, user,'nmr',name, str(expno))
+        source = Bruker(path)
+        source = Bruker(data_dir=DATADIR, user = 'user', name = 'SPEC1D', expno = 10)
+        source = Bruker(data_dir=DATADIR, user = 'user', name = 'SPEC1D', expno = 10)
+        print('All P:', source.par.P)
+        print('P2:', source.par.P[2])
+        print('DE:', source.par.DE)
+        p = Plot1d(source, display=False)  # basic default plot
+
+        p = Plot1d(source, imag=True,
+               figsize=(3.0,2.0), dpi=100, fontsize=8, xlim=(0, 4), c='brown',
+               display=False)
+
+        p = Plot1d(source, hold=True, color='brown',
+                   display=False)
+        p = Plot1d(source, axe=p.axe, imag=True, xlim=(0,4), color='orange', ls='--',
+                   display=False)
+                        # we pass a reference to the previous axe (a)
+
+        p = Plot1d(source, color='orange', ls='-', lw='5', alpha='.4', xlim=(0,4),
+                   commands = ["text(2.0, -0.1, 'xxxxx', ha='center', va='center', color='b' )",
+                               "text(2.0, -0.1, 'xxxxx', ha='center', va='center', color='g', rotation=90 )",
+                              ],
+                   display=False)
+
+        p = Plot1d(source, xlabel='decay (ms)', ylabel='a.u', xlim=(0,10),
+                   display=False)
+
+        source = Bruker(path)
+        Process(source, transform='em 50; zf 0; ft; pk -178 -10')
+        p = Plot1d(source, display=False)
+
+        source = Bruker(path)  # reset to original data
+        Process(source, transform="em 50; zf 1; ft") # 1 zerofilling
+        Process(source, "cl -50 50")
+        Process(source, "pk --auto")
+        ax = Plot1d(source, display=False)
+
+        source = Bruker(path)  # reset to original data
+        Process(source, transform="em 50; zf 1; ft") # 1 zerofilling
+        Process(source, "cl -50 50")
+        Process(source, "pk --auto --fit_phc1 --bound_phc1 180 --pivot 4.5")
+        a = Plot1d(source, display=False) #, xlim=(30,-10))
+
+        p = Plot1d(source, hold=True, display=False)
+        Process(source, "ab --mode poly")
+        Plot1d(source, axe=p.axe, display=False)
+
+        source = Bruker(path)  # reset to original data
+        Process(source, transform="em 50; zf 1; ft; pk --auto --fit_phc1 --bound_phc1 360 --pivot 4.5")
+        p = Plot1d(source, hold=True, display=False)
+        Process(source, "ab --mode poly")
+        p = Plot1d(source.par.baseline, axe=p.axe, xlim=(30,-10), reverse=True, display=False)
 
 if __name__ == '__main__':
     pass

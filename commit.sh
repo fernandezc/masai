@@ -12,7 +12,7 @@ py.test -x
 
 # go to the tutorial directry and test ipynb   # deactivated as runipy seems not to work with my Plot1d routine. TODO
 # cd ~/Dropbox/PycharmProjects/masai/doc/tutorial
-# python test_tutorial.py
+# python test_tutorial.py_Deactivated
 
 # return to masai directory
 cd ~/Dropbox/PycharmProjects/masai

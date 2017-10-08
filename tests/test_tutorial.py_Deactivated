@@ -21,10 +21,9 @@ from __future__ import print_function
 
 import unittest
 import os
-import codecs
 
-from IPython import nbformat
-from IPython.nbconvert.preprocessors.execute import ExecutePreprocessor
+from runipy.notebook_runner import NotebookRunner
+from IPython.nbformat.current import read, write
 
 class TutorialTests(unittest.TestCase):
 
@@ -32,31 +31,22 @@ class TutorialTests(unittest.TestCase):
         masai_dir = os.environ.get('MASAI')
         assert os.path.exists(masai_dir)
         self.path = os.path.join(masai_dir, 'doc', 'tutorial')
-        self.pp = ExecutePreprocessor()
-        self.pp.timeout = 300  # seconds
-        self.pp.interrupt_on_timeout = True
 
     def test_ipynb(self):
-
         ldir = os.listdir(self.path)
-        for filename in ldir:
-            if os.path.splitext(filename)[1]==".ipynb" \
-                    and not filename.startswith('~'):
-                print("\n >>>>>> running %s" % filename)
+        nb=0
+        for item in ldir:
+            if os.path.splitext(item)[1]==".ipynb":
+                ipynb = os.path.join(self.path, item)
+                print("\n >>>>>> running %s" % ipynb)
+                nb += 1
             else:
                 continue
-            ipynb = os.path.join(self.path, filename)
-            nb = nbformat.read(open(ipynb), as_version=4)
-            nb_executed, resources = self.pp.preprocess(nb, resources={})
-            for cell in nb_executed.cells:
-                # print(cell)
-                if "outputs" in cell.keys():
-                    outs = cell["outputs"]
-                    for out in outs:
-                        if "output_type" in out and \
-                                    str(out["output_type"])=="error":
-                            print(cell)
-                            print(outs)
-                            print(out['traceback'])
-                            raise Exception(out['ename'])
+            notebook = read(open(ipynb), 'json')
+            r = NotebookRunner(notebook)
+            r.run_notebook()
+            write(r.nb, open(ipynb, 'w'), 'json')
+
+        # is there any notebook tested?
+        assert nb>0
 
