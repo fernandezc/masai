@@ -62,6 +62,59 @@ def position2index(data, pos):
             dpos0 = dpos
     return idx
 
+def getsection(d, index, **kargs):
+    """
+    Extract a section by ppm (or Hz) position or by index
+
+    """
+
+    data = d.copy()
+
+    axis = kargs.get('axis', -1)
+    axis = range(data.ndim)[axis]
+
+    if axis == data.ndim - 1:
+        txt1 = 'taking horizontal (axis=%d) section' % axis
+    else:
+        data = data.T
+        txt1 = 'taking vertical (axis=%d) section' % axis
+
+    x = data.index
+    y = data.columns
+
+    byindex = kargs.get('byindex', False)
+    width = kargs.get('width', 0)
+
+    if not byindex:
+        txt2 = ' by position'
+        w2 = width / 2.0
+        lb = position2index(x, index - w2)
+        ub = position2index(x, index + w2)
+        x0 = x[lb]
+        x1 = x[ub]
+        if width != 0:
+            txt3 = ' from %.2f to %.2f' % (x0, x1)
+        else:
+            txt3 = ' at %.2f' % x0
+
+    else:
+        txt2 = ' by index'
+        w2 = int(width / 2)
+        lb = max(index - w2, 0)
+        ub = min(lb + width, x.size - 1)
+        ub -= width
+        if width != 0:
+            txt3 = ' from index %d to %d' % (lb, ub)
+        else:
+            txt3 = ' at index %d' % lb
+
+    if lb > ub:
+        lb, ub = ub, lb
+    section = data.iloc[lb:ub + 1].sum(axis=0)
+
+    assert section.size == y.size
+
+    return section
 
 ##### Formating #####
 

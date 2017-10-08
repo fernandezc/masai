@@ -22,8 +22,12 @@ from __future__ import print_function, division
 import numpy as np
 import argparse
 
+from ipywidgets import FloatSlider, interactive
+from IPython.display import display
+import matplotlib.pyplot as pl
+
 from masai.core.process.proc_base import ps
-from masai.core.utils.misc import position2index
+from masai.core.utils.misc import position2index, getsection
 from masai.core.fit.parameters import FitParameters
 from masai.core.fit.optimize import optimize
 from masai.core.process.baseline import basecorr
@@ -62,8 +66,45 @@ def pk(source=None, options='', axis=-1):
                            [--verbose]
                            [phases [phases ...]]
     """)
-    phc0 = 0
-    phc1 = 0
+
+    global data, par, interact
+
+    phc0 = None
+    phc1 = None
+
+    # positional arguments
+    parser.add_argument('phases', default=(phc0, phc1), nargs='*', type=float,
+                        help='zero and first order phase')
+    parser.add_argument('--pivot', '-pv', default=None, type=float,
+                        help='pivot position in spectral units')
+    parser.add_argument('--interactive', '-i',  default=None, nargs='*',
+                        help='Interative mode on selected section here to check phase')
+    parser.add_argument('--pos', default=(0,), nargs='*', type=float,
+                        help='row or column position where to check phase')
+    parser.add_argument('--shifted', default=0.0, type=float,
+                        help="position of the top in units of time")
+    parser.add_argument('--exp', '-ex', action='store_true', help='perform an exponential phase correction')
+    parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode')
+    parser.add_argument('--fit_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
+    parser.add_argument('--ediff', '-ef', default=1, type=int, help='order of the derivative for entropy calculation', )
+    parser.add_argument('--gamma', '-ga', default=1.0, type=float, help='weight', )
+    parser.add_argument('--select', '-st', default='standard', choices=['standard', 'max', 'cols','pos'],
+                        help='selection mode in automatic phasing', )
+    parser.add_argument('--threshold', '-th', default=50.0, type=int, help='default threshold for columns selection', )
+    parser.add_argument('--mode', '-m', default='negmin+entropy', help="position of the top in units of time")
+    parser.add_argument('--optmode', '-om', default='simplex', choices=['simplex', 'hopping'],
+                        help="method of optimisation")
+    parser.add_argument('--bound_phc0', '-bp0', default=360., type=float, help="phc0 boundary")
+    parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help="phc1 boundary")
+    parser.add_argument('--byrow', '-br', action='store_true', help='to phase each row separately for series or 2D')
+    parser.add_argument('--verbose', action='store_true', help='verbose flag')
+    #parser.add_argument('--absolute', action='store_true', help='absolute flag: take the absolute value of phases')
+
+    args = parser.parse_args(options.split())
+
+    if not source:
+        return
+
     if source:
 
         if axis == -1 or axis==1:
@@ -74,32 +115,8 @@ def pk(source=None, options='', axis=-1):
         if not par.isfreq:
             print('This source is not already transformed: are you sure this is what you want?')
 
-    # positional arguments
-    parser.add_argument('phases', default=(phc0, phc1), nargs='*', type=float, help='zero and first order phase')
-    parser.add_argument('--pivot', '-pv', default=None, type=float, help='pivot position in spectral units')
-    parser.add_argument('--shifted', default=0.0, type=float, help="position of the top in units of time")
-    parser.add_argument('--exp', '-ex', action='store_true', help='perform an exponential phase correction')
-    parser.add_argument('--auto', '-a', action='store_true', help='set to automatic phase mode')
-    parser.add_argument('--fit_phc1', '-u1', action='store_true', help='use phc1 in automatic phasing', )
-    parser.add_argument('--ediff', '-ef', default=1, type=int, help='order of the derivative for entropy calculation', )
-    parser.add_argument('--gamma', '-ga', default=1.0, type=float, help='weight', )
-    parser.add_argument('--select', '-st', default='standard', choices=['standard', 'max', 'cols'],
-                        help='selection mode in automatic phasing', )
-    parser.add_argument('--threshold', '-th', default=50.0, type=int, help='default threshold for columns selection', )
-    parser.add_argument('--mode', '-m', default='negmin+entropy', help="position of the top in units of time")
-    parser.add_argument('--optmode', '-om', default='simplex', choices=['simplex', 'hopping'],
-                        help="method of optimisation")
-    parser.add_argument('--bound_phc0', '-bp0', default=360., type=float, help="phc0 boundary")
-    parser.add_argument('--bound_phc1', '-bp1', default=10., type=float, help="phc1 boundary")
-    parser.add_argument('--byrow', '-br', action='store_true', help='to phase each row separately for series or 2D')
-    parser.add_argument('--verbose', action='store_true', help='verbose flag')
-    parser.add_argument('--absolute', action='store_true', help='absolute flag: take the absolute value of phases')
-
-    args = parser.parse_args(options.split())
-    if not source:
-        return
-
     # set data depending on the axis
+
     data = source.data
     if axis == 0:
         # transpose temporarily the data for indirect dimension ft
@@ -107,17 +124,37 @@ def pk(source=None, options='', axis=-1):
 
     # get initial phase and pivot
     # get the initial phase setting
-    phc0_ = par.PHC0
-    phc1_ = par.PHC1
+    if DEBUG:
+        print ('Current phases for axis %d : %f,%f'%(axis, par.PHC0, par.PHC1) )
+
     phc0, phc1 = args.phases
+
+    if phc0 is None and phc1 is None:
+        # phase were not given, read stored phase
+        args.phases = phc0, phc1 = par.PHC0, par.PHC1
+
+    # relative phases
+    phc0, phc1 = phc0 - par.PHC0, phc1 - par.PHC1
+
+    # absolute phases
+    par.PHC0, par.PHC1 = args.phases
+
+    # phases to apply
+    args.phases = phc0, phc1
+
+    # read pivot
     ppivot = args.pivot
-    if ppivot:
-        # if the pivot is not None, it is given in spectral units
-        # we need to transform into index
-        pivot = position2index(data, ppivot)
-    else:
-        pivot = 0
+    if ppivot is None:
+        ppivot = par.pivot
+    par.pivot = ppivot
+
+    # we need to transform into index
+    pivot = position2index(data, ppivot)
     args.pivot = pivot
+
+    if DEBUG:
+        print('Phases demanded for axis %d : %f,%f with pivot: %f' % (axis, par.PHC0, par.PHC1, ppivot))
+        print('Actual phases for axis %d  to apply: %f,%f with pivot: %f' % (axis, phc0, phc1, ppivot))
 
     sw = source.par.SW_h
     p_shifted = args.shifted = 0.360 * args.shifted * sw  # time are in ms
@@ -126,17 +163,101 @@ def pk(source=None, options='', axis=-1):
     if args.exp:
         args.fit_phc1 = True
 
-    if not args.absolute:
-        phc0 =  phc0_ +  phc0
-        phc1 =  phc1_ +  phc1
+    # INTERACTIVE MODE ---------------------
+    if args.interactive is not None:
 
-    if not args.auto:
-        # not automatic leaves here...
+        if DEBUG:
+            print('INTERACTIVE PHASING MODE')
+
+        interact = args.interactive
+        if interact == []:
+            interact = ['0']
+
+        # interactive phasing
+
+        ps0, ps1 = par.PHC0, par.PHC1
+
+        def phasing(ph0, ph1, pivot):
+
+            global interact
+
+            # set data depending on the axis
+            data = source.data.copy()
+            if axis == 0:
+                # transpose temporarily the data for indirect dimension ft
+                data = data.T
+
+            if axis == -1 or axis == 1:
+                par = source.par
+            else:
+                par = source.par2
+
+            p0 = (ph0 - ps0) * np.pi / 180.  # convert to radians
+            p1 = (ph1 - ps1) * np.pi / 180.
+
+            size = data.shape[-1]
+            pivot_ = position2index(data, pivot)
+            apod = np.exp(1.0j * (p0 + (p1 * (np.arange(size) - pivot_) / size)))
+            data = apod * data
+            fig = pl.figure(figsize=(4,2))
+            ax = fig.add_subplot(1, 1, 1)
+            ax.set_xlim((data.columns.max(),
+                         data.columns.min()))
+
+            if interact[0] == 'max':
+                i, j = np.unravel_index(np.abs(data.values).argmax(), data.values.shape)
+                #dat = data.values[i]
+                dat = getsection(data, i, width=1., axis=0)
+                ax.plot(data.columns, dat.values)
+            else:
+                for item in interact:
+                    pos = float(item)
+                    i = position2index(data.T, pos)  # index of a row
+                    dat = data.values[i]
+                    ax.plot(data.columns, dat)
+
+            ax.axvline(pivot, color='r', lw='.1' )
+            ax.axhline(0, color='g', lw='.1' )
+            pl.show()
+
+            print(
+              'ph0: {}  ph1: {}  pivot: {} (PHC0: {}'.format(ph0, ph1, pivot, par.PHC0) +
+              '\nWARNING THESE PHASE VALUES ARE NOT STORED IN THE SOURCE!' +
+              '\nSo you must use them in another `pk` command)'
+            )
+
+        w = interactive(phasing,
+                        ph0=FloatSlider(min=ps0-45, max=ps0+45, step=0.001,
+                                        value=ps0, continuous_update=False),
+                        ph1=FloatSlider(min=ps1-180, max=ps1+180, step=0.01,
+                                        value=ps1, continuous_update=False),
+                        pivot=FloatSlider(min=data.columns.min(),
+                                          max=data.columns.max(), step=0.001,
+                                          value=ppivot,
+                                          continuous_update=False))
+
+        output = w.children[-1]
+        display(w)
+
+        return w
+
+    # Manual mode ------------------------------
+
+    elif not args.auto:
+
+        if DEBUG:
+            print('MANUAL PHASE MODE')
+
+        # not interactive and not automatic leaves here...
         data = ps(data.values, phc0, phc1 + p_shifted, pivot=pivot,
                   is_exp=args.exp)  # this return an array not a dataframe
-        source.history.append('Phasing phc0:%.2f, phc1:%.2f' % (phc0, phc1))
+        source.history.append('Manual phasing phc0:%.2f, phc1:%.2f, pivot:%.2f ' % (par.PHC0, par.PHC1, par.pivot))
 
+    # Automatic mode ------------------------------
     else:
+        if DEBUG:
+            print('AUTOMATIC PHASE MODE')
+
         # APK...
         if args.select == 'cols' and source.is_2d and axis == 0:
             ar = picking(source, args.threshold, index=True)
@@ -152,18 +273,19 @@ def pk(source=None, options='', axis=-1):
             #merge all rows to recreate data
             data = np.vstack(rows)
         else:
-            data, phc0, phc1 = autophase(data.values, args)  # return an array not a dataframe
+            data, phc0, phc1 = autophase(data.values, args, par)  # return an array not a dataframe
 
         atxt = '(not optimized)' if not args.fit_phc1 else ''
 
         sbyrow = 'byrow' if args.byrow else ''
-        source.history.append('Auto-phasing %s:  phc0 = %.3f, phc1%s = %.3f' % (sbyrow, phc0, atxt, phc1))
+        source.history.append('Auto-phasing %s:  phc0 = %.3f, phc1%s = %.3f, pivot:%.2f' % (sbyrow, phc0, atxt, phc1, pivot))
+        # store the new phases
+        par.PHC0, par.PHC1 = phc0 , phc1
 
-    data = data - basecorr(data)
-
-    # store the new phases
-    par.PHC0 = phc0
-    par.PHC1 = phc1
+    try:
+        data = data - basecorr(data)
+    except:
+        pass
 
     # un-transpose the data if needed
     if axis == 0:
@@ -183,7 +305,7 @@ def _checkin(ph, bp):
     return ph
 
 
-def autophase(data, args):
+def autophase(data, args, par):
     """
     Automatic phasing of 1D or 2D spectra
     """
@@ -354,6 +476,7 @@ def autophase(data, args):
     # apply to the original data and return
     data = ps(data, phc0, phc1 + p_shifted, pivot=pivot, is_exp=is_exp)
     return data, phc0, phc1
+
 
 
 if __name__ == '__main__':

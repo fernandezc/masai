@@ -105,8 +105,8 @@ class Plot2d(HasTraits):
             then at the maximum nc/2 contours will be displayed
         exponent: float, default=1.2
             exponent
-        start: Integer, default=-1
-            start
+        negative: bool, default=True
+            Do we want negative level in contour plots
         xlabel: str, optional
             label on the horizontal axis
         ylabel: str, optional
@@ -334,13 +334,20 @@ class Plot2d(HasTraits):
         minimum = -maximum
         if kargs.has_key('spacing'):
             print("'spacing' is deprecated, use 'nc' instead.", file=sys.stderr)
+        if kargs.has_key('start'):
+            print("'start' is deprecated, use 'negative' instead.", file=sys.stderr)
+
         spacing = kargs.get('nc',kargs.get('spacing', 20))
         exponent = kargs.get('exponent', 1.2)
-        start = kargs.get('start', -1)
+        negative = kargs.get('start', kargs.get('negative', True))
+        if negative < 0:
+            negative=True
 
         if (exponent - 1.00) < .005:
             clevelc = np.linspace(minimum, maximum, spacing)
-            clevelc[clevelc.size / 2 - 1:clevelc.size / 2 + 1] = np.NaN
+            clevelc[clevelc.size // 2 - 1:clevelc.size // 2 + 1] = np.NaN
+            #except :
+            #    print()
             return clevelc
 
         ms = maximum / spacing
@@ -349,8 +356,8 @@ class Plot2d(HasTraits):
                 xl = xi
                 break
         clevelc = [ms * exponent ** xi for xi in range(xl)]
-        if int(start) != 0:
-            clevelc = [- ms * exponent ** xi for xi in range(xl)[::-1]] +                       clevelc
+        if negative:
+            clevelc = [- ms * exponent ** xi for xi in range(xl)[::-1]] + clevelc
 
         return clevelc
 
