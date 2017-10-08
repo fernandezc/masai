@@ -66,20 +66,32 @@ def test_2DEXCY():
     expno = 451
     path = os.path.join(DATADIR, user,'nmr',name, str(expno))
     source = Bruker(path)
-    Process(source, transform = 'em 5 --k_shifted 1 0')
 
+    Process(source, transform = 'em 5 --k_shifted 1 0')
     Process(source, transform = 'zf 0')
     Process(source, transform = 'ft')
-    Process(source, transform = 'cl -10 112')
-    Process(source, transform = 'pk --auto --fit_phc1')
-    Process(source, transform = 'pk -16 0')
-#    p_2 = Plot2d(source, figsize=(3,2.7))
+    Process(source, transform = 'cl -10 120')
+    Process(source, transform='pk -15 0 --pivot 82')
+    Process(source, transform='pk --interactive max --pivot 82')
+    Process(source, transform='pk ')
+    Process(source, transform='pk --interactive 0 3 ')
+    Process(source, transform='pk 0 0')
+    Process(source, transform='pk -1 0.1')  # manual
+    Process(source, transform = 'pk -16 0.1 --pivot 0.6') # manual
+    Process(source, transform='pk -5.5 0 --interactive max')
 
-    Process(source, axis=0, transform='em 20')
+    # Process(source, transform='pk --auto --fit_phc1')  # automatique
+
+    #    p_2 = Plot2d(source, figsize=(3,2.7))
+
+    Process(source, axis=0, transform='em 10')
     Process(source, axis=0, transform='zf 0')
     Process(source, axis=0, transform='ft')
-    Process(source, axis=0, transform='pk -65 -200 --select cols --pivot 0.4') #manual phasinf first needed
-    Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --pivot 0.4')
+    Process(source, axis=0, transform='pk -65 -180')
+    row = source.get_col(80.88, width=1.)
+    p_1 = Plot1d(row, reverse=True)
+    Process(source, axis=0, transform='pk --interactive 80.88 --pivot 0.4') #manual phasinf first needed
+   # Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --pivot 0.4')
 
 #    p_2 = Plot2d(source, figsize=(3,2.7))
 
@@ -106,7 +118,7 @@ def test_2DEXCY_TPPI():
    # Process(source, axis=0, transform='pk -65 -200 --select cols --pivot 0.4') #manual phasinf first needed
    # Process(source, axis=0, transform='pk 0 0 --auto --fit_phc1 --select cols --pivot 0.4')
 
-    p_2 = Plot2d(source, figsize=(3,2.7))
+    p_2 = Plot2d(source, figsize=(3,2.7), exponent=1)
 
 #    row = source.get_col(80.88,width=1.)
 #    p_1 = Plot1d(row, reverse=True)

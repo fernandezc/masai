@@ -123,7 +123,7 @@ class Process(HasTraits):
         transforms = rlines.sub(" ", transforms)
         transforms = transforms.lower().split(';')
 
-        axis = kargs.get('axis', -1)
+        self.axis = axis = kargs.get('axis', -1)
 
         for trans in transforms:
 
@@ -136,6 +136,7 @@ class Process(HasTraits):
                 command = trans
                 options = ''
 
+            self.w = None
             if 'em' in command:
                 em(source, options=options, axis=axis)
 
@@ -164,7 +165,7 @@ class Process(HasTraits):
                 ft(source, options=options, axis=axis)
 
             elif 'pk' in command:
-                pk(source, options=options, axis=axis)
+                self.w = pk(source, options=options, axis=axis)
 
             elif 'ab' in command:
                 ab(source, options=options, axis=axis)
@@ -178,6 +179,11 @@ class Process(HasTraits):
             elif 'lp' in command:
                 lp(source, options=options, axis=axis)
 
+    def apply(self):
+        # apply interactive the new phases
+        pk(self.source,
+           options='{ph0} {ph1} --pivot {pivot}'.format(**self.w.kwargs),
+           axis=self.axis)
 
 if __name__ == '__main__':
     import sys, os

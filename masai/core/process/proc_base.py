@@ -941,8 +941,13 @@ def ps(data, p0=0.0, p1=0.0, inv=False, pivot=0, is_exp=False):
     p0 = p0 * pi / 180.  # convert to radians
     p1 = p1 * pi / 180.
     size = data.shape[-1]
+    try:
+        dtype = data.dtype
+    except:
+        dtype = data.values.dtype #Dataframe
+
     if not is_exp:
-        apod = np.exp(1.0j * (p0 + (p1 * (np.arange(size) - pivot) / size))).astype(data.dtype)
+        apod = np.exp(1.0j * (p0 + (p1 * (np.arange(size) - pivot) / size))).astype(dtype)
         if inv:
             apod = 1 / apod
         return apod * data

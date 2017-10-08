@@ -28,6 +28,7 @@ sphinx_bootstrap_theme
 
 ipython
 ipykernel
+ipywidgets
 nb_conda
 nbbrowserpdf
 nbsphinx

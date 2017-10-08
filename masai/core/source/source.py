@@ -22,7 +22,8 @@ import copy
 
 # third-party
 import pandas as pd
-from traits.api import HasTraits, Property, Instance, List, Str, Either, Bool
+from traits.api import HasTraits, Property, Instance, Array, \
+    List, Str, Either, Bool
 
 # -----------------------------------------------------------------------------
 # Local utilities and constants

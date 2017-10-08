@@ -221,6 +221,9 @@ def ft(source, options='', axis=-1):
     par.isfreq = True
     par.units = 'ppm'
 
+    # reset all phases and pivot to zero
+    par.PHC0, par.PHC1, par.pivot = 0, 0, 0
+
     # un-transpose the data if needed
 
     if axis == 0:
@@ -250,7 +253,7 @@ def _makestates(source, tppi=False):
     source.par2.TD = data.shape[0]
 
     source.data = data
-    source.history.append('Data transform according to encoding %s' % source.par2.encoding)
+    source.history.append('Data transformed according to encoding %s' % source.par2.encoding)
 
 def _maketppi(source):
     """
@@ -259,4 +262,4 @@ def _maketppi(source):
     """
     # ...
     source.par2.TD = source.data.values.shape[0]
-    source.history.append('Data transform according to encoding %s' % source.par2.encoding)
+    source.history.append('Data transformed according to encoding %s' % source.par2.encoding)
