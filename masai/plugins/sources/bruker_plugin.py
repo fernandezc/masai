@@ -673,8 +673,9 @@ class Bruker(Source):
         else:
             grpdly = dic['acqus']['GRPDLY']
 
-        data = self._rm_dig_filter(data, decim, dspfvs, grpdly)
-        data = data[..., :dic['acqus']['TD'] / 2]
+        data, rp = self._rm_dig_filter(data, decim, dspfvs, grpdly)
+        td = dic['acqus']['TD'] / 2
+        data = data[..., :td - rp]
 
         return data
 
@@ -717,13 +718,9 @@ class Bruker(Source):
             si / 2)
 
         # remove last points * 2
-        rp = int(4 * (phase // 2))
+        rp = 0 # int(2 * (phase // 2))
 
-        # print("removed",rp)
-
-        ndata[..., -rp:] = 0j
-
-        return ndata
+        return ndata, rp
 
     def __getattr__(self, item):
         """ The item attribute was not found look for it in pars
