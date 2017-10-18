@@ -378,7 +378,8 @@ class Bruker(Source):
                 dic, data = read_pdata(npath, procs_files=par_files)
 
             # Clean dict for pdata keys
-            for key in dic.keys():
+            keys = list(dic.keys())
+            for key in keys:F
                 if key.startswith('pdata'):
                     newkey = key.split(os.path.sep)[-1]
                     dic[newkey] = dic.pop(key)
@@ -440,7 +441,8 @@ class Bruker(Source):
                 adic.par2.units = 'ms'
                 adic.par2.isfreq = False
 
-                if not adic.par2.FnMODE:  # For historical reasons,
+                if not adic.par2.FnMODE:
+                    # For historical reasons,
                     # MC2 is interpreted when the acquisition status
                     # parameter FnMODE has the value undefined, i.e. 0
                     adic.par2.FnMODE = int(adic.par2.MC2) + 1
