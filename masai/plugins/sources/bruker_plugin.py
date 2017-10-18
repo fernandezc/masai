@@ -379,7 +379,7 @@ class Bruker(Source):
 
             # Clean dict for pdata keys
             keys = list(dic.keys())
-            for key in keys:F
+            for key in keys:
                 if key.startswith('pdata'):
                     newkey = key.split(os.path.sep)[-1]
                     dic[newkey] = dic.pop(key)
